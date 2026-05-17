@@ -44,5 +44,4 @@ dependencies {
 
 tasks.shadowJar {
     archiveBaseName.set("fake-player-plugin")
-    relocate("org.bstats", "net.thenextlvl.portals.bstats")
 }
