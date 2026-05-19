@@ -14,7 +14,7 @@ import java.util.Set;
 
 public final class ConfigMigrator {
 
-  public static final int CURRENT_VERSION = 73;
+  public static final int CURRENT_VERSION = 74;
 
   private static boolean rawDebug = false;
 
@@ -142,6 +142,7 @@ public final class ConfigMigrator {
     if (stored < 71) anyChange |= v70to71(cfg);
     if (stored < 72) anyChange |= v71to72(plugin, cfg);
     if (stored < 73) anyChange |= v72to73(cfg);
+    if (stored < 74) anyChange |= v73to74(cfg);
 
     fillDefaults(plugin, cfg);
 
@@ -1052,6 +1053,15 @@ public final class ConfigMigrator {
       log("v72→v73", "removed join/leave delay settings from core config");
     }
     return changed;
+  }
+
+  private static boolean v73to74(YamlConfiguration cfg) {
+    if (!cfg.contains("logging.debug.license")) {
+      cfg.set("logging.debug.license", false);
+      log("v73→v74", "added logging.debug.license toggle (default false)");
+      return true;
+    }
+    return false;
   }
 
   private static boolean pruneUnknownKeys(

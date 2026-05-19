@@ -185,6 +185,10 @@ public final class Config {
     return isDebug() || bool("swap.debug", false);
   }
 
+  public static boolean debugLicense() {
+    return isDebug();
+  }
+
   public static boolean updateCheckerEnabled() {
     return cfg.getBoolean("update-checker.enabled", true);
   }
