@@ -476,7 +476,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     fppMetrics = new FppMetrics();
     if (Config.metricsEnabled()) {
-      fppMetrics.init(this, fakePlayerManager);
+      fppMetrics.init(this);
     } else {
       Config.debugStartup("Metrics disabled in config.yml - skipping FastStats init.");
     }
