@@ -1,520 +1,366 @@
 # Terms of Service
 
-**Effective Date:** May 2, 2026
-**Last Updated:** May 2, 2026
-**Version:** 4.0
+**Effective Date:** May 23, 2026  
+**Last Updated:** May 23, 2026  
+**Version:** 6.0
 
 ---
 
-> **Important:** Please read these Terms carefully before downloading, installing, or using Fake Player Plugin. By using the Plugin, you agree to be legally bound by these Terms in their entirety.
+> **Important:** Please read these Terms carefully before downloading, installing, or using Fake Player Plugin ("FPP"). By using the Plugin, you agree to be legally bound by these Terms in their entirety.
 
-> **Fake Player Plugin is available under a custom license.** The source code is publicly accessible for viewing and study, but commercial use, resale, and redistribution are **prohibited** without explicit written permission from the Developer (**@Bill_Hub** on Discord). See the [Copyright & License Notice](/legal/copyright) for full details.
-
----
-
-## Table of Contents
-
-1. [Definitions](#1-definitions)
-2. [Eligibility](#2-eligibility)
-3. [Acceptance of Terms](#3-acceptance-of-terms)
-4. [License Grant](#4-license-grant)
-5. [Intellectual Property](#5-intellectual-property)
-6. [Permitted Use](#6-permitted-use)
-7. [Prohibited Conduct](#7-prohibited-conduct)
-8. [Configuration and Data Ownership](#8-configuration-and-data-ownership)
-9. [Third-Party Services and Dependencies](#9-third-party-services-and-dependencies)
-10. [Updates, Maintenance, and Support](#10-updates-maintenance-and-support)
-11. [Disclaimer of Warranties](#11-disclaimer-of-warranties)
-12. [Limitation of Liability](#12-limitation-of-liability)
-13. [Indemnification](#13-indemnification)
-14. [Termination](#14-termination)
-15. [Dispute Resolution](#15-dispute-resolution)
-16. [Governing Law](#16-governing-law)
-17. [General Provisions](#17-general-provisions)
-18. [Contact Information](#18-contact-information)
+> **Fake Player Plugin is distributed under the Fake Player Plugin Custom License.** The source code is publicly accessible for viewing and study only. Redistribution, resale, sublicensing, hosted distribution, and commercial exploitation are prohibited unless expressly authorised in writing by the Developer.
 
 ---
 
-## 1. Definitions
+# Table of Contents
 
-For the purposes of these Terms of Service, the following definitions apply:
-
-- **"Plugin"** or **"FPP"** means the Fake Player Plugin software, including all its components, binaries, configuration files, documentation, and any updates or modifications thereto.
-- **"Developer"** or **"We"** means Bill_Hub (also known as El_Pepes), the individual developer and owner of the Plugin.
-- **"You"** or **"Licensee"** means the individual or legal entity that downloads, installs, or operates the Plugin.
-- **"Server"** means a Minecraft server instance on which the Plugin is installed and operated.
-- **"Player"** means any end-user who connects to a Minecraft server running the Plugin.
-- **"Bot"** or **"Fake Player"** means a simulated player entity created and managed by the Plugin.
-- **"Derivative Works"** means any modification, adaptation, or enhancement of the Plugin that is based on or incorporates any part of the Plugin.
-- **"Redistribution"** means the act of distributing, publishing, sharing, transmitting, or making available the Plugin (in whole or in part, original or modified) to any third party by any means.
-- **"Commercial Use"** means any use of the Plugin that is primarily intended for or directed toward commercial advantage or monetary compensation, including but not limited to resale, licensing for a fee, use in a commercial product or service, or use within a commercial organisation beyond internal server operations.
-- **"Plugin Data"** means configuration files, database files, backups, and any other data files generated or managed by the Plugin on your server.
-- **"Distribution Platform"** means any platform through which the Plugin is officially made available, including Modrinth, SpigotMC, Hangar (PaperMC), and BuiltByBit.
-- **"Network Mode"** means the plugin's `database.mode: NETWORK` configuration enabling multi-server synchronization via a shared MySQL database.
-
----
-
-## 2. Eligibility
-
-### 2.1 Age Requirement
-
-You must be at least 13 years of age, or the age of digital consent in your jurisdiction (whichever is higher), to use the Plugin. By using the Plugin, you represent and warrant that you meet this requirement.
-
-### 2.2 Authority
-
-If you are using the Plugin on behalf of an organization, you represent and warrant that you have the authority to bind that organization to these Terms, and that the organization agrees to be bound by them.
-
-### 2.3 Legal Capacity
-
-You represent that you are legally capable of entering into binding contracts under the laws of your jurisdiction.
+1. Definitions
+2. Eligibility
+3. Acceptance of Terms
+4. License Grant
+5. Intellectual Property Rights
+6. Permitted Use
+7. Prohibited Conduct
+8. Extensions and Addons
+9. Configuration and Data Ownership
+10. Third-Party Services and Dependencies
+11. Updates, Maintenance, and Support
+12. Disclaimer of Warranties
+13. Limitation of Liability
+14. Indemnification
+15. Termination
+16. Dispute Resolution
+17. Governing Law
+18. General Provisions
+19. Contact Information
 
 ---
 
-## 3. Acceptance of Terms
+# 1. Definitions
 
-By performing any of the following actions, you indicate your unconditional acceptance of these Terms:
+For the purposes of these Terms:
 
-- Downloading the Plugin from any distribution platform
-- Installing the Plugin on a Minecraft server
-- Running or executing the Plugin binary
-- Configuring or modifying the Plugin's configuration files
-- Using any feature, command, or API provided by the Plugin
-
-If you do not agree to these Terms, you must immediately stop downloading, installing, or using the Plugin and delete all copies from your systems.
-
----
-
-## 4. License Grant
-
-### 4.1 Custom License — Limited Permissions
-
-Fake Player Plugin is distributed under a **custom license**. The source code is publicly available at [https://github.com/Pepe-tf/fake-player-plugin](https://github.com/Pepe-tf/fake-player-plugin) for viewing and study. Subject to the terms of this license, you are permitted to:
-
-- Install and run the Plugin on Minecraft servers you own or directly operate
-- Configure the Plugin using its provided configuration files, commands, and documented APIs
-- View and study the Plugin's source code
-- Modify the Plugin's code **solely for your own private, non-commercial use** on servers you own or operate
-
-### 4.2 Prohibited Activities
-
-You are expressly **prohibited** from:
-
-- ❌ **Redistributing** the Plugin (original or modified) in any form — including sharing, repackaging, rehosting, or publishing on any platform
-- ❌ **Reselling** or **commercially using** the Plugin in any capacity — including embedding it in commercial products or services
-- ❌ Creating **derivative works for distribution** — whether open-source or proprietary
-- ❌ **Sublicensing** or transferring this license to any third party
-- ❌ Removing, altering, or obscuring any **copyright notices, attribution statements**, or license terms
-
-### 4.3 Requesting Additional Permissions
-
-Any permissions not explicitly granted above — including commercial use, redistribution, sublicensing, or derivative distribution — require **prior written permission** from the Developer. To request permission, contact:
-
-**Discord: @Bill_Hub** — [https://discord.gg/QSN7f67nkJ](https://discord.gg/QSN7f67nkJ)
-
-Requests will be reviewed on a case-by-case basis. Permission granted for one purpose does not extend to any other purpose.
-
-### 4.4 Retroactive Application
-
-This license applies to **all versions** of the Fake Player Plugin codebase, including but not limited to:
-- All past, current, and future releases, tags, and commits
-- All versions previously distributed under the MIT License or any other license
-- All forks, copies, or mirrors made prior to the effective date of this license
-- All derivative works created from any version of the codebase
-
-Continuing to use any version of the Plugin after the effective date constitutes acceptance of this license for all versions.
-
-### 4.5 Takedown Right
-
-The Developer (**@Bill_Hub**) reserves the sole and unconditional right to request the removal, takedown, or cessation of distribution of the Plugin (in whole or in part, original or modified) from any platform, repository, service, or distribution channel at any time and for any reason.
-
-Upon receiving a takedown request from the Developer, you must promptly:
-1. Remove all copies of the Plugin from public or shared repositories, websites, distribution platforms, and any other location accessible to third parties
-2. Cease all redistribution or commercial use of the Plugin
-
-### 4.6 Multi-Server Use
-
-Your license permits installation across multiple Minecraft server instances that you own or directly operate, including your own proxy networks, provided all usage remains non-commercial and in accordance with these Terms.
-
-### 4.7 Full License Text
-
-The complete license text is available in the [Copyright & License Notice](/legal/copyright) page and in the source repository.
+- **"Plugin"**, **"FPP"**, or **"Fake Player Plugin"** refers to the Fake Player Plugin software, including all binaries, source code, APIs, configuration files, assets, documentation, extensions API, and associated materials.
+- **"Developer"**, **"Licensor"**, **"We"**, or **"Us"** refers to Bill_Hub (also known as El_Pepes), the sole owner and developer of FPP.
+- **"You"** or **"Licensee"** refers to any person or legal entity that downloads, installs, configures, operates, or interacts with the Plugin.
+- **"Server"** means any Minecraft server instance using the Plugin.
+- **"Bot"** or **"Fake Player"** means a simulated player entity created or managed by the Plugin.
+- **"Extension"** or **"Addon"** means a third-party module loaded by FPP through the Extensions API.
+- **"Commercial Use"** means any use intended for commercial advantage, monetisation, resale, paid hosting, SaaS distribution, licensing, or revenue generation.
+- **"Redistribution"** means sharing, mirroring, uploading, republishing, bundling, transmitting, or otherwise distributing the Plugin or any modified version to third parties.
+- **"Derivative Work"** means any modification, adaptation, enhancement, or work based on the Plugin.
 
 ---
 
-## 5. Intellectual Property
+# 2. Eligibility
 
-### 5.1 Ownership
+## 2.1 Minimum Age
 
-The Plugin, including all source code, compiled code, internal logic, documentation, visual assets, and associated materials, is the intellectual property of the Developer and is released under the Fake Player Plugin Custom License. These Terms do not transfer any rights beyond those explicitly granted by the license. No title, ownership, or intellectual property rights in the Plugin are transferred to you.
+You must be at least 13 years old, or the minimum age required by your jurisdiction to consent to digital services.
 
-### 5.2 Trademarks and Branding
+## 2.2 Authority
 
-"Fake Player Plugin," "FPP," and associated logos and brand identifiers are proprietary marks of the Developer. You may not use these marks in any way that implies endorsement, partnership, sponsorship, or affiliation with the Developer without prior written consent.
+If You are using the Plugin on behalf of an organisation, You represent that You have authority to bind that organisation to these Terms.
 
-### 5.3 Feedback and Contributions
+## 2.3 Legal Compliance
 
-If you submit feedback, bug reports, feature suggestions, or other communications to the Developer (via Discord or any other channel), you hereby grant the Developer a perpetual, irrevocable, worldwide, royalty-free, sublicensable license to use, incorporate, modify, publish, and commercialise such feedback without any obligation, attribution, or compensation to you.
-
-### 5.4 Plugin Data
-
-You retain full ownership of all Plugin Data you create through your use of the Plugin, including configuration files, database records, custom bot names, and uploaded skin files. The Developer makes no claim of ownership over such data.
+You agree to comply with all applicable local, national, and international laws relating to use of the Plugin.
 
 ---
 
-## 6. Permitted Use
+# 3. Acceptance of Terms
 
-The Plugin is designed and licensed for the following legitimate purposes on Minecraft servers you own or operate:
+You accept these Terms by:
+
+- Downloading the Plugin
+- Installing the Plugin
+- Running the Plugin
+- Using any API, extension system, or feature provided by FPP
+- Accessing the source repository or compiled releases
+
+If You do not agree to these Terms, You must immediately stop using the Plugin and delete all copies from Your systems.
+
+---
+
+# 4. License Grant
+
+## 4.1 Limited License
+
+Subject to these Terms and the Fake Player Plugin Custom License, You are granted a:
+
+- Non-exclusive
+- Non-transferable
+- Non-sublicensable
+- Revocable
+
+license to:
+
+- Run the Plugin on Minecraft servers You own or directly operate
+- Configure the Plugin using documented features
+- View and study the source code
+- Modify the source code solely for private, non-commercial use
+
+## 4.2 Restrictions
+
+You may NOT:
+
+- Redistribute the Plugin in any form
+- Rehost releases or source archives
+- Sell or commercially exploit the Plugin
+- Offer the Plugin as part of a paid hosting package
+- Bundle the Plugin with commercial products or services
+- Create public forks for redistribution
+- Remove copyright notices
+- Circumvent licensing restrictions
+- Misrepresent authorship or ownership
+
+## 4.3 Permission Requests
+
+Written permission is required for:
+
+- Commercial use
+- Redistribution
+- Hosted distribution
+- Public derivative distribution
+- Enterprise deployment packages
+
+Permission requests may be submitted through the official Discord server.
+
+## 4.4 Retroactive Application
+
+These Terms apply to all versions of FPP, including:
+
+- Past releases
+- Current releases
+- Future releases
+- Historical commits
+- Previous MIT-licensed versions
+- Forks and mirrors derived from the codebase
+
+Continued use after the effective date constitutes acceptance.
+
+---
+
+# 5. Intellectual Property Rights
+
+## 5.1 Ownership
+
+All rights, title, and interest in the Plugin remain exclusively owned by the Developer.
+
+This includes:
+
+- Source code
+- Compiled binaries
+- APIs
+- Documentation
+- Website assets
+- Branding
+- Logos
+- Visual assets
+- Internal systems
+
+## 5.2 Trademarks
+
+"Fake Player Plugin", "FPP", and related branding are protected identifiers of the Developer.
+
+You may not:
+
+- Imply endorsement
+- Create confusingly similar branding
+- Use FPP branding commercially without permission
+
+## 5.3 Feedback
+
+Any feedback, bug reports, suggestions, or ideas submitted to the Developer may be used without restriction or compensation.
+
+---
+
+# 6. Permitted Use
+
+Permitted use cases include:
 
 | Use Case | Description |
-|----------|-------------|
-| **Server testing** | Simulating player load, testing performance, stress-testing game mechanics |
-| **Development and staging** | Testing plugin interactions, configurations, and features in development environments |
-| **Demonstration** | Showcasing server features, layouts, or experiences to prospective players |
-| **Server appearance** | Maintaining a minimum visible player count during off-peak hours |
-| **Administrative operations** | Managing, monitoring, and operating your server infrastructure |
+|---|---|
+| Testing | Load testing and QA |
+| Development | Plugin compatibility testing |
+| Demonstration | Showcasing server functionality |
+| Automation | Administrative simulation |
+| Private servers | Community or friend-group servers |
 
-All use must comply with:
+All usage must comply with:
 
-- The Minecraft End User License Agreement (EULA) at https://www.minecraft.net/en-us/eula
-- The terms of service of your Minecraft hosting provider
-- All applicable local, national, and international laws and regulations
-
----
-
-## 7. Prohibited Conduct
-
-### 7.1 Platform and EULA Violations
-
-You agree not to use the Plugin to:
-
-- Violate the Minecraft EULA or Mojang's usage guidelines
-- Bypass server player limits in violation of your hosting provider's terms of service
-- Manipulate server ranking platforms, vote sites, or server listing services using fake player counts in violation of those platforms' terms
-
-### 7.2 Fraudulent and Deceptive Activities
-
-You agree not to use the Plugin to:
-
-- Deceive players, potential players, investors, or advertisers about server population in a manner constituting fraud or violating consumer protection law in your jurisdiction
-- Misrepresent the Plugin's capabilities or origin in any commercial context
-- Impersonate real players, real servers, or real entities using bot names or messages
-
-### 7.3 Harmful and Malicious Activities
-
-You agree not to use the Plugin to:
-
-- Attack, disrupt, or overload other servers or network infrastructure
-- Create bots that execute malicious commands or exploit server vulnerabilities
-- Use the Plugin as a component of any distributed denial-of-service (DDoS) infrastructure
-- Exploit bugs, race conditions, or undocumented behaviors in the Plugin for unauthorized purposes
-
-### 7.4 Legal Violations
-
-You agree not to use the Plugin to:
-
-- Violate any applicable local, national, or international law or regulation
-- Infringe the intellectual property rights of any third party
-- Violate the privacy rights of any individual
-- Facilitate illegal gambling, phishing, harassment, or other unlawful activities
-
-### 7.5 Plugin System Misuse
-
-You agree not to:
-
-- Use the Plugin's LuckPerms integration to assign unauthorized elevated permissions to bot entities on servers you do not own
-- Exploit the Plugin's NMS (Net Minecraft Server) access layer to bypass Paper server security measures
-- Use the Plugin's proxy messaging channels to inject unauthorized or malicious messages into a network you do not own or operate
-
-### 7.6 Redistribution and Commercial Misuse
-
-You agree not to:
-
-- Redistribute, share, republish, or rehost the Plugin (original or modified) in any form on any platform
-- Sell, resell, lease, license, or commercially exploit the Plugin or any derivative works
-- Bundle the Plugin with any commercial product or service without written permission from the Developer
-- Use the Plugin in any commercial context beyond running it on your own server(s) without written permission
+- Mojang EULA
+- Microsoft policies
+- Hosting provider terms
+- Applicable law
 
 ---
 
-## 8. Configuration and Data Ownership
+# 7. Prohibited Conduct
 
-### 8.1 Your Data
+You may NOT use the Plugin to:
 
-All Plugin Data stored on your server is your property. This includes:
+- Violate Minecraft platform policies
+- Manipulate public server rankings fraudulently
+- Circumvent paid slot restrictions
+- Mislead users for financial gain
+- Conduct malicious automation
+- Exploit vulnerabilities
+- Attack third-party infrastructure
+- Impersonate real users maliciously
+- Violate privacy or data protection law
+- Operate illegal gambling systems
+- Facilitate scams or phishing
+- Distribute malware or malicious payloads
 
-- All YAML configuration files (`config.yml`, `bot-names.yml`, `bot-messages.yml`, `language/en.yml`)
-- SQLite database (`plugins/FakePlayerPlugin/data/fpp.db`)
-- Any MySQL database you configure for Network Mode
-- Custom skin files in the `skins/` directory
-- Backup archives in the `backups/` directory
+## 7.1 Security Abuse
 
-### 8.2 Data Portability
+You may not:
 
-You may export your Plugin Data at any time using the `/fpp migrate db export` command or by directly copying the plugin's data directory from your server filesystem.
-
-### 8.3 No Vendor Lock-in
-
-You may discontinue use of the Plugin at any time. Your Minecraft server will continue to operate normally after Plugin removal. We recommend running `/fpp despawn all` before uninstalling to ensure clean removal of all active bot entities.
-
-### 8.4 Backup Responsibility
-
-You are solely responsible for maintaining adequate, regular backups of your server data. The Plugin includes a built-in backup utility (`BackupManager`) as a convenience feature; this does not substitute for comprehensive server-level backup procedures. We are not liable for any data loss.
-
----
-
-## 9. Third-Party Services and Dependencies
-
-### 9.1 Required Dependencies
-
-| Dependency | Purpose | Type |
-|------------|---------|------|
-| Paper 1.21.x | Server platform | Required |
-| Java 21+ | Runtime environment | Required |
-
-### 9.2 Optional Integrations
-
-| Integration | Purpose | Type |
-|-------------|---------|------|
-| LuckPerms | Per-bot permission groups and prefix/suffix in tab list | Soft dependency |
-| PlaceholderAPI | Placeholder expansion (29+ placeholders) | Soft dependency |
-| MySQL | Multi-server Network Mode synchronization | Optional |
-
-### 9.3 Third-Party APIs Used by the Plugin
-
-| Service | Purpose | Data Sent |
-|---------|---------|-----------|
-| Modrinth API | Update version checking | Plugin version (User-Agent only) |
-| Mojang Profiles API | Skin texture fetching | Bot name string (read-only) |
-| bStats / FastStats | Optional anonymous metrics | Anonymous server statistics |
-
-### 9.4 Disclaimer for Third-Party Services
-
-We are not responsible for the availability, accuracy, security, or terms of use of any third-party service listed above. Changes to third-party APIs or plugins (including Mojang API, LuckPerms, or PlaceholderAPI) may affect Plugin functionality, and we are not liable for any resulting disruption or incompatibility.
+- Inject malicious packets through FPP
+- Abuse proxy messaging systems
+- Exploit internal APIs
+- Use reflection or bytecode manipulation against FPP internals
 
 ---
 
-## 10. Updates, Maintenance, and Support
+# 8. Extensions and Addons
 
-### 10.1 Updates
+## 8.1 Extension API
 
-- Plugin updates are provided voluntarily and at the Developer's sole discretion
-- Updates may include bug fixes, new features, performance improvements, or security patches
-- We do not guarantee updates for any specific future Minecraft version or Paper build
-- You are responsible for applying updates in a timely manner to maintain compatibility and security
-- Automatic update notifications can be disabled via the plugin configuration
+FPP provides an Extension API for third-party integrations.
 
-### 10.2 Maintenance and Service Availability
+Extensions:
 
-- The Plugin and its associated services (update API, documentation) are provided on an as-available basis
-- We may temporarily suspend or permanently discontinue development, maintenance, or distribution of the Plugin at any time without prior notice
-- We do not guarantee any specific uptime or availability for associated online services
+- Must comply with the Extensions Policy
+- Must not modify core internals through unsupported means
+- Must not redistribute FPP classes or assets
+- Must not bypass licensing restrictions
 
-### 10.3 Support
+## 8.2 Responsibility
 
-| Support Channel | Details |
-|----------------|---------|
-| Discord Server | https://discord.gg/QSN7f67nkJ - community support, best-effort basis |
-| GitHub Issues | https://github.com/Pepe-tf/fake-player-plugin/issues - bug reports and feature requests |
-| Plugin Pages | Modrinth, SpigotMC, Hangar - reviews and issue tracking |
+Extension developers are solely responsible for:
 
-Support is provided voluntarily on a best-effort basis. We do not guarantee response times, issue resolution, or feature implementation. We reserve the right to decline support requests at our sole discretion.
+- Security
+- Compatibility
+- Stability
+- Data handling
+- Compliance with applicable laws
 
-### 10.4 Breaking Changes
-
-We will make reasonable efforts to announce breaking configuration changes or migration requirements via our Discord server and release notes. However, we are not obligated to maintain backward compatibility between major version releases.
+The Developer is not responsible for third-party extensions.
 
 ---
 
-## 11. Disclaimer of Warranties
+# 9. Configuration and Data Ownership
 
-**TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, THE PLUGIN IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT ANY WARRANTY OF ANY KIND, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE.**
+## 9.1 Your Data
 
-The Developer expressly disclaims all warranties, including but not limited to:
+You retain ownership of all Plugin Data stored on Your systems, including:
 
-| Warranty Type | Disclaimer |
-|--------------|------------|
-| **Merchantability** | The Plugin may not meet your expectations or commercial requirements |
-| **Fitness for Purpose** | The Plugin may not be suitable for your specific use case |
-| **Non-Infringement** | We make no warranty regarding third-party intellectual property rights |
-| **Accuracy** | Plugin outputs and behavior may contain errors |
-| **Compatibility** | The Plugin may not be compatible with your server configuration or other plugins |
-| **Security** | The Plugin may contain undiscovered security vulnerabilities |
-| **Uninterrupted Operation** | The Plugin may experience errors, crashes, or downtime |
-| **Future Version Support** | We make no guarantee of compatibility with future Minecraft versions |
+- Configuration files
+- Databases
+- Backups
+- Custom bot data
+- Skin files
+- Logs
 
-Some jurisdictions do not permit the exclusion of implied warranties. In such jurisdictions, the above exclusions apply to the maximum extent permitted by law.
+## 9.2 Local Storage
 
----
+FPP primarily stores data locally on Your infrastructure.
 
-## 12. Limitation of Liability
+The Developer does not receive or access Your server data unless explicitly provided by You for support purposes.
 
-**TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE DEVELOPER SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, PUNITIVE, EXEMPLARY, OR CONSEQUENTIAL DAMAGES OF ANY KIND.**
+## 9.3 Backup Responsibility
 
-This limitation applies regardless of the legal theory under which damages are sought (contract, tort, strict liability, or otherwise) and regardless of whether the Developer was advised of the possibility of such damages.
-
-### Specific Non-Exhaustive Examples
-
-| Scenario | Our Liability |
-|----------|--------------|
-| Server crash or instability caused by the Plugin | Not liable |
-| Data loss or database corruption | Not liable |
-| Incompatibility with other plugins or server software | Not liable |
-| Player complaints, disputes, or chargebacks | Not liable |
-| Violations of your hosting provider's terms | Not liable |
-| Bans, suspensions, or penalties from any platform | Not liable |
-| Revenue loss, loss of players, or reputational damage | Not liable |
-| Regulatory fines for misuse of the Plugin | Not liable |
-| Security breaches of your server infrastructure | Not liable |
-
-### Aggregate Liability Cap
-
-To the extent that any liability cannot be excluded under applicable law, the Developer's total aggregate liability to you for all claims arising from or relating to these Terms or your use of the Plugin shall not exceed **USD $10.00 (ten US dollars)**.
+You are solely responsible for maintaining backups and disaster recovery procedures.
 
 ---
 
-## 13. Indemnification
+# 10. Third-Party Services and Dependencies
 
-You agree to indemnify, defend, and hold harmless the Developer from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable legal fees) arising out of or in connection with:
+FPP may interact with third-party services, including:
 
-- Your use of the Plugin in any manner
-- Your violation of any provision of these Terms
-- Your violation of any applicable law, regulation, or third-party right (including intellectual property rights and privacy rights)
-- Any content, configurations, or bot behaviors you create using the Plugin
-- Claims brought by your server's players relating to your use of the Plugin
-- Your failure to maintain adequate security of your server infrastructure
-- Your redistribution or commercial use of the Plugin in violation of this license
+| Service | Purpose |
+|---|---|
+| Modrinth API | Update checking |
+| Mojang APIs | Skin/profile retrieval |
+| bStats/FastStats | Optional anonymous metrics |
+| LuckPerms | Permissions integration |
+| PlaceholderAPI | Placeholder support |
 
----
+Third-party services operate under their own terms and privacy policies.
 
-## 14. Termination
-
-### 14.1 Termination by You
-
-You may terminate this license at any time by:
-
-1. Running `/fpp despawn all` to cleanly remove all active bot entities
-2. Stopping your Minecraft server
-3. Deleting the Plugin JAR file and its data directory (`plugins/FakePlayerPlugin/`) from your server
-
-### 14.2 Termination by the Developer
-
-We may terminate your license to use the Plugin immediately and without prior notice if you:
-
-- Violate any provision of these Terms
-- Use the Plugin for illegal purposes
-- Engage in reverse engineering, decompilation, or circumvention of Plugin protections
-- Distribute the Plugin binary or source without authorization
-- Commercially exploit the Plugin without written permission
-- Abuse the Developer or community support channels
-
-### 14.3 Takedown Right
-
-The Developer may, at any time and for any reason, request the removal, takedown, or cessation of distribution of the Plugin from any platform or service. Upon receipt of a takedown notice, you must promptly comply.
-
-### 14.4 Effect of Termination
-
-Upon termination of your license:
-
-- Your right to use the Plugin ceases immediately
-- You must delete all copies of the Plugin binary and Plugin Data from your systems
-- Sections 5, 11, 12, 13, and 15 of these Terms survive termination indefinitely
+We are not responsible for outages, changes, or issues caused by third-party services.
 
 ---
 
-## 15. Dispute Resolution
+# 11. Updates, Maintenance, and Support
 
-### 15.1 Informal Resolution
+## 11.1 Updates
 
-Before initiating any formal legal proceedings, you agree to first contact the Developer via our Discord server to attempt good-faith resolution of the dispute. We will use commercially reasonable efforts to resolve disputes informally within 30 days of initial contact.
+Updates are provided voluntarily and may include:
 
-### 15.2 Binding Arbitration
+- Security patches
+- Bug fixes
+- Compatibility updates
+- Feature additions
 
-If informal resolution fails, disputes shall be resolved by final and binding individual arbitration, rather than in court, except as set out in Section 15.3. You waive any right to participate in class action lawsuits, class-wide arbitration, or any representative proceeding.
+We do not guarantee future updates or compatibility.
 
-### 15.3 Exceptions to Arbitration
+## 11.2 Support
 
-The following matters are excluded from mandatory arbitration and may be brought before a court of competent jurisdiction:
+Support is provided on a best-effort basis through:
 
-- Claims seeking injunctive or other equitable relief to protect intellectual property rights
-- Claims that fall within the jurisdiction of small claims court
+- Discord
+- GitHub Issues
+- Community channels
 
----
+We may refuse support requests at our discretion.
 
-## 16. Governing Law
+## 11.3 Breaking Changes
 
-These Terms and any dispute arising out of or in connection with them shall be governed by and construed in accordance with the laws of the jurisdiction in which the Developer is located, without giving effect to any conflict of laws principles.
-
-For users in the European Union, nothing in these Terms affects your statutory rights as a consumer under applicable EU consumer protection law.
-
----
-
-## 17. General Provisions
-
-### 17.1 Entire Agreement
-
-These Terms, together with the Privacy Policy and the Copyright & License Notice, constitute the entire agreement between you and the Developer with respect to the Plugin and supersede all prior agreements, representations, understandings, and communications, whether written or oral.
-
-### 17.2 Severability
-
-If any provision of these Terms is held by a court of competent jurisdiction to be invalid, illegal, or unenforceable, such provision shall be modified to the minimum extent necessary to make it enforceable, or severed if modification is not possible, and the remaining provisions shall continue in full force and effect.
-
-### 17.3 Waiver
-
-Our failure to enforce any right or provision of these Terms on any occasion shall not constitute a waiver of that right or provision for the future. Any waiver of a provision must be in writing to be effective.
-
-### 17.4 Assignment
-
-You may not assign or transfer your rights or obligations under these Terms without the Developer's prior written consent. The Developer may freely assign these Terms and any rights or obligations hereunder without restriction.
-
-### 17.5 Force Majeure
-
-The Developer shall not be liable for any failure or delay in performance due to circumstances beyond our reasonable control, including natural disasters, governmental actions, internet infrastructure outages, third-party service failures, or other events of force majeure.
-
-### 17.6 Amendments
-
-We reserve the right to amend these Terms at any time. Material amendments will be announced via:
-
-- Our Discord server (https://discord.gg/QSN7f67nkJ)
-- Official plugin distribution pages (Modrinth, SpigotMC, Hangar)
-- The official FPP website
-
-Your continued use of the Plugin after the effective date of amended Terms constitutes your acceptance. If you do not agree to amended Terms, you must stop using the Plugin.
-
-### 17.7 No Partnership or Agency
-
-Nothing in these Terms creates, or shall be construed to create, a partnership, joint venture, employment relationship, or agency relationship between you and the Developer.
-
-### 17.8 Version History
-
-| Version | Date | Summary of Changes |
-|---------|------|--------------------|
-| 4.0 | May 2, 2026 | Custom license transition: replaced MIT License with custom license; removed commercial use, redistribution, sublicense, and derivative distribution permissions; added retroactive application to all past versions; added Developer takedown right; added prohibition on redistribution and commercial misuse |
-| 3.0 | April 13, 2026 | Open-source transition: updated license grant to MIT, added GitHub repository link, removed proprietary restrictions |
-| 2.0 | April 3, 2026 | Full rewrite: proprietary license (not open source), added definitions, indemnification, dispute resolution, IP section, data ownership, full tables |
-| 1.0 | April 3, 2026 | Initial terms of service |
+Major changes may occur between releases. Backward compatibility is not guaranteed.
 
 ---
 
-## 18. Contact Information
+# 12. Disclaimer of Warranties
 
-For questions, formal notices, or concerns regarding these Terms:
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE PLUGIN IS PROVIDED:
 
-| Channel | Details |
-|---------|---------|
-| **Discord** | https://discord.gg/QSN7f67nkJ |
-| **GitHub** | https://github.com/Pepe-tf/fake-player-plugin |
-| **Modrinth** | https://modrinth.com/plugin/fake-player-plugin-(fpp) |
-| **SpigotMC** | https://www.spigotmc.org/resources/fake-player-plugin-fpp.133572/ |
+- "AS IS"
+- "AS AVAILABLE"
 
-We aim to respond to formal legal inquiries within **14 business days**.
+WITHOUT WARRANTIES OF ANY KIND.
+
+We DISCLAIM all warranties including:
+
+- Merchantability
+- Fitness for a particular purpose
+- Non-infringement
+- Compatibility
+- Security
+- Reliability
+- Availability
+
+Use of the Plugin is entirely at Your own risk.
 
 ---
 
-**By downloading, installing, or using Fake Player Plugin, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service, the Privacy Policy, and the Copyright & License Notice.**
+# 13. Limitation of Liability
 
----
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE DEVELOPER SHALL NOT BE LIABLE FOR:
 
-*Fake Player Plugin - Developed by Bill_Hub (El_Pepes). Released under the Fake Player Plugin Custom License.*
-*Source code: https://github.com/Pepe-tf/fake-player-plugin*
-*Not affiliated with Mojang AB, Microsoft Corporation, or any Minecraft platform provider.*
-*For permission requests, contact @Bill_Hub on Discord.*
+- Server crashes
+- Data loss
+- Lost revenue
+- Hosting penalties
+- Player disputes
+- Corruption
+- Downtime
+- Security incidents
+- Indirect damages
+- Consequential damages
+
+## Liability Cap
+
+Where liability cannot legally be excluded, total liability shall not exceed:

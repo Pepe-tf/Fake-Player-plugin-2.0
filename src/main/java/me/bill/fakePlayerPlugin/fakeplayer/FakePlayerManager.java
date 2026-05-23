@@ -413,11 +413,24 @@ public class FakePlayerManager {
 
               NmsPlayerSpawner.tickPhysics(bot);
 
+              boolean isActing = actionLockedBots.containsKey(fp.getUuid());
+              boolean isNavLocked = navLockedBots.contains(fp.getUuid());
+              if (Config.debugHeadAi()) {
+                if (isActing) {
+                  Config.debug("HeadAI[" + fp.getName() + "]: SKIPPED - bot is acting (mining/using)");
+                } else if (isNavLocked) {
+                  Config.debug("HeadAI[" + fp.getName() + "]: SKIPPED - bot is nav-locked");
+                } else if (!fp.isHeadAiEnabled()) {
+                  Config.debug("HeadAI[" + fp.getName() + "]: SKIPPED - head AI disabled for bot");
+                } else if (!doHeadAi) {
+                  Config.debug("HeadAI[" + fp.getName() + "]: SKIPPED - not head AI tick (rate=" + headAiRate + ")");
+                }
+              }
               if (runBehaviorThisTick
                   && doHeadAi
                   && fp.isHeadAiEnabled()
-                  && !actionLockedBots.containsKey(fp.getUuid())
-                  && !navLockedBots.contains(fp.getUuid())) {
+                  && !isNavLocked
+                  && !isActing) {
 
                 // Head-AI target selection: only track a player who is actively
                 // looking at this bot (eye-contact model). Conditions:
@@ -507,24 +520,6 @@ public class FakePlayerManager {
                         || cur.distanceSquared(miningLock) > 0.0001;
                 if (outOfPlace) {
                   FppScheduler.teleportAsync(bot, miningLock);
-                }
-
-                float ly = miningLock.getYaw();
-                float lp = miningLock.getPitch();
-                bot.setRotation(ly, lp);
-                NmsPlayerSpawner.setHeadYaw(bot, ly);
-                if (sendVisualSyncThisTick) {
-                  for (int pi2 = 0; pi2 < onlineCount; pi2++) {
-                    Player p = online.get(pi2);
-                    if (p.getUniqueId().equals(fp.getUuid())) continue;
-                    if (playerWorld[pi2] != miningLock.getWorld()) continue;
-                    if (posSyncDistSq > 0) {
-                      double ddx = playerX[pi2] - miningLock.getX();
-                      double ddz = playerZ[pi2] - miningLock.getZ();
-                      if (ddx * ddx + ddz * ddz > posSyncDistSq) continue;
-                    }
-                    PacketHelper.sendRotation(p, fp, ly, lp, ly);
-                  }
                 }
 
                 bot.setVelocity(ZERO_VELOCITY);
@@ -2673,8 +2668,13 @@ public class FakePlayerManager {
   }
 
   public void lockForAction(UUID botUuid, Location loc) {
-    actionLockedBots.put(botUuid, loc.clone());
+    lockForAction(botUuid, loc, false);
+  }
 
+  public void lockForAction(UUID botUuid, Location loc, boolean lockPosition) {
+    if (lockPosition) {
+      actionLockedBots.put(botUuid, loc.clone());
+    }
     botHeadRotation.put(botUuid, new float[]{loc.getYaw(), loc.getPitch()});
     botSpawnRotation.put(botUuid, new float[]{loc.getYaw(), loc.getPitch()});
   }

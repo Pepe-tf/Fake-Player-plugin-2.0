@@ -17,7 +17,7 @@ tasks.compileJava {
 }
 
 group = "me.bill.fpp"
-version = "1.6.6.11"
+version = "1.6.6.12"
 
 repositories {
     mavenCentral()

@@ -14,6 +14,7 @@ import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.util.BotDataYaml;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
+import net.minecraft.core.BlockPos;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -217,14 +218,12 @@ public final class BotPersistence {
       float mineYaw = 0, minePitch = 0;
       boolean mineOnce = false;
       if (mineCommand != null) {
-        Location mineLoc = mineCommand.getActiveMineLocation(fp.getUuid());
-        if (mineLoc != null && mineLoc.getWorld() != null) {
-          mineWorld = mineLoc.getWorld().getName();
-          mineX = mineLoc.getX();
-          mineY = mineLoc.getY();
-          mineZ = mineLoc.getZ();
-          mineYaw = mineLoc.getYaw();
-          minePitch = mineLoc.getPitch();
+        BlockPos minePos = mineCommand.getActiveMineTarget(fp.getUuid());
+        if (minePos != null && fp.getPlayer() != null && fp.getPlayer().getWorld() != null) {
+          mineWorld = fp.getPlayer().getWorld().getName();
+          mineX = minePos.getX();
+          mineY = minePos.getY();
+          mineZ = minePos.getZ();
           mineOnce = mineCommand.isActiveMineOnce(fp.getUuid());
         }
       }
@@ -1392,7 +1391,13 @@ public final class BotPersistence {
                           task.useZ(),
                           task.useYaw(),
                           task.usePitch());
-                  useCommand.resumeUsing(restored, task.useOnce(), useLoc);
+                  Object useTarget = null;
+                  if (task.useX() != 0 || task.useY() != 0 || task.useZ() != 0) {
+                    useTarget = bot.getWorld().getBlockAt((int) task.useX(), (int) task.useY(), (int) task.useZ());
+                  }
+                  if (useTarget != null) {
+                    useCommand.resumeUsing(restored, task.useOnce(), useLoc, useTarget, UseCommand.UseMode.USE_ONLY);
+                  }
                   Config.debug("Resumed use loop for bot '" + restored.getName() + "'.");
                 }
               }

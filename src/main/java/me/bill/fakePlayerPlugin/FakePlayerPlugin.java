@@ -319,7 +319,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
       networkHeartbeat.start();
     }
 
-    pathfindingService = new PathfindingService();
+    pathfindingService = new PathfindingService(this, fakePlayerManager);
     commandManager = new CommandManager(this);
     commandManager.register(new SpawnCommand(fakePlayerManager));
     commandManager.register(new DeleteCommand(fakePlayerManager));

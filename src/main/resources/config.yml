@@ -255,6 +255,8 @@ logging:
     network: false      # Velocity/Bungee plugin messaging and remote bot sync
     config-sync: false  # Config push/pull activity
     database: false     # DB init, migrations, and session writes
+    commands: false     # Command execution flow and ray tracing (mine/place/use)
+    head-ai: false      # Head AI rotation and player tracking
 
 # ── Update Checker ────────────────────────────────────────────────────────────
 update-checker:

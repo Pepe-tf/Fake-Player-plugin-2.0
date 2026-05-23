@@ -522,6 +522,8 @@ use-started:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴀʀᴛ�
 use-started-once: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʀɪɡʜᴛ-ᴄʟɪᴄᴋɪɴɢ ᴏɴᴄᴇ..."
 use-stopped:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴏᴘᴘᴇᴅ ʀɪɡʜᴛ-ᴄʟɪᴄᴋɪɴɢ."
 use-stopped-all:  "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴀʟʟ ʙᴏᴛꜱ ꜰʀᴏᴍ ʀɪɡʜᴛ-ᴄʟɪᴄᴋɪɴɢ."
+use-look-at-target:  "{prefix}<red>ʟᴏᴏᴋ ᴀᴛ ᴀ ʙʟᴏᴄᴋ ᴏʀ ᴇɴᴛɪᴛʏ ꜰɪʀꜱᴛ."
+use-no-path:         "{prefix}<red><#0079FF>{name}</#0079FF><red> ᴄᴏᴜʟᴅ ɴᴏᴛ ꜰɪɴᴅ ᴀ ᴘᴀᴛʜ ᴛᴏ ᴛʜᴇ ᴛᴀʀɢᴇᴛ."
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  17 · UPDATE CHECKER

@@ -1,38 +1,35 @@
 # FakePlayerPlugin — Agent Notes
 
 ## Build
-- **Tool:** Maven only. JDK 21 required (`<release>21</release>`).
-- **Command:** `mvn clean package`
-- **No tests exist** (`src/test/` absent); `mvn test` is a no-op.
-- **Output:** `target/fpp-<version>.jar`, copied to `build/fpp.jar` and `${user.home}/Desktop/dmc/plugins/fpp.jar` (override with `-Ddeploy.dir=…`).
+- **Tool:** Gradle. JDK 21 required (enforced by `gradle-daemon-jvm.properties`).
+- **Commands:** `./gradlew clean shadowJar` (build), `./gradlew test` (no-op, no tests).
+- **Output:** `build/libs/fake-player-plugin-<version>-all.jar`.
+- **CI:** GitHub Actions runs `./gradlew test` then `./gradlew shadowJar`.
 
 ## Architecture
-- **Single-module Maven project** for a Paper/Folia Minecraft plugin.
-- **Main:** `me.bill.fakePlayerPlugin.FakePlayerPlugin` (see `plugin.yml`).
-- **NMS:** Uses Mojang-mapped class names. Compile-time dependency is a **system-scoped** JAR: `libs/paper-1.21.11-mojang-mapped.jar`. Do not remove or rename this file.
-- **FastStats:** Bundled as raw binary resources under `src/main/resources/faststats/` and loaded via `URLClassLoader` at runtime. Explicitly excluded from shading to avoid relocation issues.
-- **Shaded deps:** `sqlite-jdbc` and `mysql-connector-j` only. All other dependencies are `provided` or `system` scope.
+- **Single-module Gradle project** (Paper/Folia Minecraft plugin).
+- **Main:** `me.bill.fakePlayerPlugin.FakePlayerPlugin` (`plugin.yml`).
+- **NMS:** Uses Mojang-mapped classes via `paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT")`.
+- **FastStats:** Binary JARs under `src/main/resources/faststats/`, loaded via `URLClassLoader` at runtime. Do not text-filter or relocate.
+- **Shaded deps:** None by default (shadowJar enabled but no shading configured). `sqlite-jdbc` / `mysql-connector-j` not present in `build.gradle.kts`.
+- **Provided deps:** `luckperms`, `placeholderapi`, `worldguard` (compileOnly).
 
-## Code Style
-- Google Java Format (`libs/google-java-format-1.25.2-all-deps.jar`) is present but there is no enforced formatter config or pre-commit hook. Keep style consistent with existing files.
+## Key Resources
+- `src/main/resources/plugin.yml` — Bukkit descriptor (commands, permissions).
+- `src/main/resources/velocity-plugin.json` — Velocity proxy descriptor.
+- `src/main/resources/config.yml` — Main config (auto-migrates to version 73).
+- `src/main/resources/language/en.yml` — MiniMessage format.
+- `src/main/resources/bot-names.yml`, `bad-words.yml` — Name/badword lists.
 
 ## Companion Modules
-- `velocity-companion/` and `bungee-companion/` are **gitignored** but currently exist locally as separate Maven projects.
-- Optional profiles build them: `-Pbuild-velocity-companion` / `-Pbuild-bungee-companion`.
-- These delegate via `exec-maven-plugin`; only activate the profiles when the directories are present, otherwise the build will fail.
+- `velocity-companion/` and `bungee-companion/` are **gitignored**, separate Gradle projects.
+- Built independently; not part of root build.
 
-## Key Runtime Resources
-- `src/main/resources/plugin.yml` — Bukkit plugin descriptor.
-- `src/main/resources/velocity-plugin.json` — Velocity proxy descriptor.
-- `src/main/resources/config.yml` — Plugin configuration.
-- `src/main/resources/language/en.yml` — Messages (MiniMessage format).
-- `src/main/resources/bot-names.yml` & `bad-words.yml` — Name lists.
-
-## Important Constraints
-- Do **not** text-filter the `faststats/**` JARs in `pom.xml` `<resources>` — they are binary.
-- Do **not** shade or relocate FastStats packages.
-- Paper API version is `1.21` (max supported up to `1.21.11`).
+## Constraints
+- Paper API targets `1.21` (supports up to `1.21.11`).
+- Folia-compatible (regionised threading).
+- Config auto-migration runs on enable; do not edit `config-version` manually.
 
 ## Docs
-- No root `README.md` build instructions. User-facing docs live in `frontend/wiki/` (Markdown) and are **not** built by Maven.
-- Repository: `https://github.com/Pepe-tf/fake-player-plugin.git`.
+- User docs: `frontend/wiki/` (not built by Gradle).
+- Repo: `https://github.com/Pepe-tf/fake-player-plugin`

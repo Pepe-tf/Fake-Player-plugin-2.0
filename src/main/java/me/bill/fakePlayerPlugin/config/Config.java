@@ -185,6 +185,14 @@ public final class Config {
     return isDebug() || bool("swap.debug", false);
   }
 
+  public static boolean debugCommands() {
+    return isDebug() || debugFlag("logging.debug.commands");
+  }
+
+  public static boolean debugHeadAi() {
+    return isDebug() || debugFlag("logging.debug.head-ai");
+  }
+
   public static boolean debugLicense() {
     return isDebug();
   }
