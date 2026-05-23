@@ -912,8 +912,7 @@ public final class SettingGui implements Listener {
   private void applyLiveEffect(String configKey) {
     FakePlayerManager fpm = plugin.getFakePlayerManager();
 
-    if (configKey.equals("body.enabled")
-        || configKey.equals("body.pushable")
+    if (configKey.equals("body.pushable")
         || configKey.equals("body.damageable")
         || configKey.equals("combat.max-health")) {
       if (fpm != null) fpm.applyBodyConfig();
@@ -960,7 +959,7 @@ public final class SettingGui implements Listener {
 
     if (configKey.equals("skin.guaranteed-skin")) {
       boolean enabled = plugin.getConfig().getBoolean("skin.guaranteed-skin", false);
-      if (fpm != null) {
+      if (fpm != null && plugin.getSkinManager() != null) {
         fpm.getActivePlayers()
             .forEach(
                 fp -> {
@@ -1151,16 +1150,6 @@ public final class SettingGui implements Listener {
         Material.ARMOR_STAND,
         Material.LIME_STAINED_GLASS_PANE,
         List.of(
-            SettingEntry.comingSoon(
-                "body.enabled",
-                "ꜱᴘᴀᴡɴ ʙᴏᴅʏ",
-                "ᴀʟʟᴏᴡ ʙᴏᴛꜱ ᴛᴏ ᴇxɪꜱᴛ ᴡɪᴛʜᴏᴜᴛ ᴀ\nᴘʜʏꜱɪᴄᴀʟ ᴇɴᴛɪᴛʏ (ᴛᴀʙ-ʟɪꜱᴛ ᴏɴʟʏ).",
-                Material.ARMOR_STAND),
-            SettingEntry.toggle(
-                "skin.guaranteed-skin",
-                "ꜱᴋɪɴ ꜱʏꜱᴛᴇᴍ",
-                "ᴄᴜꜱᴛᴏᴍ ꜱᴋɪɴꜱ ꜰᴏʀ ʙᴏᴛꜱ.\nᴏꜰꜰ = ᴅᴇꜰᴀᴜʟᴛ ꜱᴛᴇᴠᴇ/ᴀʟᴇx ꜱᴋɪɴ.",
-                Material.PLAYER_HEAD),
             SettingEntry.toggle(
                 "body.pushable",
                 "ᴘᴜꜱʜᴀʙʟᴇ",

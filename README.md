@@ -2,7 +2,7 @@
 
 [![Version](https://img.shields.io/modrinth/v/fake-player-plugin-%28fpp%29?style=flat-square&label=version&color=0079FF&logo=modrinth)](https://modrinth.com/plugin/fake-player-plugin-(fpp))
 ![MC](https://img.shields.io/badge/Minecraft-1.21.x-0079FF?style=flat-square)
-![Platform](https://img.shields.io/badge/platform-Paper-0079FF?style=flat-square)
+![Platform](https://img.shields.io/badge/platform-Paper%2FPurpur-0079FF?style=flat-square)
 ![Java](https://img.shields.io/badge/Java-21-0079FF?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](https://github.com/Pepe-tf/fake-player-plugin/blob/main/LICENSE)
 [![GitHub](https://img.shields.io/badge/GitHub-Open%20Source-181717?style=flat-square&logo=github)](https://github.com/Pepe-tf/fake-player-plugin)
@@ -12,7 +12,7 @@
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Sponsor-EA4AAA?style=flat-square&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Pepe-tf)
 [![Patreon](https://img.shields.io/badge/Patreon-Support%20FPP-FF424D?style=flat-square&logo=patreon&logoColor=white)](https://www.patreon.com/c/F_PP?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)
 
-> **Advanced Fake Player Spoofer for Paper 1.21+**
+> **Advanced Fake Player Spoofer for Paper/Purpur 1.21+**
 > Create realistic fake players — full tab-list entries, physical in-world bodies, skins, combat, pathfinding, automation, and multi-server proxy support with **proxy-merged shared database**.
 
 ---
@@ -34,10 +34,10 @@
 - 🔄 **Config Sync** — Push/pull config across backend servers via shared MySQL
 - 📦 **Extension API** — Drop `.jar` files into `plugins/FakePlayerPlugin/extensions/` to load third-party addons
 - 🔤 **Random Name Generator** — `bot-name.mode: random` generates realistic Minecraft-style usernames on the fly
+- ⚙️ **Per-Bot Settings GUI** — Shift+right-click any bot for inventories, pathfinding toggles, PvE settings, and automation overrides
 - 🚫 **Badword Filter** — Leet-speak normalization, auto-rename, remote word list
 - 📊 **PlaceholderAPI** — **70+ placeholders** for scoreboards, tab headers, cross-server counts, and more
 - 🧱 **WorldEdit & WorldGuard** — `--wesel` selection flag for mine/place; region-aware PvP protection
-- 🍃 **Folia Support** — Compatible with Folia's regionised threading model out of the box
 - 📶 **Simulated Ping** — Tab-list latency display per bot
 
 ### Extension (`fpp-spoof.jar`)
@@ -241,7 +241,7 @@ Requires **PlaceholderAPI**. **70+ placeholders** — all prefixed with `%fpp_`.
 |-------------|---------|
 | `%fpp_chat%` | `on` / `off` |
 | `%fpp_skin%` | Skin mode |
-| `%fpp_body%` / `%fpp_pushable%` / `%fpp_damageable%` / `%fpp_tab%` / `%fpp_ping%` | `on` / `off` |
+| `%fpp_pushable%` / `%fpp_damageable%` / `%fpp_tab%` / `%fpp_ping%` | `on` / `off` |
 | `%fpp_max_health%` | Max HP |
 | `%fpp_network%` / `%fpp_network_mode%` | `on` / `off` (NETWORK mode) |
 | `%fpp_server_id%` | Server ID |

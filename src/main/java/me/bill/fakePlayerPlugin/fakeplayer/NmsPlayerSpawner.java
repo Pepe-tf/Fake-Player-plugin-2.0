@@ -1637,7 +1637,17 @@ public final class NmsPlayerSpawner {
       if (!pluginName.contains("grim") && !pluginName.contains("packetevents")) continue;
       ClassLoader loader = plugin.getClass().getClassLoader();
       if (!tried.add(loader)) continue;
-      if (tryRegisterPacketEventsUser(loader, channel, bukkitPlayer, uuid, name)) return;
+      try {
+        if (tryRegisterPacketEventsUser(loader, channel, bukkitPlayer, uuid, name)) return;
+      } catch (Throwable t) {
+        FppLogger.debug(
+            "NmsPlayerSpawner: PacketEvents registration failed for "
+                + name
+                + ": "
+                + t.getClass().getSimpleName()
+                + " - "
+                + t.getMessage());
+      }
     }
   }
 

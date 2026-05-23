@@ -129,7 +129,6 @@ public final class Config {
     cfg = plugin.getConfig();
     cfg.options().copyDefaults(true);
 
-    cfg.set("body.enabled", true);
     plugin.saveConfig();
   }
 
@@ -183,6 +182,18 @@ public final class Config {
 
   public static boolean debugSwap() {
     return isDebug() || bool("swap.debug", false);
+  }
+
+  public static boolean debugCommands() {
+    return isDebug() || debugFlag("logging.debug.commands");
+  }
+
+  public static boolean debugHeadAi() {
+    return isDebug() || debugFlag("logging.debug.head-ai");
+  }
+
+  public static boolean debugLicense() {
+    return isDebug();
   }
 
   public static boolean updateCheckerEnabled() {
@@ -347,10 +358,6 @@ public final class Config {
 
   public static String skinMineSkinVisibility() {
     return cfg.getString("skin.mineskin.visibility", "public");
-  }
-
-  public static boolean spawnBody() {
-    return cfg.getBoolean("body.enabled", true);
   }
 
   public static boolean bodyPushable() {

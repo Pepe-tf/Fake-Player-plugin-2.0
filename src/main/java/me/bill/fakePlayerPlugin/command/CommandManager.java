@@ -366,16 +366,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                         HoverEvent.showText(Component.text("Click to open Modrinth").color(GRAY))))
             .append(Component.text(", ").color(GRAY))
             .append(
-                Component.text("SpigotMC")
-                    .color(ACCENT)
-                    .decorate(TextDecoration.UNDERLINED)
-                    .clickEvent(
-                        ClickEvent.openUrl(
-                            "https://www.spigotmc.org/resources/fake-player-plugin-fpp.133572/"))
-                    .hoverEvent(
-                        HoverEvent.showText(Component.text("Click to open SpigotMC").color(GRAY))))
-            .append(Component.text(", ").color(GRAY))
-            .append(
                 Component.text("PaperMC")
                     .color(ACCENT)
                     .decorate(TextDecoration.UNDERLINED)

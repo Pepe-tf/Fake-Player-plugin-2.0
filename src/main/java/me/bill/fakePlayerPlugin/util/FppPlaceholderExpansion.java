@@ -107,7 +107,6 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
       // ── State / Toggles ──────────────────────────────────────────────────────
       case "chat" -> onOff(Config.fakeChatEnabled());
       case "skin" -> Config.skinMode();
-      case "body" -> onOff(Config.spawnBody());
       case "pushable" -> onOff(Config.bodyPushable());
       case "damageable" -> onOff(Config.bodyDamageable());
       case "tab" -> onOff(Config.tabListEnabled());

@@ -234,7 +234,7 @@ public final class BotSettingGui implements Listener {
     this.plugin = plugin;
     this.manager = manager;
     this.renameHelper = new BotRenameHelper(plugin, manager);
-    this.categories = List.of(general(), pve(), danger());
+    this.categories = List.of(general(), pathfinding(), pve(), danger());
   }
 
   public void registerExtensionTab(FppSettingsTab tab) {
@@ -1990,19 +1990,9 @@ public final class BotSettingGui implements Listener {
             BotEntry.toggle(
                 "head_ai_enabled",
                 "ʜᴇᴀᴅ ᴀɪ (ʟᴏᴏᴋ ᴀᴛ ᴘʟᴀʏᴇʀ)",
-                "ʙᴏᴛ ꜱᴍᴏᴏᴛʜʟʏ ʀᴏᴛᴀᴛᴇꜱ ᴛʏᴘᴇ ᴘʟᴀʏᴇʀꜱ ᴡʜᴇɴ ᴇɴᴀʙʟᴇᴅ.\n"
-                    + "ᴅɪꜱᴀʙᴇ ᴛᴏ ᴋᴇᴇᴘ ʜᴇᴀᴅ ꜱᴛᴀᴛɪᴏɴᴀʀʏ.",
+                "ʙᴏᴛ ꜱᴍᴏᴏᴛʜʟʏ ʀᴏᴛᴀᴛᴇꜱ ᴛᴏᴡᴀʀᴅ ᴘʟᴀʏᴇʀꜱ ᴡʜᴇɴ ᴇɴᴀʙʟᴇᴅ.\n"
+                    + "ᴅɪꜱᴀʙʟᴇ ᴛᴏ ᴋᴇᴇᴘ ʜᴇᴀᴅ ꜱᴛᴀᴛɪᴏɴᴀʀʏ.",
                 Material.PLAYER_HEAD,
-                false),
-            BotEntry.toggle(
-                "swim_ai_enabled",
-                "ꜱᴡɪᴍ ᴀɪ",
-                "ʙᴏᴛ ᴜꜱᴇꜱ ʙᴀꜱɪᴄ ꜰʟᴏᴀᴛ/ᴊᴜᴍᴘ ꜱᴡɪᴍ ʙᴇʜᴀᴠɪᴏʀ\n"
-                    + "ɪɴ ᴡᴀᴛᴇʀ ᴏʀ ʟᴀᴠᴀ ᴡʜᴇɴ ᴇɴᴀʙʟᴇᴅ.\n"
-                    + "ᴅɪꜱᴀʙᴇ ᴛᴏ ʟᴇᴛ ᴛʜᴇ ʙᴏᴛ ꜱɪɴᴋ.\n"
-                    + "ɢʟᴏʙᴀʟ: "
-                    + (Config.swimAiEnabled() ? "ᴇɴᴀʙʟᴇᴅ" : "ᴅɪꜱᴀʙʟᴇᴅ"),
-                Material.WATER_BUCKET,
                 false),
             BotEntry.action(
                 "chunk_load_radius",
@@ -2063,6 +2053,52 @@ public final class BotSettingGui implements Listener {
                 false)));
   }
 
+  private BotCategory pathfinding() {
+    return new BotCategory(
+        "🧭 ᴘᴀᴛʜꜰɪɴᴅɪɴɢ",
+        Material.COMPASS,
+        Material.GRAY_DYE,
+        Material.ORANGE_STAINED_GLASS_PANE,
+        List.of(
+            BotEntry.toggle(
+                "nav_parkour",
+                "ᴘᴀʀᴋᴏᴜʀ (ɢᴀᴘ ᴊᴜᴍᴘ)",
+                "ʙᴏᴛ ᴄᴀɴ ᴊᴜᴍᴘ ɢᴀᴘꜱ ᴜᴘ ᴛᴏ 3 ʙʟᴏᴄᴋꜱ.\n"
+                    + "ᴇɴᴀʙʟᴇᴅ = ᴄʀᴏꜱꜱ ᴛʀᴇɴᴄʜᴇꜱ, ʟᴀᴠᴀ.\n"
+                    + "ɢʟᴏʙᴀʟ: "
+                    + (Config.pathfindingParkour() ? "ᴇɴᴀʙʟᴇᴅ" : "ᴅɪꜱᴀʙʟᴇᴅ"),
+                Material.FEATHER,
+                false),
+            BotEntry.toggle(
+                "nav_break_blocks",
+                "ʙʀᴇᴀᴋ ʙʟᴏᴄᴋꜱ",
+                "ʙᴏᴛ ʙʀᴇᴀᴋꜱ ʙʟᴏᴄᴋꜱ ɪɴ ɪᴛꜱ ᴡᴀʏ.\n"
+                    + "ᴜꜱᴇꜱ ᴛᴏᴏʟꜱ/ʜᴀɴᴅꜱ. ᴄᴏᴏʟᴅᴏᴡɴ ᴀᴘᴘʟɪᴇꜱ.\n"
+                    + "ᴄᴀɴɴᴏᴛ ʙʀᴇᴀᴋ ʙᴇᴅʀᴏᴄᴋ/ᴏʙꜱɪᴅɪᴀɴ.\n"
+                    + "ɢʟᴏʙᴀʟ: "
+                    + (Config.pathfindingBreakBlocks() ? "ᴇɴᴀʙʟᴇᴅ" : "ᴅɪꜱᴀʙʟᴇᴅ"),
+                Material.DIAMOND_PICKAXE,
+                false),
+            BotEntry.toggle(
+                "nav_place_blocks",
+                "ᴘʟᴀᴄᴇ ʙʟᴏᴄᴋꜱ",
+                "ʙᴏᴛ ᴘʟᴀᴄᴇꜱ ʙʟᴏᴄᴋꜱ ᴛᴏ ᴄʀᴏꜱꜱ ɢᴀᴘꜱ\n"
+                    + "ᴏʀ ᴄʟɪᴍʙ ᴜᴘ. ᴜꜱᴇꜱ ɪɴᴠᴇɴᴛᴏʀʏ ʙʟᴏᴄᴋꜱ.\n"
+                    + "ɢʟᴏʙᴀʟ: "
+                    + (Config.pathfindingPlaceBlocks() ? "ᴇɴᴀʙʟᴇᴅ" : "ᴅɪꜱᴀʙʟᴇᴅ"),
+                Material.DIRT,
+                false),
+            BotEntry.toggle(
+                "swim_ai_enabled",
+                "ꜱᴡɪᴍ ᴀɪ",
+                "ʙᴏᴛ ꜱᴡɪᴍꜱ ᴜᴘ ᴡᴀʀᴅ ɪɴ ᴡᴀᴛᴇʀ/ʟᴀᴠᴀ.\n"
+                    + "ᴅɪꜱᴀʙʟᴇ = ʙᴏᴛ ꜱɪɴᴋꜱ ᴀɴᴅ ᴡᴀʟᴋꜱ ᴏɴ ʙᴏᴛᴛᴏᴍ.\n"
+                    + "ɢʟᴏʙᴀʟ: "
+                    + (Config.swimAiEnabled() ? "ᴇɴᴀʙʟᴇᴅ" : "ᴅɪꜱᴀʙʟᴇᴅ"),
+                Material.WATER_BUCKET,
+                false)));
+  }
+
   private BotCategory chat() {
     return new BotCategory(
         "💬 ᴄʜᴀᴛ",
@@ -2073,7 +2109,7 @@ public final class BotSettingGui implements Listener {
             BotEntry.toggle(
                 "chat_enabled",
                 "ᴄʜᴀᴛ ᴇɴᴀʙʟᴇᴅ",
-                "ʙᴏᴛ ꜱᴇɴᴅꜱ ᴄʜᴀᴛ ᴍᴇꜱꜱᴀɡᴇꜱ ᴡʜᴇɴ ᴇɴᴀʙʟᴇᴅ.\n" + "ꜰᴀʟꜱᴇ = ᴘᴇʀᴍᴀɴᴇɴᴛʟʏ ꜱɪʟɘɴᴄᴇᴅ ʙᴏᴛ.",
+                "ʙᴏᴛ ꜱᴇɴᴅꜱ ᴄʜᴀᴛ ᴍᴇꜱꜱᴀɢᴇꜱ ᴡʜᴇɴ ᴇɴᴀʙʟᴇᴅ.\n" + "ꜰᴀʟꜱᴇ = ᴘᴇʀᴍᴀɴᴇɴᴛʟʏ ꜱɪʟᴇɴᴄᴇᴅ ʙᴏᴛ.",
                 Material.WRITABLE_BOOK,
                 false),
             BotEntry.cycleTier(

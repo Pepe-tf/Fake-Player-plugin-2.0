@@ -50,6 +50,8 @@ import me.bill.fakePlayerPlugin.gui.BotSettingGui;
 import me.bill.fakePlayerPlugin.gui.HelpGui;
 import me.bill.fakePlayerPlugin.gui.SettingGui;
 import me.bill.fakePlayerPlugin.lang.Lang;
+import me.bill.fakePlayerPlugin.license.LicenseCredentialsApi;
+import me.bill.fakePlayerPlugin.license.LicenseManager;
 import me.bill.fakePlayerPlugin.listener.BotCollisionListener;
 import me.bill.fakePlayerPlugin.listener.BotLoginOverrideListener;
 import me.bill.fakePlayerPlugin.listener.BotSpawnProtectionListener;
@@ -124,6 +126,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
   private SkinFetchService skinFetchService =
       SkinFetchService.NOOP;
   private HeartbeatSender heartbeatSender;
+  private LicenseManager licenseManager;
 
   private FppApiImpl fppApi;
   private ExtensionLoader extensionLoader;
@@ -166,6 +169,39 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     Config.init(this);
     Config.debugStartup("config.yml loaded.");
+
+    // ── License Verification ─────────────────────────────────────────────────
+    FppLogger.debug("LICENSE", Config.debugLicense(), "Starting license credential fetch...");
+    LicenseCredentialsApi.Credentials credentials = LicenseCredentialsApi.fetch(this);
+    if (credentials == null) {
+      FppLogger.warn("═══════════════════════════════════════════════════════════════════");
+      FppLogger.warn("  ⚠  LICENSE CREDENTIALS NOT AVAILABLE - PLUGIN DISABLED ⚠");
+      FppLogger.warn("═══════════════════════════════════════════════════════════════════");
+      FppLogger.warn("  Reason: Could not fetch valid license credentials from fpp.wtf");
+      FppLogger.warn("  Check your internet connection and try again.");
+      FppLogger.warn("═══════════════════════════════════════════════════════════════════");
+      getServer().getPluginManager().disablePlugin(this);
+      return;
+    }
+
+    licenseManager = new LicenseManager(this, credentials);
+    FppLogger.debug("LICENSE", Config.debugLicense(), "LicenseManager created with credentials.");
+    try {
+      FppLogger.info("Verifying license...");
+      licenseManager.verify();
+      licenseManager.startHeartbeat();
+      FppLogger.info("License verification passed.");
+      FppLogger.debug("LICENSE", Config.debugLicense(), "License heartbeat scheduler started (15 min interval).");
+    } catch (Exception e) {
+      FppLogger.warn("═══════════════════════════════════════════════════════════════════");
+      FppLogger.warn("  ⚠  LICENSE VERIFICATION FAILED - PLUGIN DISABLED ⚠");
+      FppLogger.warn("═══════════════════════════════════════════════════════════════════");
+      FppLogger.warn("  Reason: " + e.getMessage());
+      FppLogger.debug("LICENSE", Config.debugLicense(), "License verification exception: " + e.getMessage());
+      FppLogger.warn("═══════════════════════════════════════════════════════════════════");
+      getServer().getPluginManager().disablePlugin(this);
+      return;
+    }
 
     AttributionManager.validate(this);
     AttributionApiManager.init(this);
@@ -283,7 +319,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
       networkHeartbeat.start();
     }
 
-    pathfindingService = new PathfindingService();
+    pathfindingService = new PathfindingService(this, fakePlayerManager);
     commandManager = new CommandManager(this);
     commandManager.register(new SpawnCommand(fakePlayerManager));
     commandManager.register(new DeleteCommand(fakePlayerManager));
@@ -487,7 +523,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
         !Config.databaseEnabled() ? "disabled" : (dbOk ? dbLabel : dbLabel + " (failed)");
     int dbSchemaVersion = databaseManager != null ? DatabaseManager.getCurrentSchemaVersion() : 0;
 
-    boolean effectiveSpawnBody = Config.spawnBody();
     boolean effectiveChunkLoading =
         Config.chunkLoadingEnabled() && Config.chunkLoadingRadius() != 0;
     boolean effectiveTaskPersist = Config.persistOnRestart() && databaseManager != null;
@@ -504,7 +539,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
         BotNameConfig.getNames().size(),
         dbState,
         dbSchemaVersion,
-        effectiveSpawnBody,
         Config.persistOnRestart(),
         effectiveTaskPersist,
         Bukkit.getPluginManager().getPlugin("LuckPerms") != null,
@@ -563,6 +597,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     if (heartbeatSender != null) heartbeatSender.stop();
     if (networkHeartbeat != null) networkHeartbeat.stop();
+    if (licenseManager != null) licenseManager.shutdown();
 
     if (fppMetrics != null) fppMetrics.shutdown();
 

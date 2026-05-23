@@ -692,8 +692,6 @@ public final class HelpGui implements Listener {
             .append(Component.text("ᴅᴏᴡɴʟᴏᴀᴅ  ").color(GRAY).decoration(TextDecoration.BOLD, true))
             .append(Component.text("Modrinth").color(ACCENT))
             .append(Component.text("  ·  ").color(DARK_GRAY))
-            .append(Component.text("SpigotMC").color(ACCENT))
-            .append(Component.text("  ·  ").color(DARK_GRAY))
             .append(Component.text("PaperMC").color(ACCENT))
             .append(Component.text("  ·  ").color(DARK_GRAY))
             .append(Component.text("BuiltByBit").color(ACCENT)));

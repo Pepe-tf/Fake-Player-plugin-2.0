@@ -110,7 +110,6 @@ public class StatsCommand implements FppCommand {
             : (chunkRadius == 0 ? "disabled (radius 0)" : "enabled (r=" + chunkRadius + ")");
     statusBoolRow(sender, "ᴄʜᴜɴᴋ ʟᴏᴀᴅɪɴɢ", chunkActive, chunkLabel, chunkLabel);
     statusBoolRow(sender, "ᴘᴇʀꜱɪꜱᴛᴇɴᴄᴇ", Config.persistOnRestart(), "enabled", "disabled");
-    statusBoolRow(sender, "ʙᴏᴛ ʙᴏᴅɪᴇꜱ", Config.spawnBody(), "enabled", "disabled");
     sender.sendMessage(kvRow("ꜱᴋɪɴ ᴍᴏᴅᴇ", Config.skinMode()));
     int cooldown = Config.spawnCooldown();
     sender.sendMessage(kvRow("ꜱᴘᴀᴡɴ ᴄᴏᴏʟᴅᴏᴡɴ", cooldown > 0 ? cooldown + "s" : "off"));

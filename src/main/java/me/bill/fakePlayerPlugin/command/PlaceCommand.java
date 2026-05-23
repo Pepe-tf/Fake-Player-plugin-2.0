@@ -6,7 +6,6 @@ import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
 import me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -59,9 +58,7 @@ public final class PlaceCommand implements FppCommand {
 
   private enum Phase {
     FILLING,
-
     RECHECKING,
-
     CLEANING_SCAFFOLD
   }
 
@@ -70,9 +67,7 @@ public final class PlaceCommand implements FppCommand {
   private static final int SKIP_RETRY_LIMIT = 3;
 
   private static final double PLACE_REACH = 4.5;
-
   private static final int PLACE_COOLDOWN = 5;
-
   private static final int SCAFFOLD_MAX_RETRIES = 4;
 
   private static final Material[] SCAFFOLD_PREF = {
@@ -117,7 +112,7 @@ public final class PlaceCommand implements FppCommand {
 
   @Override
   public String getDescription() {
-    return "Bot continuously places blocks it is looking at, like /fpp mine but placing.";
+    return "Bot places blocks where it is looking. If too far, bot walks closer then places.";
   }
 
   @Override
@@ -314,36 +309,27 @@ public final class PlaceCommand implements FppCommand {
     if (args.length == 1 || once) {
       cleanupBot(fp.getUuid());
 
-      final Location dest;
-      final float capturedYaw;
-      final float capturedPitch;
-      if (sender instanceof Player sp) {
-        Location spLoc = sp.getLocation();
-        dest =
-            new Location(
-                spLoc.getWorld(), spLoc.getBlockX() + 0.5, spLoc.getY(), spLoc.getBlockZ() + 0.5);
-        capturedYaw = spLoc.getYaw();
-        capturedPitch = spLoc.getPitch();
-      } else {
-        dest = bot.getLocation().clone();
-        capturedYaw = dest.getYaw();
-        capturedPitch = dest.getPitch();
+      BlockPos targetPos = getTargetBlockFromBot(bot);
+      if (targetPos == null) {
+        sender.sendMessage(Lang.get("place-look-at-block"));
+        return true;
       }
 
-      double xzDist = PathfindingService.xzDist(bot.getLocation(), dest);
-      if (xzDist <= 0.35) {
-        lockAndStartPlacing(fp, once, dest, capturedYaw, capturedPitch);
+      double dist = bot.getLocation().distance(new Location(bot.getWorld(), targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5));
+      if (dist <= PLACE_REACH) {
+        lockAndStartPlacing(fp, once, targetPos);
         sender.sendMessage(
             once
                 ? Lang.get("place-started-once", "name", fp.getDisplayName())
                 : Lang.get("place-started", "name", fp.getDisplayName()));
       } else {
-        startNavigation(
-            fp,
-            dest,
-            null,
-            () -> lockAndStartPlacing(fp, once, dest, capturedYaw, capturedPitch));
-        sender.sendMessage(Lang.get("place-walking", "name", fp.getDisplayName()));
+        Location standLoc = findStandLocationNearTarget(bot.getWorld(), targetPos);
+        if (standLoc != null) {
+          startNavigation(fp, standLoc, () -> lockAndStartPlacing(fp, once, targetPos));
+          sender.sendMessage(Lang.get("place-walking", "name", fp.getDisplayName()));
+        } else {
+          sender.sendMessage(Lang.get("place-no-path", "name", fp.getDisplayName()));
+        }
       }
       return true;
     }
@@ -410,7 +396,6 @@ public final class PlaceCommand implements FppCommand {
   }
 
   private void startNavigation(FakePlayer fp, Location dest, Runnable onArrive) {
-    // Force placeBlocks=true so the bot can bridge gaps en-route to its target.
     BotPathfinder.PathOptions baseOpts =
         PathfindingService.resolvePathOptions(fp);
     BotPathfinder.PathOptions opts =
@@ -435,33 +420,26 @@ public final class PlaceCommand implements FppCommand {
             opts));
   }
 
-  private void lockAndStartPlacing(
-      FakePlayer fp, boolean once, Location dest, float capturedYaw, float capturedPitch) {
+  private void lockAndStartPlacing(FakePlayer fp, boolean once, BlockPos targetPos) {
     FppApiImpl.fireTaskEvent(fp, "place", FppBotTaskEvent.Action.START);
     UUID uuid = fp.getUuid();
     Player bot = fp.getPlayer();
     if (bot == null) return;
 
-    Location lockLoc = dest.clone();
-    lockLoc.setYaw(capturedYaw);
-    lockLoc.setPitch(capturedPitch);
-
-    // Apply facing only; avoid teleporting after navigation to prevent visual snapping.
-    bot.setRotation(capturedYaw, capturedPitch);
-    NmsPlayerSpawner.setHeadYaw(bot, capturedYaw);
+    Location faceLoc = faceTowardBlock(bot.getLocation(), targetPos);
+    bot.setRotation(faceLoc.getYaw(), faceLoc.getPitch());
+    NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
     NmsPlayerSpawner.setMovementForward(bot, 0f);
     bot.setSprinting(false);
 
     Location actualLoc = bot.getLocation().clone();
-    actualLoc.setYaw(capturedYaw);
-    actualLoc.setPitch(capturedPitch);
+    actualLoc.setYaw(faceLoc.getYaw());
+    actualLoc.setPitch(faceLoc.getPitch());
     manager.lockForAction(uuid, actualLoc);
 
     PlaceState state = new PlaceState();
     state.once = once;
-    state.capturedYaw = capturedYaw;
-    state.capturedPitch = capturedPitch;
-    state.destination = actualLoc.clone();
+    state.forcedTarget = targetPos;
     placeStates.put(uuid, state);
 
     int taskId =
@@ -493,33 +471,37 @@ public final class PlaceCommand implements FppCommand {
       return;
     }
 
-    bot.setRotation(state.capturedYaw, state.capturedPitch);
-    NmsPlayerSpawner.setHeadYaw(bot, state.capturedYaw);
-    Location updatedLock = bot.getLocation().clone();
-    updatedLock.setYaw(state.capturedYaw);
-    updatedLock.setPitch(state.capturedPitch);
-    manager.lockForAction(fp.getUuid(), updatedLock);
+    BlockPos targetPos = state.forcedTarget;
+    if (targetPos == null) {
+      targetPos = getTargetBlockFromBot(bot);
+      if (targetPos == null) {
+        if (state.once) stopPlacing(fp.getUuid());
+        return;
+      }
+      state.forcedTarget = targetPos;
+    }
 
     Material mat = findPlaceableMaterial(bot.getInventory());
     if (mat != null) equipMaterial(bot, mat);
 
-    var hit = bot.rayTraceBlocks(5.0);
-    if (hit != null && hit.getHitBlock() != null && hit.getHitBlockFace() != null) {
-      Block hitBlock = hit.getHitBlock();
-      BlockFace face = hit.getHitBlockFace();
-      placeBlockNms(
-          fp,
-          bot,
-          new BlockPos(hitBlock.getX(), hitBlock.getY(), hitBlock.getZ()),
-          toNmsDirection(face));
-    } else {
-
-      if (state.once) {
-        stopPlacing(fp.getUuid());
-        return;
-      }
+    BlockHitResult hit = rayTraceBlock(bot);
+    if (hit == null) {
+      if (state.once) stopPlacing(fp.getUuid());
       return;
     }
+
+    var faceBlockPos = hit.getBlockPos();
+    Direction faceDir = hit.getDirection();
+    if (faceBlockPos == null || faceDir == null) {
+      if (state.once) stopPlacing(fp.getUuid());
+      return;
+    }
+
+    placeBlockNms(
+        fp,
+        bot,
+        faceBlockPos,
+        faceDir);
 
     if (state.once) {
       stopPlacing(fp.getUuid());
@@ -571,74 +553,27 @@ public final class PlaceCommand implements FppCommand {
     return !event.isCancelled();
   }
 
-  private PlacementInfo findBestPlacement(
-      Player bot, @Nullable Location preferred) {
-    Location eye = bot.getEyeLocation();
-    World world = bot.getWorld();
-    int ex = (int) Math.floor(eye.getX());
-    int ey = (int) Math.floor(eye.getY());
-    int ez = (int) Math.floor(eye.getZ());
-    int reach = (int) Math.ceil(PLACE_REACH);
-    double reachSq = PLACE_REACH * PLACE_REACH;
-
-    int botX = bot.getLocation().getBlockX();
-    int botY = bot.getLocation().getBlockY();
-    int botZ = bot.getLocation().getBlockZ();
-
-    int[][] offsets = {{0, -1, 0}, {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}, {0, 1, 0}};
-    Direction[] faces = {
-        Direction.UP, Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH, Direction.DOWN
-    };
-
-    PlacementInfo best = null;
-    double bestScore = Double.MAX_VALUE;
-
-    for (int dx = -reach; dx <= reach; dx++) {
-      for (int dy = -reach; dy <= reach; dy++) {
-        for (int dz = -reach; dz <= reach; dz++) {
-          double distSq = dx * (double) dx + dy * (double) dy + dz * (double) dz;
-          if (distSq > reachSq) continue;
-
-          int bx = ex + dx, by = ey + dy, bz = ez + dz;
-
-          if (bx == botX && bz == botZ && (by == botY || by == botY + 1)) continue;
-
-          Block b = world.getBlockAt(bx, by, bz);
-          Material bm = b.getType();
-
-          if (!bm.isAir() && bm != Material.WATER && bm != Material.LAVA) continue;
-
-          for (int i = 0; i < offsets.length; i++) {
-            int nx = bx + offsets[i][0], ny = by + offsets[i][1], nz = bz + offsets[i][2];
-            Block nb = world.getBlockAt(nx, ny, nz);
-            if (!nb.getType().isSolid() || nb.getType().isAir()) continue;
-
-            double prefDist =
-                preferred != null
-                    ? Math.abs(bx - preferred.getBlockX())
-                      + Math.abs(by - preferred.getBlockY())
-                      + Math.abs(bz - preferred.getBlockZ())
-                    : 0;
-            double score = prefDist * 100.0 + distSq;
-
-            if (score < bestScore) {
-              bestScore = score;
-              Location faceCenter =
-                  new Location(
-                      world,
-                      nx + 0.5 + faces[i].getStepX() * 0.5,
-                      ny + 0.5 + faces[i].getStepY() * 0.5,
-                      nz + 0.5 + faces[i].getStepZ() * 0.5);
-              best =
-                  new PlacementInfo(
-                      new BlockPos(bx, by, bz), new BlockPos(nx, ny, nz), faces[i], faceCenter);
-            }
-            break;
-          }
-        }
-      }
+  @Nullable
+  private BlockHitResult rayTraceBlock(Player bot) {
+    try {
+      Location eye = bot.getEyeLocation();
+      org.bukkit.util.RayTraceResult result = bot.getWorld().rayTraceBlocks(
+          eye,
+          eye.getDirection(),
+          PLACE_REACH,
+          org.bukkit.FluidCollisionMode.NEVER,
+          false
+      );
+      return result != null ? result.getHitBlockFace() != null ? 
+          new BlockHitResult(
+              new Vec3(result.getHitPosition().getX(), result.getHitPosition().getY(), result.getHitPosition().getZ()),
+              toNmsDirection(result.getHitBlockFace()),
+              new BlockPos(result.getHitBlock().getX(), result.getHitBlock().getY(), result.getHitBlock().getZ()),
+              false
+          ) : null : null;
+    } catch (Exception e) {
+      return null;
     }
-    return best;
   }
 
   private Material findPlaceableMaterial(PlayerInventory inv) {
@@ -664,9 +599,21 @@ public final class PlaceCommand implements FppCommand {
   }
 
   @Nullable
+  public BlockPos getActivePlaceTarget(UUID botUuid) {
+    PlaceState state = placeStates.get(botUuid);
+    return state != null ? state.forcedTarget : null;
+  }
+
+  @Nullable
   public Location getActivePlaceLocation(UUID botUuid) {
     PlaceState state = placeStates.get(botUuid);
-    return state != null ? state.destination : null;
+    if (state == null || state.forcedTarget == null) return null;
+    BlockPos pos = state.forcedTarget;
+    FakePlayer fp = manager.getByUuid(botUuid);
+    if (fp == null) return null;
+    Player bot = fp.getPlayer();
+    if (bot == null || bot.getWorld() == null) return null;
+    return new Location(bot.getWorld(), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
   }
 
   public boolean isActivePlaceOnce(UUID botUuid) {
@@ -680,30 +627,32 @@ public final class PlaceCommand implements FppCommand {
 
   public void resumePlacing(FakePlayer fp) {
     UUID uuid = fp.getUuid();
-    Location placeLoc = getActivePlaceLocation(uuid);
-    boolean once = isActivePlaceOnce(uuid);
-    if (placeLoc != null) {
-      resumePlacing(fp, once, placeLoc);
+    PlaceState state = placeStates.get(uuid);
+    if (state != null && state.forcedTarget != null) {
+      resumePlacing(fp, state.once, state.forcedTarget);
     }
   }
 
-  public void resumePlacing(FakePlayer fp, boolean once, Location loc) {
-    if (fp == null || loc == null) return;
+  public void resumePlacing(FakePlayer fp, boolean once, BlockPos targetPos) {
+    if (fp == null || targetPos == null) return;
     Player bot = fp.getPlayer();
     if (bot == null || !bot.isOnline()) return;
     stopPlacing(fp.getUuid());
-    float capturedYaw = loc.getYaw();
-    float capturedPitch = loc.getPitch();
-    double xzDist = PathfindingService.xzDist(bot.getLocation(), loc);
-    if (xzDist <= Config.pathfindingArrivalDistance()) {
-      lockAndStartPlacing(fp, once, loc, capturedYaw, capturedPitch);
+    double dist = bot.getLocation().distance(new Location(bot.getWorld(), targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5));
+    if (dist <= PLACE_REACH) {
+      lockAndStartPlacing(fp, once, targetPos);
     } else {
-      startNavigation(
-          fp,
-          loc,
-          null,
-          () -> lockAndStartPlacing(fp, once, loc, capturedYaw, capturedPitch));
+      Location standLoc = findStandLocationNearTarget(bot.getWorld(), targetPos);
+      if (standLoc != null) {
+        startNavigation(fp, standLoc, () -> lockAndStartPlacing(fp, once, targetPos));
+      }
     }
+  }
+
+  public void resumePlacing(FakePlayer fp, boolean once, Location targetLoc) {
+    if (fp == null || targetLoc == null) return;
+    BlockPos targetPos = new BlockPos(targetLoc.getBlockX(), targetLoc.getBlockY(), targetLoc.getBlockZ());
+    resumePlacing(fp, once, targetPos);
   }
 
   private void sendStatus(CommandSender sender, FakePlayer fp) {
@@ -819,481 +768,7 @@ public final class PlaceCommand implements FppCommand {
             "place-area-started", "name", fp.getDisplayName(), "count", String.valueOf(fillable)));
   }
 
-  public void applyWorldEditSelection(FakePlayer fp, Location pos1, Location pos2, CommandSender sender) {
-    AreaSelection weAreaSel = selections.computeIfAbsent(fp.getUuid(), k -> new AreaSelection());
-    weAreaSel.pos1 = pos1;
-    weAreaSel.pos2 = pos2;
-    startAreaPlacing(sender, fp);
-  }
-
   private void tickPlaceJob(UUID botUuid) {
-    PlaceJob job = placeJobs.get(botUuid);
-    if (job == null) {
-      stopPlaceJob(botUuid, false);
-      return;
-    }
-    FakePlayer fp = manager.getByUuid(botUuid);
-    if (fp == null) {
-      stopPlaceJob(botUuid, false);
-      return;
-    }
-    Player bot = fp.getPlayer();
-    if (bot == null || !bot.isOnline()) {
-      stopPlaceJob(botUuid, false);
-      return;
-    }
-
-    if (pathfinding.isNavigating(botUuid) || job.fetchingFromStorage) return;
-
-    if (job.phase == Phase.RECHECKING) {
-      recheckBuild(fp, job, bot);
-      return;
-    }
-    if (job.phase == Phase.CLEANING_SCAFFOLD) {
-      cleanupScaffold(botUuid, fp, job, bot);
-      return;
-    }
-
-    if (job.placeCooldown > 0) {
-      job.placeCooldown--;
-      return;
-    }
-
-    {
-      Location botLoc = bot.getLocation();
-      int bx = botLoc.getBlockX(), by = botLoc.getBlockY(), bz = botLoc.getBlockZ();
-      if (job.selection.contains(bx, by, bz) || job.selection.contains(bx, by - 1, bz)) {
-        startNavigation(
-            fp, findOutsideNavDest(bot.getWorld(), job.selection, bx, by, bz), () -> {
-            });
-        return;
-      }
-    }
-
-    World tickWorld = bot.getWorld();
-    while (job.currentLayer <= job.selection.maxY()
-        && isLayerExhausted(tickWorld, job, job.currentLayer)) {
-      job.currentLayer++;
-      job.skipped.clear();
-      job.skipRetries = 0;
-      job.scaffoldRetries = 0;
-    }
-    if (job.currentLayer > job.selection.maxY()) {
-
-      job.phase = Phase.RECHECKING;
-      return;
-    }
-
-    Material mat = pickAvailableMaterial(bot.getInventory(), job.spec);
-    if (mat == null) {
-      if (!storageStore.getStorages(fp.getName()).isEmpty()) {
-        Map<Material, Integer> toFetch = computeToFetch(fp, job);
-        if (toFetch.isEmpty() || !startStorageFetch(fp, job, toFetch)) {
-          notifyOutOfMaterials(fp, job);
-          stopPlaceJob(botUuid, false);
-        }
-      } else {
-        notifyOutOfMaterials(fp, job);
-        stopPlaceJob(botUuid, false);
-      }
-      return;
-    }
-
-    NmsPlayerSpawner.setMovementForward(bot, 0f);
-    bot.setSprinting(false);
-    if (tryPlaceReachable(fp, job) > 0) return;
-
-    AreaBlock next = findNextAreaTarget(bot, job.selection, job);
-    if (next == null) {
-
-      if (!job.skipped.isEmpty() && job.skipRetries < SKIP_RETRY_LIMIT) {
-        job.skipped.clear();
-        job.skipRetries++;
-        return;
-      }
-
-      if (job.scaffoldRetries < SCAFFOLD_MAX_RETRIES) {
-        if (tryScaffoldStep(fp, job)) {
-          job.scaffoldRetries++;
-          return;
-        }
-      }
-
-      advanceLayer(job);
-      return;
-    }
-
-    job.currentTarget = next;
-    Location dest = findNavigationDest(bot.getWorld(), job.selection, next);
-    startNavigation(
-        fp,
-        dest,
-        () -> {
-          job.skipped.clear();
-          job.skipRetries = 0;
-        });
-  }
-
-  private int tryPlaceReachable(FakePlayer fp, PlaceJob job) {
-    Player bot = fp.getPlayer();
-    if (bot == null || !bot.isOnline()) return 0;
-
-    Location botLoc = bot.getLocation();
-    double eyeX = botLoc.getX();
-    double eyeY = botLoc.getY() + 1.62;
-    double eyeZ = botLoc.getZ();
-    World world = bot.getWorld();
-    AreaSelection sel = job.selection;
-    double reachSq = PLACE_REACH * PLACE_REACH;
-
-    int y = job.currentLayer;
-    if (y < sel.minY() || y > sel.maxY()) return 0;
-
-    for (int x = sel.minX(); x <= sel.maxX(); x++) {
-      for (int z = sel.minZ(); z <= sel.maxZ(); z++) {
-        AreaBlock ab = new AreaBlock(x, y, z);
-        if (job.completed.contains(ab) || job.skipped.contains(ab)) continue;
-
-        Block block = world.getBlockAt(x, y, z);
-        if (!needsFilling(block)) {
-          job.completed.add(ab);
-          continue;
-        }
-
-        double dx = eyeX - (x + 0.5), dy = eyeY - (y + 0.5), dz = eyeZ - (z + 0.5);
-        if (dx * dx + dy * dy + dz * dz > reachSq) continue;
-
-        PlacementTarget pt = findPlacementTarget(world, ab);
-        if (pt == null) {
-
-          job.skipped.add(ab);
-          continue;
-        }
-
-        Material mat = pickAvailableMaterial(bot.getInventory(), job.spec);
-        if (mat == null) return 0;
-        if (!equipMaterial(bot, mat)) continue;
-
-        Location faceCenter =
-            new Location(
-                world,
-                pt.faceBlockPos().getX() + 0.5 + pt.faceDir().getStepX() * 0.5,
-                pt.faceBlockPos().getY() + 0.5 + pt.faceDir().getStepY() * 0.5,
-                pt.faceBlockPos().getZ() + 0.5 + pt.faceDir().getStepZ() * 0.5);
-        Location faceLoc = BotNavUtil.faceToward(botLoc, faceCenter);
-        bot.setRotation(faceLoc.getYaw(), faceLoc.getPitch());
-        NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
-
-        placeBlockNms(fp, bot, pt.faceBlockPos(), pt.faceDir());
-
-        Block after = world.getBlockAt(x, y, z);
-        if (!needsFilling(after)) {
-          job.blocksPlaced++;
-          job.completed.add(ab);
-
-          job.placeCooldown = PLACE_COOLDOWN;
-          if (job.blocksPlaced % PROGRESS_INTERVAL == 0)
-            notifyStarter(
-                job,
-                "place-progress",
-                "name",
-                fp.getDisplayName(),
-                "placed",
-                String.valueOf(job.blocksPlaced));
-          return 1;
-        } else {
-
-          job.skipped.add(ab);
-        }
-      }
-    }
-    return 0;
-  }
-
-  private boolean startStorageFetch(FakePlayer fp, PlaceJob job, Map<Material, Integer> needed) {
-    List<StorageStore.StoragePoint> storages = storageStore.getStorages(fp.getName());
-    if (storages.isEmpty()) return false;
-    Player bot = fp.getPlayer();
-    if (bot == null) return false;
-    for (int attempt = 0; attempt < storages.size(); attempt++) {
-      int idx = (job.preferredStorageIndex + attempt) % storages.size();
-      StorageStore.StoragePoint point = storages.get(idx);
-      if (point.location().getWorld() != bot.getWorld()) continue;
-      Block block = point.location().getBlock();
-      if (!(block.getState() instanceof InventoryHolder holder)) continue;
-      if (!storageHasAnyNeeded(holder.getInventory(), needed)) continue;
-      Location standLoc =
-          BotNavUtil.findStandLocation(
-              bot.getWorld(), null, block.getX(), block.getY(), block.getZ());
-      if (standLoc == null) continue;
-      Location faceLoc = BotNavUtil.faceToward(standLoc, block.getLocation().add(0.5, 0.5, 0.5));
-      final int targetIdx = idx;
-      job.fetchingFromStorage = true;
-      startNavigation(fp, faceLoc, () -> fetchFromStorageBlock(fp, job, targetIdx, point, needed));
-      return true;
-    }
-    return false;
-  }
-
-  private void fetchFromStorageBlock(
-      FakePlayer fp,
-      PlaceJob job,
-      int storageIndex,
-      StorageStore.StoragePoint point,
-      Map<Material, Integer> needed) {
-    Player bot = fp.getPlayer();
-    if (bot == null || !bot.isOnline()) {
-      job.fetchingFromStorage = false;
-      return;
-    }
-    Block block = point.location().getBlock();
-    if (!(block.getState() instanceof InventoryHolder)) {
-      job.fetchingFromStorage = false;
-      job.preferredStorageIndex =
-          (storageIndex + 1) % Math.max(1, storageStore.getStorages(fp.getName()).size());
-      return;
-    }
-    Location standLoc =
-        BotNavUtil.findStandLocation(
-            bot.getWorld(), null, block.getX(), block.getY(), block.getZ());
-    if (standLoc == null) {
-      job.fetchingFromStorage = false;
-      return;
-    }
-    Location faceLoc = BotNavUtil.faceToward(standLoc, block.getLocation().add(0.5, 0.5, 0.5));
-    if (!BotNavUtil.isAtActionLocation(bot, faceLoc)) {
-
-      startNavigation(
-          fp, faceLoc, () -> fetchFromStorageBlock(fp, job, storageIndex, point, needed));
-      return;
-    }
-
-    final int finalIdx = storageIndex;
-    StorageInteractionHelper.interact(
-        fp,
-        faceLoc,
-        block,
-        plugin,
-        manager,
-        (holder, liveBot) -> {
-          moveStorageToBot(holder.getInventory(), liveBot.getInventory(), needed);
-          job.preferredStorageIndex = finalIdx;
-        },
-        () -> job.fetchingFromStorage = false);
-  }
-
-  private void startNavigation(
-      FakePlayer fp,
-      Location dest,
-      @Nullable Location lockOnArrival,
-      Runnable onArrive) {
-    // Force placeBlocks=true so the bot can bridge gaps en-route to its target.
-    BotPathfinder.PathOptions baseOpts =
-        PathfindingService.resolvePathOptions(fp);
-    BotPathfinder.PathOptions opts =
-        new BotPathfinder.PathOptions(
-            fp.isNavParkour(),
-            fp.isNavBreakBlocks(),
-            true,
-            baseOpts.avoidWater(),
-            baseOpts.avoidLava());
-    pathfinding.navigate(
-        fp,
-        new PathfindingService.NavigationRequest(
-            PathfindingService.Owner.PLACE,
-            () -> dest,
-            0.35,
-            0.0,
-            Integer.MAX_VALUE,
-            onArrive,
-            null,
-            null,
-            lockOnArrival,
-            opts));
-  }
-
-  private Location findNavigationDest(World world, AreaSelection sel, AreaBlock target) {
-    return findOutsideNavDest(world, sel, target.x(), target.y(), target.z());
-  }
-
-  private Location findOutsideNavDest(World world, AreaSelection sel, int tx, int ty, int tz) {
-    for (int r = 1; r <= 8; r++) {
-      for (int dx = -r; dx <= r; dx++) {
-        for (int dz = -r; dz <= r; dz++) {
-          if (Math.abs(dx) < r && Math.abs(dz) < r) continue;
-          int cx = tx + dx, cz = tz + dz;
-          if (sel != null && sel.contains(cx, ty, cz)) continue;
-          for (int dy : new int[]{0, -1, 1}) {
-            if (BotPathfinder.walkable(world, cx, ty + dy, cz))
-              return new Location(world, cx + 0.5, ty + dy, cz + 0.5);
-          }
-        }
-      }
-    }
-
-    if (sel != null) {
-      double dMinX = tx - sel.minX(), dMaxX = sel.maxX() - tx;
-      double dMinZ = tz - sel.minZ(), dMaxZ = sel.maxZ() - tz;
-      double best = Math.min(Math.min(dMinX, dMaxX), Math.min(dMinZ, dMaxZ));
-      int ex, ez;
-      if (best == dMinX) {
-        ex = sel.minX() - 1;
-        ez = tz;
-      } else if (best == dMaxX) {
-        ex = sel.maxX() + 1;
-        ez = tz;
-      } else if (best == dMinZ) {
-        ex = tx;
-        ez = sel.minZ() - 1;
-      } else {
-        ex = tx;
-        ez = sel.maxZ() + 1;
-      }
-      return new Location(world, ex + 0.5, ty, ez + 0.5);
-    }
-    return new Location(world, tx + 1.5, ty, tz + 0.5);
-  }
-
-  private boolean needsFilling(Block block) {
-    Material m = block.getType();
-    return m.isAir()
-        || m == Material.WATER
-        || m == Material.LAVA
-        || m == Material.CAVE_AIR
-        || m == Material.VOID_AIR
-        || !m.isSolid();
-  }
-
-  private void recheckBuild(FakePlayer fp, PlaceJob job, Player bot) {
-    World world = bot.getWorld();
-    AreaSelection sel = job.selection;
-    int missedLayer = -1;
-    outer:
-    for (int y = sel.minY(); y <= sel.maxY(); y++) {
-      for (int x = sel.minX(); x <= sel.maxX(); x++) {
-        for (int z = sel.minZ(); z <= sel.maxZ(); z++) {
-          if (needsFilling(world.getBlockAt(x, y, z))) {
-            missedLayer = y;
-            break outer;
-          }
-        }
-      }
-    }
-    if (missedLayer >= 0) {
-
-      job.phase = Phase.FILLING;
-      job.currentLayer = missedLayer;
-      job.skipped.clear();
-      job.skipRetries = 0;
-      job.scaffoldRetries = 0;
-      notifyStarter(job, "place-recheck-filling", "name", fp.getDisplayName());
-    } else {
-
-      notifyStarter(job, "place-recheck-clean", "name", fp.getDisplayName());
-      job.phase = Phase.CLEANING_SCAFFOLD;
-    }
-  }
-
-  private void cleanupScaffold(UUID botUuid, FakePlayer fp, PlaceJob job, Player bot) {
-    World world = bot.getWorld();
-    int cleaned = 0;
-    for (AreaBlock ab : new HashSet<>(job.scaffoldBlocks)) {
-      Block block = world.getBlockAt(ab.x(), ab.y(), ab.z());
-      if (!block.getType().isAir()
-          && block.getType().isSolid()
-          && !job.selection.contains(ab.x(), ab.y(), ab.z())) {
-        ItemStack drop = new ItemStack(block.getType(), 1);
-        block.setType(Material.AIR);
-        Map<Integer, ItemStack> leftover = bot.getInventory().addItem(drop);
-        if (!leftover.isEmpty())
-          world.dropItemNaturally(
-              block.getLocation().add(0.5, 0.5, 0.5), leftover.values().iterator().next());
-        cleaned++;
-      }
-    }
-    job.scaffoldBlocks.clear();
-    if (cleaned > 0)
-      notifyStarter(
-          job,
-          "place-scaffold-cleaned",
-          "name",
-          fp.getDisplayName(),
-          "count",
-          String.valueOf(cleaned));
-    notifyStarter(
-        job,
-        "place-area-finished",
-        "name",
-        fp.getDisplayName(),
-        "count",
-        String.valueOf(job.blocksPlaced));
-    stopPlaceJob(botUuid, false);
-  }
-
-  private AreaBlock findNextAreaTarget(Player bot, AreaSelection sel, PlaceJob job) {
-    World world = bot.getWorld();
-    Location botLoc = bot.getLocation();
-    int y = job.currentLayer;
-    if (y < sel.minY() || y > sel.maxY()) return null;
-
-    AreaBlock best = null;
-    double bestDist = Double.MAX_VALUE;
-    for (int x = sel.minX(); x <= sel.maxX(); x++) {
-      for (int z = sel.minZ(); z <= sel.maxZ(); z++) {
-        AreaBlock ab = new AreaBlock(x, y, z);
-        if (job.completed.contains(ab) || job.skipped.contains(ab)) continue;
-        Block block = world.getBlockAt(x, y, z);
-        if (!needsFilling(block)) {
-          job.completed.add(ab);
-          continue;
-        }
-        double dist =
-            (botLoc.getX() - (x + 0.5)) * (botLoc.getX() - (x + 0.5))
-                + (botLoc.getZ() - (z + 0.5)) * (botLoc.getZ() - (z + 0.5));
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = ab;
-        }
-      }
-    }
-    return best;
-  }
-
-  private PlacementTarget findPlacementTarget(World world, AreaBlock target) {
-    int x = target.x(), y = target.y(), z = target.z();
-    int[][] offsets = {{0, -1, 0}, {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}, {0, 1, 0}};
-    Direction[] faces = {
-        Direction.UP, Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH, Direction.DOWN
-    };
-    for (int i = 0; i < offsets.length; i++) {
-      int nx = x + offsets[i][0], ny = y + offsets[i][1], nz = z + offsets[i][2];
-      Block nb = world.getBlockAt(nx, ny, nz);
-      if (!nb.getType().isSolid() || nb.getType().isAir()) continue;
-      return new PlacementTarget(new BlockPos(nx, ny, nz), faces[i]);
-    }
-    return null;
-  }
-
-  private void moveStorageToBot(
-      Inventory storage, PlayerInventory bot, Map<Material, Integer> needed) {
-    Map<Material, Integer> remaining = new HashMap<>(needed);
-    for (int slot = 0; slot < storage.getSize(); slot++) {
-      ItemStack item = storage.getItem(slot);
-      if (item == null || item.getType().isAir()) continue;
-      Integer stillNeeded = remaining.get(item.getType());
-      if (stillNeeded == null || stillNeeded <= 0) continue;
-      int take = Math.min(stillNeeded, item.getAmount());
-      ItemStack toAdd = item.clone();
-      toAdd.setAmount(take);
-      Map<Integer, ItemStack> leftovers = bot.addItem(toAdd);
-      int added =
-          take - (leftovers.isEmpty() ? 0 : leftovers.values().iterator().next().getAmount());
-      if (added > 0) {
-        item.setAmount(item.getAmount() - added);
-        if (item.getAmount() == 0) storage.setItem(slot, null);
-        remaining.merge(item.getType(), -added, Integer::sum);
-      }
-    }
   }
 
   private boolean equipMaterial(Player bot, Material mat) {
@@ -1320,154 +795,6 @@ public final class PlaceCommand implements FppCommand {
     return false;
   }
 
-  private Material pickAvailableMaterial(PlayerInventory inv, List<BlockEntry> spec) {
-    List<BlockEntry> available =
-        spec.stream().filter(e -> countInInventory(inv, e.material()) > 0).toList();
-    if (available.isEmpty()) return null;
-    if (available.size() == 1) return available.getFirst().material();
-    int total = available.stream().mapToInt(BlockEntry::weight).sum();
-    int r = (int) (Math.random() * total), cumulative = 0;
-    for (BlockEntry e : available) {
-      cumulative += e.weight();
-      if (r < cumulative) return e.material();
-    }
-    return available.getLast().material();
-  }
-
-  private int countInInventory(PlayerInventory inv, Material mat) {
-    int count = 0;
-    for (int slot = 0; slot < 36; slot++) {
-      ItemStack item = inv.getItem(slot);
-      if (item != null && item.getType() == mat) count += item.getAmount();
-    }
-    return count;
-  }
-
-  private int countAvailable(FakePlayer fp, Player bot, Material mat) {
-    int count = countInInventory(bot.getInventory(), mat);
-    for (StorageStore.StoragePoint pt : storageStore.getStorages(fp.getName())) {
-      Block b = pt.location().getBlock();
-      if (b.getState() instanceof InventoryHolder holder)
-        for (ItemStack item : holder.getInventory().getContents())
-          if (item != null && item.getType() == mat) count += item.getAmount();
-    }
-    return count;
-  }
-
-  private int countFillableBlocks(World world, AreaSelection sel) {
-    int count = 0;
-    for (int y = sel.minY(); y <= sel.maxY(); y++)
-      for (int x = sel.minX(); x <= sel.maxX(); x++)
-        for (int z = sel.minZ(); z <= sel.maxZ(); z++)
-          if (needsFilling(world.getBlockAt(x, y, z))) count++;
-    return count;
-  }
-
-  private Map<Material, Integer> computeNeededFromSpec(List<BlockEntry> spec, int total) {
-    int totalWeight = spec.stream().mapToInt(BlockEntry::weight).sum();
-    Map<Material, Integer> result = new LinkedHashMap<>();
-    int assigned = 0;
-    for (int i = 0; i < spec.size(); i++) {
-      BlockEntry e = spec.get(i);
-      int n =
-          (i == spec.size() - 1)
-              ? (total - assigned)
-              : (int) Math.round((double) e.weight() / totalWeight * total);
-      result.merge(e.material(), n, Integer::sum);
-      assigned += n;
-    }
-    return result;
-  }
-
-  private Map<Material, Integer> computeToFetch(FakePlayer fp, PlaceJob job) {
-    int remaining =
-        Math.max(1, job.selection.blockCount() - job.completed.size() - job.skipped.size());
-    int fetchAmt = Math.clamp(remaining, 1, 64);
-    Map<Material, Integer> toFetch = new LinkedHashMap<>();
-    for (BlockEntry e : job.spec) {
-      int inStorage = 0;
-      for (StorageStore.StoragePoint pt : storageStore.getStorages(fp.getName())) {
-        Block b = pt.location().getBlock();
-        if (b.getState() instanceof InventoryHolder holder)
-          for (ItemStack item : holder.getInventory().getContents())
-            if (item != null && item.getType() == e.material()) inStorage += item.getAmount();
-      }
-      if (inStorage > 0) toFetch.put(e.material(), Math.min(fetchAmt, inStorage));
-    }
-    return toFetch;
-  }
-
-  private boolean checkAndReportMissing(
-      CommandSender sender, FakePlayer fp, Player bot, List<BlockEntry> spec, int fillable) {
-    Map<Material, Integer> needed = computeNeededFromSpec(spec, fillable);
-    Map<Material, Integer> missing = new LinkedHashMap<>();
-    for (Map.Entry<Material, Integer> e : needed.entrySet()) {
-      int deficit = e.getValue() - countAvailable(fp, bot, e.getKey());
-      if (deficit > 0) missing.put(e.getKey(), deficit);
-    }
-    if (missing.isEmpty()) return true;
-    sender.sendMessage(
-        Lang.get(
-            "place-missing-header",
-            "name",
-            fp.getDisplayName(),
-            "count",
-            String.valueOf(fillable)));
-    for (Map.Entry<Material, Integer> e : missing.entrySet())
-      sender.sendMessage(
-          Lang.get(
-              "place-missing-entry",
-              "material",
-              formatMaterial(e.getKey()),
-              "amount",
-              String.valueOf(e.getValue())));
-    return false;
-  }
-
-  private List<BlockEntry> buildSpecFromInventoryAndStorage(FakePlayer fp, Player bot) {
-    Map<Material, Integer> counts = new LinkedHashMap<>();
-    PlayerInventory inv = bot.getInventory();
-    for (int slot = 0; slot < 36; slot++) {
-      ItemStack item = inv.getItem(slot);
-      if (item == null || item.getType().isAir() || !item.getType().isBlock() || isLikelyTool(item))
-        continue;
-      counts.merge(item.getType(), item.getAmount(), Integer::sum);
-    }
-    for (StorageStore.StoragePoint point : storageStore.getStorages(fp.getName())) {
-      Block block = point.location().getBlock();
-      if (!(block.getState() instanceof InventoryHolder holder)) continue;
-      for (ItemStack item : holder.getInventory().getContents()) {
-        if (item == null
-            || item.getType().isAir()
-            || !item.getType().isBlock()
-            || isLikelyTool(item)) continue;
-        counts.merge(item.getType(), item.getAmount(), Integer::sum);
-      }
-    }
-    return counts.entrySet().stream()
-        .filter(e -> e.getValue() > 0)
-        .map(e -> new BlockEntry(e.getKey(), e.getValue()))
-        .collect(Collectors.toList());
-  }
-
-  private List<BlockEntry> parseBlockSpec(String spec) {
-    List<BlockEntry> result = new ArrayList<>();
-    String[] parts = spec.split(",");
-    Pattern p = Pattern.compile("^([A-Z_]+?)(\\d+)?%?$");
-    int defaultWeight = Math.max(1, 100 / parts.length);
-    for (String part : parts) {
-      part = part.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", "");
-      Matcher m = p.matcher(part);
-      if (!m.matches()) continue;
-      String matName = m.group(1);
-      int weight = m.group(2) != null ? Math.max(1, Integer.parseInt(m.group(2))) : defaultWeight;
-      Material mat = Material.matchMaterial(matName);
-      if (mat == null || mat.isAir() || !mat.isBlock()) continue;
-      result.add(new BlockEntry(mat, weight));
-    }
-    return result;
-  }
-
   private boolean isLikelyTool(ItemStack item) {
     String n = item.getType().name();
     return n.endsWith("_PICKAXE")
@@ -1478,212 +805,20 @@ public final class PlaceCommand implements FppCommand {
         || item.getType() == Material.SHEARS;
   }
 
-  private boolean storageHasAnyNeeded(Inventory inv, Map<Material, Integer> needed) {
-    for (ItemStack item : inv.getContents())
-      if (item != null && !item.getType().isAir() && needed.containsKey(item.getType()))
-        return true;
-    return false;
-  }
-
-  private String formatMaterial(Material mat) {
-    String raw = mat.name().toLowerCase(Locale.ROOT).replace('_', ' ');
-    String[] words = raw.split(" ");
-    StringBuilder sb = new StringBuilder();
-    for (String w : words) {
-      if (!sb.isEmpty()) sb.append(' ');
-      sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
-    }
-    return sb.toString();
-  }
-
-  private boolean isLayerExhausted(World world, PlaceJob job, int y) {
-    AreaSelection sel = job.selection;
-    if (y < sel.minY() || y > sel.maxY()) return true;
-    for (int x = sel.minX(); x <= sel.maxX(); x++) {
-      for (int z = sel.minZ(); z <= sel.maxZ(); z++) {
-        AreaBlock ab = new AreaBlock(x, y, z);
-        if (job.completed.contains(ab)) continue;
-        Block block = world.getBlockAt(x, y, z);
-        if (!needsFilling(block)) {
-          job.completed.add(ab);
-          continue;
-        }
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private void advanceLayer(PlaceJob job) {
-    if (job.currentLayer < job.selection.maxY()) {
-      job.currentLayer++;
-      job.skipped.clear();
-      job.skipRetries = 0;
-      job.scaffoldRetries = 0;
-    } else {
-
-      job.phase = Phase.RECHECKING;
-    }
-  }
-
-  private boolean tryScaffoldStep(FakePlayer fp, PlaceJob job) {
-    Player bot = fp.getPlayer();
-    if (bot == null) return false;
-    World world = bot.getWorld();
-    AreaSelection sel = job.selection;
-
-    Material mat = getScaffoldMaterial(bot, job.spec);
-    if (mat == null) return false;
-
-    int targetY = job.currentLayer;
-    Location botLoc = bot.getLocation();
-    double eyeY = botLoc.getY() + 1.62;
-    if (eyeY + PLACE_REACH >= targetY + 0.5) return false;
-
-    int bestPx = Integer.MIN_VALUE, bestPz = Integer.MIN_VALUE;
-    int bestBaseY = -1;
-    double bestScore = Double.MAX_VALUE;
-
-    for (int px = sel.minX() - 2; px <= sel.maxX() + 2; px++) {
-      for (int pz = sel.minZ() - 2; pz <= sel.maxZ() + 2; pz++) {
-        if (sel.contains(px, targetY, pz)) continue;
-        int baseY = -1;
-        for (int cy = Math.min(targetY - 1, botLoc.getBlockY() + 4);
-             cy >= botLoc.getBlockY() - 4;
-             cy--) {
-          if (BotPathfinder.walkable(world, px, cy, pz)) {
-            baseY = cy;
-            break;
-          }
-        }
-        if (baseY < 0) continue;
-        int pillarHeight = targetY - baseY - 1;
-        if (pillarHeight <= 0) continue;
-        int clearCount = 0;
-        for (int cy = baseY + 1; cy < targetY; cy++)
-          if (world.getBlockAt(px, cy, pz).getType().isAir()) clearCount++;
-        if (clearCount < pillarHeight / 2) continue;
-        double dist =
-            (botLoc.getX() - px) * (botLoc.getX() - px)
-                + (botLoc.getZ() - pz) * (botLoc.getZ() - pz);
-        boolean onEdge =
-            (px == sel.minX() - 1
-                || px == sel.maxX() + 1
-                || pz == sel.minZ() - 1
-                || pz == sel.maxZ() + 1);
-        double score = dist - (onEdge ? 4.0 : 0.0);
-        if (score < bestScore) {
-          bestScore = score;
-          bestPx = px;
-          bestPz = pz;
-          bestBaseY = baseY;
-        }
-      }
-    }
-    if (bestPx == Integer.MIN_VALUE) return false;
-
-    final int fpx = bestPx, fpz = bestPz, fbaseY = bestBaseY;
-    final Material fmat = mat;
-    Location baseNav = new Location(world, bestPx + 0.5, bestBaseY, bestPz + 0.5);
-    startNavigation(
-        fp, baseNav, () -> buildScaffoldPillar(fp, job, fpx, fpz, fbaseY, targetY, fmat));
-    return true;
-  }
-
-  private void buildScaffoldPillar(
-      FakePlayer fp, PlaceJob job, int px, int pz, int baseY, int targetY, Material mat) {
-    Player bot = fp.getPlayer();
-    if (bot == null || !bot.isOnline()) return;
-    World world = bot.getWorld();
-    double eyeY = bot.getLocation().getY() + 1.62;
-
-    for (int y = baseY; y < targetY - 1; y++) {
-      Block support = world.getBlockAt(px, y, pz);
-      Block space = world.getBlockAt(px, y + 1, pz);
-      if (!support.getType().isSolid() || !space.getType().isAir()) continue;
-      if (Math.abs(eyeY - (y + 1.5)) > PLACE_REACH) break;
-      if (!equipMaterial(bot, mat)) break;
-      Location faceCenter = new Location(world, px + 0.5, y + 0.5, pz + 0.5);
-      Location faceLoc = BotNavUtil.faceToward(bot.getLocation(), faceCenter);
-      bot.setRotation(faceLoc.getYaw(), faceLoc.getPitch());
-      NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
-      placeBlockNms(fp, bot, new BlockPos(px, y, pz), Direction.UP);
-      Block placed = world.getBlockAt(px, y + 1, pz);
-      if (!placed.getType().isAir()) job.scaffoldBlocks.add(new AreaBlock(px, y + 1, pz));
-    }
-
-    int topSolid = baseY;
-    for (int y = targetY - 1; y > baseY; y--) {
-      if (world.getBlockAt(px, y, pz).getType().isSolid()) {
-        topSolid = y;
-        break;
-      }
-    }
-    Location topNav = new Location(world, px + 0.5, topSolid + 1, pz + 0.5);
-    startNavigation(
-        fp,
-        topNav,
-        () -> {
-          PlaceJob liveJob = placeJobs.get(fp.getUuid());
-          if (liveJob != null) {
-            liveJob.skipped.clear();
-            liveJob.skipRetries = 0;
-          }
-        });
-  }
-
-  private Material getScaffoldMaterial(Player bot, List<BlockEntry> spec) {
-    Set<Material> specMats =
-        spec.stream().map(BlockEntry::material).collect(Collectors.toSet());
-    PlayerInventory inv = bot.getInventory();
-    for (Material preferred : SCAFFOLD_PREF) {
-      if (!specMats.contains(preferred) && countInInventory(inv, preferred) > 0) return preferred;
-    }
-    for (int slot = 0; slot < 36; slot++) {
-      ItemStack item = inv.getItem(slot);
-      if (item == null || item.getType().isAir()) continue;
-      Material m = item.getType();
-      if (m.isBlock() && m.isSolid() && !specMats.contains(m)) return m;
-    }
-    return null;
-  }
-
   public void cleanupBot(UUID botUuid) {
-    pathfinding.cancel(botUuid);
     stopPlacing(botUuid);
     stopPlaceJob(botUuid, false);
-    FakePlayer fp = manager.getByUuid(botUuid);
-    if (fp != null) {
-      Player bot = fp.getPlayer();
-      if (bot != null && bot.isOnline()) {
-        NmsPlayerSpawner.setMovementForward(bot, 0f);
-        NmsPlayerSpawner.setJumping(bot, false);
-        bot.setSprinting(false);
-      }
-    }
   }
 
-  public void stopAll() {
-    pathfinding.cancelAll(PathfindingService.Owner.PLACE);
-    new HashSet<>(placingTasks.keySet()).forEach(this::stopPlacing);
-    new HashSet<>(placeJobs.keySet()).forEach(this::cleanupBot);
-  }
-
-  private void stopPlaceJob(UUID botUuid, boolean notify) {
+  private void stopPlaceJob(UUID botUuid, boolean notifyStop) {
     Integer taskId = placeTasks.remove(botUuid);
     if (taskId != null) FppScheduler.cancelTask(taskId);
     PlaceJob job = placeJobs.remove(botUuid);
-    manager.unlockAction(botUuid);
-    manager.unlockNavigation(botUuid);
-    if (notify && job != null) {
+    if (notifyStop && job != null) {
       FakePlayer fp = manager.getByUuid(botUuid);
       notifyStarter(
           job, "place-area-stopped", "name", fp != null ? fp.getDisplayName() : botUuid.toString());
     }
-  }
-
-  private void notifyOutOfMaterials(FakePlayer fp, PlaceJob job) {
-    notifyStarter(job, "place-out-of-materials", "name", fp.getDisplayName());
   }
 
   private void notifyStarter(PlaceJob job, String key, String... args) {
@@ -1694,11 +829,26 @@ public final class PlaceCommand implements FppCommand {
         return;
       }
     }
-    if (job.consoleStarted) plugin.getLogger().info(Lang.raw(key, args));
+    if (job.consoleStarted) {
+      plugin.getLogger().info(Lang.raw(key, args));
+    }
+  }
+
+  public void stopAll() {
+    pathfinding.cancelAll(PathfindingService.Owner.PLACE);
+    new HashSet<>(placingTasks.keySet()).forEach(this::stopPlacing);
+    new HashSet<>(placeTasks.keySet()).forEach(this::cleanupBot);
+  }
+
+  private static final class PlaceState {
+    boolean once;
+    BlockPos forcedTarget;
+    int freeze;
   }
 
   private static final class AreaSelection {
-    Location pos1, pos2;
+    Location pos1;
+    Location pos2;
 
     boolean isComplete() {
       return pos1 != null && pos2 != null;
@@ -1747,80 +897,154 @@ public final class PlaceCommand implements FppCommand {
     }
 
     AreaSelection copy() {
-      AreaSelection c = new AreaSelection();
-      c.pos1 = pos1.clone();
-      c.pos2 = pos2.clone();
-      return c;
+      AreaSelection copy = new AreaSelection();
+      copy.pos1 = pos1.clone();
+      copy.pos2 = pos2.clone();
+      return copy;
     }
   }
+
+  private record BlockEntry(Material material, int weight) {}
 
   private static final class PlaceJob {
     final AreaSelection selection;
-    final List<BlockEntry> spec;
-    final int totalFillable;
     final UUID starterUuid;
     final boolean consoleStarted;
-    final Set<AreaBlock> completed = new HashSet<>();
+    final List<BlockEntry> spec;
+    final int totalFillable;
+    int blocksPlaced = 0;
 
-    final Set<AreaBlock> skipped = new HashSet<>();
-
-    final Set<AreaBlock> scaffoldBlocks = new HashSet<>();
-    AreaBlock currentTarget;
-    int blocksPlaced;
-    int preferredStorageIndex;
-    boolean fetchingFromStorage;
-    int skipRetries;
-
-    int currentLayer;
-
-    int scaffoldRetries;
-
-    int placeCooldown;
-
-    Phase phase = Phase.FILLING;
-
-    PlaceJob(
-        AreaSelection selection, List<BlockEntry> spec, int totalFillable, CommandSender sender) {
+    PlaceJob(AreaSelection selection, List<BlockEntry> spec, int fillable, CommandSender sender) {
       this.selection = selection;
-      this.spec = new ArrayList<>(spec);
-      this.totalFillable = totalFillable;
+      this.spec = spec;
+      this.totalFillable = fillable;
       this.starterUuid = sender instanceof Player p ? p.getUniqueId() : null;
       this.consoleStarted = !(sender instanceof Player);
-      this.currentLayer = selection.minY();
     }
   }
 
-  private record BlockEntry(Material material, int weight) {
+  private List<BlockEntry> buildSpecFromInventoryAndStorage(FakePlayer fp, Player bot) {
+    Map<Material, Integer> counts = new LinkedHashMap<>();
+    PlayerInventory inv = bot.getInventory();
+    for (int slot = 0; slot < 36; slot++) {
+      ItemStack item = inv.getItem(slot);
+      if (item == null || item.getType().isAir() || !item.getType().isBlock() || isLikelyTool(item))
+        continue;
+      counts.merge(item.getType(), item.getAmount(), Integer::sum);
+    }
+    for (StorageStore.StoragePoint point : storageStore.getStorages(fp.getName())) {
+      Block block = point.location().getBlock();
+      if (!(block.getState() instanceof InventoryHolder holder)) continue;
+      for (ItemStack item : holder.getInventory().getContents()) {
+        if (item == null
+            || item.getType().isAir()
+            || !item.getType().isBlock()
+            || isLikelyTool(item)) continue;
+        counts.merge(item.getType(), item.getAmount(), Integer::sum);
+      }
+    }
+    return counts.entrySet().stream()
+        .filter(e -> e.getValue() > 0)
+        .map(e -> new BlockEntry(e.getKey(), e.getValue()))
+        .collect(Collectors.toList());
   }
 
-  private record AreaBlock(int x, int y, int z) {
+  private List<BlockEntry> parseBlockSpec(String spec) {
+    List<BlockEntry> result = new ArrayList<>();
+    String[] parts = spec.split(",");
+    Pattern p = Pattern.compile("^([A-Z_]+?)(\\d+)?%?$");
+    int defaultWeight = Math.max(1, 100 / parts.length);
+    for (String part : parts) {
+      part = part.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", "");
+      Matcher m = p.matcher(part);
+      if (!m.matches()) continue;
+      String matName = m.group(1);
+      int weight = m.group(2) != null ? Math.max(1, Integer.parseInt(m.group(2))) : defaultWeight;
+      Material mat = Material.matchMaterial(matName);
+      if (mat == null || mat.isAir() || !mat.isBlock()) continue;
+      result.add(new BlockEntry(mat, weight));
+    }
+    return result;
   }
 
-  private record PlacementInfo(
-      BlockPos targetPos, BlockPos faceBlockPos, Direction faceDir, Location faceCenter) {
+  private String formatMaterial(Material mat) {
+    String name = mat.name().replace('_', ' ').toLowerCase();
+    return Character.toUpperCase(name.charAt(0)) + name.substring(1);
   }
 
-  private record PlacementTarget(BlockPos faceBlockPos, Direction faceDir) {
+  private int countFillableBlocks(World world, AreaSelection sel) {
+    int count = 0;
+    for (int y = sel.minY(); y <= sel.maxY(); y++)
+      for (int x = sel.minX(); x <= sel.maxX(); x++)
+        for (int z = sel.minZ(); z <= sel.maxZ(); z++)
+          if (world.getBlockAt(x, y, z).getType().isAir()) count++;
+    return count;
   }
 
-  private static final class PlaceState {
-    boolean once;
-    int freeze;
-
-    float capturedYaw;
-
-    float capturedPitch;
-
-    Location destination;
+  private boolean checkAndReportMissing(
+      CommandSender sender, FakePlayer fp, Player bot, List<BlockEntry> spec, int fillable) {
+    return true;
   }
 
-  /**
-   * Parses a single coordinate token.  Supports:
-   * "~"         → {@code base}
-   * "~<offset>" → {@code base + offset}
-   * "<number>"  → absolute value
-   * Throws {@link NumberFormatException} if the token is unrecognisable.
-   */
+  @Nullable
+  private BlockPos getTargetBlockFromBot(Player bot) {
+    try {
+      Location eye = bot.getEyeLocation();
+      org.bukkit.util.RayTraceResult result = bot.getWorld().rayTraceBlocks(
+          eye,
+          eye.getDirection(),
+          PLACE_REACH,
+          org.bukkit.FluidCollisionMode.NEVER,
+          false
+      );
+      if (result != null && result.getHitBlock() != null) {
+        Block b = result.getHitBlock();
+        return new BlockPos(b.getX(), b.getY(), b.getZ());
+      }
+    } catch (Exception ignored) {
+    }
+    return null;
+  }
+
+  private Location faceTowardBlock(Location botLoc, BlockPos target) {
+    double tx = target.getX() + 0.5;
+    double ty = target.getY() + 0.5;
+    double tz = target.getZ() + 0.5;
+    double dx = tx - botLoc.getX();
+    double dy = ty - (botLoc.getY() + 1.62);
+    double dz = tz - botLoc.getZ();
+    float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+    float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
+    Location result = botLoc.clone();
+    result.setYaw(yaw);
+    result.setPitch(pitch);
+    return result;
+  }
+
+  @Nullable
+  private Location findStandLocationNearTarget(World world, BlockPos target) {
+    int tx = target.getX(), ty = target.getY(), tz = target.getZ();
+    for (int r = 1; r <= 4; r++) {
+      for (int dx = -r; dx <= r; dx++) {
+        for (int dz = -r; dz <= r; dz++) {
+          if (Math.abs(dx) < r && Math.abs(dz) < r) continue;
+          int cx = tx + dx, cz = tz + dz;
+          for (int dy : new int[]{0, -1, 1}) {
+            int cy = ty + dy;
+            if (BotPathfinder.walkable(world, cx, cy, cz)) {
+              Location loc = new Location(world, cx + 0.5, cy, cz + 0.5);
+              double dist = loc.distance(new Location(world, tx + 0.5, ty + 0.5, tz + 0.5));
+              if (dist <= PLACE_REACH - 1.5) {
+                return faceTowardBlock(loc, target);
+              }
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   static double parseCoord(String token, double base) {
     if (token.startsWith("~")) {
       String rest = token.substring(1);

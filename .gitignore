@@ -13,10 +13,11 @@ bungee-companion/
 dependency-reduced-pom.xml
 *.class
 *.log
-
+lukittu-java-simple-main
 # Gradle
 .gradle
 
+note.md
 # IDEs
 .idea
 *.iml

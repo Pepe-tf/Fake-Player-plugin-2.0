@@ -1,449 +1,364 @@
 # Privacy Policy
 
-**Effective Date:** April 3, 2026
-**Last Updated:** May 2, 2026
-**Version:** 2.2
+**Effective Date:** May 23, 2026  
+**Last Updated:** May 23, 2026  
+**Version:** 4.0
 
 ---
 
-> **Quick Summary:** Fake Player Plugin is a server-side Minecraft plugin. We collect no personal data from players. Optional anonymous metrics can be disabled at any time. All plugin data stays on your own server. See the full policy below for complete details.
+> **Quick Summary:** Fake Player Plugin ("FPP") is a server-side Minecraft plugin.  
+> We do not collect personal player data through the Plugin itself.  
+> All core Plugin data remains on infrastructure controlled by the server operator.  
+> Optional anonymous metrics and update checks can be disabled at any time.
 
 ---
 
-## Table of Contents
+# Table of Contents
 
-1. [Definitions](#1-definitions)
-2. [Who We Are](#2-who-we-are)
-3. [Scope of This Policy](#3-scope-of-this-policy)
-4. [Information We Collect](#4-information-we-collect)
-5. [How We Use Information](#5-how-we-use-information)
-6. [Legal Basis for Processing (GDPR)](#6-legal-basis-for-processing-gdpr)
-7. [Data Storage and Security](#7-data-storage-and-security)
-8. [Data Retention](#8-data-retention)
-9. [Third-Party Services](#9-third-party-services)
-10. [Cookies and Tracking](#10-cookies-and-tracking)
-11. [Your Rights](#11-your-rights)
-12. [California Privacy Rights (CCPA/CPRA)](#12-california-privacy-rights-ccpacpra)
-13. [Children's Privacy (COPPA)](#13-childrens-privacy-coppa)
-14. [International Data Transfers](#14-international-data-transfers)
-15. [Changes to This Policy](#15-changes-to-this-policy)
-16. [Contact Us](#16-contact-us)
-
----
-
-## 1. Definitions
-
-For the purposes of this Privacy Policy, the following terms have the meanings set out below:
-
-- **"Plugin"** or **"FPP"** refers to Fake Player Plugin, a Minecraft server plugin developed and distributed by Bill_Hub.
-- **"We", "Us", "Our"** refers to the developer(s) of Fake Player Plugin.
-- **"You"** or **"Server Administrator"** refers to any individual or entity that downloads, installs, configures, or operates the Plugin on a Minecraft server.
-- **"Player"** refers to any end-user who connects to a Minecraft server running the Plugin.
-- **"Personal Data"** means any information relating to an identified or identifiable natural person, as defined under applicable data protection law.
-- **"Processing"** means any operation performed on Personal Data, including collection, recording, storage, use, disclosure, or deletion.
-- **"Server"** refers to the Minecraft server instance on which the Plugin is installed and operated.
-- **"Bot"** or **"Fake Player"** refers to a simulated player entity created and managed by the Plugin.
-- **"Plugin Data"** means configuration files, database records, backups, and any other data files generated or managed by the Plugin on your server.
-- **"GDPR"** refers to the General Data Protection Regulation (EU) 2016/679.
-- **"CCPA/CPRA"** refers to the California Consumer Privacy Act (Cal. Civ. Code § 1798.100 et seq.) and the California Privacy Rights Act.
-- **"COPPA"** refers to the Children's Online Privacy Protection Act (15 U.S.C. §§ 6501-6506).
+1. Definitions
+2. Who We Are
+3. Scope of This Policy
+4. Information We Collect
+5. How Information Is Used
+6. Legal Basis for Processing (GDPR)
+7. Data Storage & Security
+8. Data Retention
+9. Third-Party Services
+10. Cookies & Tracking
+11. Your Rights
+12. California Privacy Rights (CCPA/CPRA)
+13. Children's Privacy (COPPA)
+14. International Data Transfers
+15. Changes to This Policy
+16. Contact Information
 
 ---
 
-## 2. Who We Are
+# 1. Definitions
 
-Fake Player Plugin ("FPP") is developed and maintained by **Bill_Hub** (also known as El_Pepes). The Plugin is available under a **custom license** that permits personal, non-commercial use but prohibits redistribution and commercial use without written permission. Source code is available at [https://github.com/Pepe-tf/fake-player-plugin](https://github.com/Pepe-tf/fake-player-plugin).
+For purposes of this Privacy Policy:
 
-**Contact:**
+- **"Plugin"** or **"FPP"** refers to Fake Player Plugin.
+- **"Developer"**, **"We"**, **"Us"**, or **"Our"** refers to Bill_Hub (El_Pepes).
+- **"Server Operator"** refers to the individual or organisation operating a Minecraft server using FPP.
+- **"Player"** refers to an end-user connecting to a Minecraft server.
+- **"Personal Data"** has the meaning defined under applicable privacy laws including GDPR.
+- **"Processing"** means collecting, storing, using, transmitting, or deleting data.
+- **"Plugin Data"** means configuration files, bot records, database entries, backups, and related Plugin-generated data.
 
-| Channel | Link |
-|---------|------|
-| Discord Server | https://discord.gg/QSN7f67nkJ |
+---
+
+# 2. Who We Are
+
+Fake Player Plugin ("FPP") is developed and maintained by Bill_Hub (El_Pepes).
+
+Official project resources:
+
+| Resource | Link |
+|---|---|
 | GitHub | https://github.com/Pepe-tf/fake-player-plugin |
-| Plugin Page | https://modrinth.com/plugin/fake-player-plugin-(fpp) |
+| Discord | https://discord.gg/QSN7f67nkJ |
+| Modrinth | https://modrinth.com/plugin/fake-player-plugin-(fpp) |
+
+FPP is distributed as source-available software under the Fake Player Plugin License.
 
 ---
 
-## 3. Scope of This Policy
-
-### 3.1 What This Policy Covers
+# 3. Scope of This Policy
 
 This Privacy Policy applies to:
 
-- The Fake Player Plugin software (all versions from v1.5.8 onwards)
-- The official FPP website and documentation portal
-- Any official APIs or update-checking services operated by the FPP developer(s)
+- The Fake Player Plugin software;
+- Official FPP websites and documentation;
+- Official update-checking services;
+- Official community infrastructure operated by the Developer.
 
-### 3.2 What This Policy Does Not Cover
+This Privacy Policy does NOT apply to:
 
-This policy does **not** apply to:
+- Third-party Minecraft servers using FPP;
+- Third-party plugins or extensions;
+- Unofficial forks or redistributions;
+- Mojang, Microsoft, or Minecraft platform services.
 
-- Third-party Minecraft server networks that use the Plugin - those operators are independent data controllers responsible for their own privacy practices
-- Third-party plugins or software that integrate with FPP
-- The Minecraft game client or game services operated by Mojang AB or Microsoft Corporation
-- Any unofficial forks, mirrors, or redistributions of the Plugin
-
-### 3.3 Role of the Server Administrator
-
-As a **server-side plugin**, FPP operates entirely within the environment of your own server infrastructure. You (the server administrator) are an independent data controller with respect to your players' data. We do not access, receive, or process any data you collect from your players through your use of the Plugin.
+Server operators remain independently responsible for compliance with applicable privacy laws relating to their own players and infrastructure.
 
 ---
 
-## 4. Information We Collect
+# 4. Information We Collect
 
-### 4.1 Data Stored Locally on Your Server
+## 4.1 Plugin Data Stored Locally
 
-The Plugin stores the following data **exclusively on your own server infrastructure**. We have no access to this data at any time.
+FPP primarily stores data locally on infrastructure controlled by the server operator.
 
-#### Bot Configuration Data
+Examples may include:
 
-| Data Type | Purpose | Storage Location |
-|-----------|---------|-----------------|
-| Bot names | Identify and restore bots | `data/active-bots.yml` or database |
-| Bot UUIDs | Unique bot identification | Database or YAML |
-| Spawn locations (world, X, Y, Z) | Restore bots after restart | Database or YAML |
-| LuckPerms groups | Bot permission group assignment | Database |
-| Display names | Tab-list representation | Database |
-| Skin data (base64 value + signature) | Visual appearance | Memory / config |
-| Session timestamps | Session history and uptime tracking | Database |
-| Server ID (network mode) | Multi-server bot attribution | Database |
+| Data Type | Purpose |
+|---|---|
+| Bot names and UUIDs | Bot persistence |
+| Bot locations | Respawn and restoration |
+| Permission groups | Integration support |
+| Display names | Tab list rendering |
+| Session timestamps | Runtime/session tracking |
+| Player UUIDs | Ownership tracking and cooldowns |
 
-#### Player-Related Data (Minimal)
+FPP does NOT intentionally collect or process:
 
-| Data Type | Purpose | Storage Location | Retention |
-|-----------|---------|-----------------|-----------|
-| Player UUID | Bot ownership tracking (user commands) | Database | Until manually deleted |
-| Player UUID | Spawn cooldown enforcement | Memory (RAM) only | Cleared on server restart |
-
-> **Important:** Player usernames, IP addresses, chat messages, inventory data, and all other personal player attributes are **never** collected, stored, or processed by FPP.
-
-### 4.2 Optional Anonymous Metrics (bStats / FastStats)
-
-If `metrics.enabled: true` is set in `config.yml`, the following **anonymous, non-identifiable** statistics are periodically sent to the bStats analytics platform:
-
-- Plugin version number
-- Minecraft server version
-- Server platform type (Paper, Leaf, etc.)
-- Number of currently active bots (numeric count)
-- Enabled feature flags (boolean: fake chat, swap system, etc.)
-- Java runtime version
-- Operating system type
-
-**What is explicitly NOT collected:** Server IP, hostname, server name, player usernames or UUIDs, geographic location, operator identity, or any personally identifiable information of any kind.
-
-Disable at any time: set `metrics.enabled: false` in `config.yml` and run `/fpp reload`.
-
-### 4.3 Update Checker Requests
-
-When the Plugin checks for updates, a single HTTP GET request is sent to the Modrinth API containing only the plugin version in the `User-Agent` header (e.g., `FakePlayerPlugin-UpdateChecker/1.5.8`). No server or player data is transmitted. The update checker can be disabled in the configuration.
-
-### 4.4 Website Access Logs
-
-When you visit the official FPP website, standard server-side access logs may capture: IP address, HTTP request method/URL, response status code, browser User-Agent, referring URL, and timestamp. This is used solely for security monitoring and is not used for advertising or profiling. Logs are purged after a maximum of 30 days.
+- Player chat messages;
+- Player IP addresses;
+- Email addresses;
+- Payment information;
+- Real-world identity information;
+- Advertising identifiers.
 
 ---
 
-## 5. How We Use Information
+## 4.2 Optional Anonymous Metrics
 
-| Purpose | Legal Basis | Data Used |
-|---------|------------|-----------|
-| Core plugin functionality | Legitimate interest | Bot data, player UUIDs |
-| Bot persistence across restarts | Legitimate interest | Bot names, UUIDs, locations |
-| Spawn cooldown enforcement | Legitimate interest | Player UUID (memory only) |
-| Anonymous usage analytics | Consent (opt-in) | Anonymous metrics |
-| Update notifications | Legitimate interest | Plugin version only |
-| Website security | Legitimate interest | Access logs |
+If optional metrics are enabled, anonymous technical statistics may be sent to analytics providers such as bStats.
 
-We do **not** sell data, use data for advertising, share data with marketing platforms, or build user profiles.
+Examples may include:
 
----
+- Plugin version;
+- Minecraft server version;
+- Java runtime version;
+- Enabled feature flags;
+- Approximate bot counts.
 
-## 6. Legal Basis for Processing (GDPR)
+No personally identifying information is intentionally transmitted through metrics collection.
 
-For users in the European Economic Area (EEA), United Kingdom, or Switzerland:
-
-| Processing Activity | Legal Basis | GDPR Article |
-|--------------------|------------|--------------|
-| Plugin functionality and bot persistence | Legitimate interests | Art. 6(1)(f) |
-| Optional anonymous metrics | Consent - opt-in, freely withdrawable | Art. 6(1)(a) |
-| Update checking | Legitimate interests | Art. 6(1)(f) |
-| Website access logs | Legitimate interests - security | Art. 6(1)(f) |
-
-You (the server administrator) act as an independent **Data Controller** under GDPR for any data you process relating to your players. FPP is not a data processor on your behalf.
+Metrics can be disabled at any time through Plugin configuration.
 
 ---
 
-## 7. Data Storage and Security
+## 4.3 Update Checking
 
-### 7.1 Local Storage Architecture
+If enabled, FPP may send a request to check for newer Plugin versions.
 
-All plugin data is stored locally on your server:
+Update checks may include:
 
-- **SQLite:** `plugins/FakePlayerPlugin/data/fpp.db` - WAL mode enabled for integrity
-- **YAML files:** `config.yml`, `data/active-bots.yml`, and related files
+- Current Plugin version;
+- Server platform type;
+- Basic request metadata normally associated with HTTP traffic.
 
-We have no access to your local storage.
-
-### 7.2 Network Mode (MySQL)
-
-If you enable `database.mode: NETWORK`:
-
-- Data is stored on **your own MySQL server**
-- Shared only across servers **within your proxy network**
-- We have zero access to your MySQL database
-- You are solely responsible for securing your database
-
-### 7.3 Recommended Security Practices
-
-- Restrict file permissions on `plugins/FakePlayerPlugin/` to the server process user
-- Use strong MySQL credentials with minimum required privileges
-- Enable TLS/SSL for MySQL connections
-- Maintain regular off-site server backups
-- Keep the Plugin updated to receive security patches
-
-### 7.4 Data Breach Notification
-
-In the event of a confirmed security incident affecting FPP's own systems, we will notify affected parties via our Discord server within 72 hours of becoming aware of the breach, in compliance with GDPR Article 33 where applicable.
+No player data is intentionally transmitted during update checks.
 
 ---
 
-## 8. Data Retention
+## 4.4 Website Access Logs
 
-| Data Type | Default Retention | Deletion Method |
-|-----------|------------------|----------------|
-| Active bot records | Until `/fpp despawn` or manual deletion | `/fpp despawn all` |
-| Session history | Indefinitely (if database enabled) | Delete from `fpp.db` or MySQL |
-| Config backups | 10 most recent (auto-pruned) | Automatic via BackupManager |
-| Spawn cooldowns | Until server restart | Automatic (memory only) |
-| Custom skin files | Until manually deleted | Delete from `skins/` folder |
-| Website access logs | Maximum 30 days | Automatic rolling purge |
-| Anonymous metrics | Never individually stored | N/A - aggregated only |
+Official FPP websites may temporarily log:
 
----
+- IP addresses;
+- Browser User-Agent strings;
+- Request timestamps;
+- Requested pages;
+- HTTP status codes.
 
-## 9. Third-Party Services
+Logs are used exclusively for:
 
-### 9.1 Modrinth
-- **Purpose:** Plugin distribution and update checking
-- **Data sent:** Plugin version in User-Agent header only
-- **Privacy Policy:** https://modrinth.com/legal/privacy
+- Security;
+- Abuse prevention;
+- Availability monitoring;
+- Basic operational diagnostics.
 
-### 9.2 Mojang / Microsoft
-- **Purpose:** Skin texture fetching (`skin.mode: auto`)
-- **Data sent:** Bot name string in API endpoint URL (read-only)
-- **Privacy Statement:** https://privacy.microsoft.com/en-us/privacystatement
-- **Note:** No player or server data is transmitted
-
-### 9.3 bStats / FastStats
-- **Purpose:** Optional anonymous plugin usage analytics
-- **Data sent:** Anonymous server metrics (see §4.2)
-- **Privacy Policy:** https://bstats.org/privacy-policy
-- **Opt-out:** `metrics.enabled: false` in `config.yml`
-
-### 9.4 Your MySQL Provider (Network Mode)
-- **Data controller:** You - you select and control your own provider
-- **Our access:** None
-- **Data stored:** Bot configuration only; no player personal data
+Logs are not used for advertising profiling or behavioural tracking.
 
 ---
 
-## 10. Cookies and Tracking
+# 5. How Information Is Used
 
-### Plugin
-The Plugin itself does **not** use cookies, tracking pixels, fingerprinting, or any browser-based tracking technology of any kind.
+Information may be used for:
 
-### Website
-| Technology | Purpose | Personal Data |
-|------------|---------|--------------|
-| `localStorage` (theme preference) | Stores dark/light mode setting | None - contains only "dark" or "light" |
-| Server-side access logs | Security and availability | IP address (operational use only) |
+| Purpose | Example |
+|---|---|
+| Core Plugin functionality | Bot persistence and restoration |
+| Compatibility support | API and version handling |
+| Security and abuse prevention | Website monitoring |
+| Optional analytics | Anonymous usage statistics |
+| Update notifications | Version checking |
 
-**No advertising cookies, third-party tracking scripts, analytics SDKs, or remarketing technologies** are used on the official FPP website.
-
----
-
-## 11. Your Rights
-
-### GDPR Rights (EEA / UK / Switzerland)
-
-| Right | Description | How to Exercise |
-|-------|-------------|-----------------|
-| **Access (Art. 15)** | Copy of data held about you | Review local plugin files; contact us for our systems |
-| **Rectification (Art. 16)** | Correct inaccurate data | Edit YAML/database directly |
-| **Erasure (Art. 17)** | Request deletion | Delete plugin data folder; contact us |
-| **Restriction (Art. 18)** | Restrict processing | Disable features via config |
-| **Portability (Art. 20)** | Machine-readable data export | `/fpp migrate db export` |
-| **Objection (Art. 21)** | Object to processing | Disable metrics/update checker; contact us |
-| **Withdraw Consent** | Withdraw consent at any time | Set `metrics.enabled: false` |
-| **Lodge Complaint** | Complain to supervisory authority | Contact your national DPA |
-
-### Rights for All Users
-- Know what data is collected (this policy)
-- Opt out of optional data collection at any time
-- Delete all plugin data by removing the plugin and its data folder
+We do NOT sell personal information or use personal data for advertising purposes.
 
 ---
 
-## 12. California Privacy Rights (CCPA/CPRA)
+# 6. Legal Basis for Processing (GDPR)
 
-California residents have the following additional rights:
+For users in the EEA, UK, or Switzerland:
 
-- **Right to Know:** Categories and specific pieces of personal information collected about you
-- **Right to Delete:** Request deletion of personal information we hold
-- **Right to Correct:** Correct inaccurate personal information
-- **Right to Opt-Out of Sale:** We do **not** sell personal information - nothing to opt out of
-- **Right to Non-Discrimination:** We will not penalise you for exercising your CCPA rights
+| Activity | Legal Basis |
+|---|---|
+| Core Plugin functionality | Legitimate interests |
+| Website security logging | Legitimate interests |
+| Optional metrics | Consent |
+| Update checking | Legitimate interests |
 
-| CCPA Category | Collected | Sold | Shared for Advertising |
-|--------------|-----------|------|----------------------|
-| Identifiers (e.g., player UUIDs) | Minimal - locally only | No | No |
-| Internet activity (website logs) | Operational only | No | No |
-| All other CCPA categories | No | No | No |
+Where consent is required, it may be withdrawn at any time by disabling the relevant feature.
 
 ---
 
-## 13. Children's Privacy (COPPA)
+# 7. Data Storage & Security
 
-Fake Player Plugin is a server administration tool directed at and intended for server operators, not for children. We do not knowingly collect personal information from children under the age of 13.
+## 7.1 Local Storage
 
-If you believe a child has provided personal information in connection with FPP, contact us via Discord and we will take immediate steps to investigate and delete any such information from our systems.
+Plugin data is generally stored locally on the server operator's infrastructure.
 
-Server operators using FPP remain independently responsible for their own COPPA compliance with respect to their player bases.
+Examples include:
 
----
+```text
+plugins/FakePlayerPlugin/
+```
 
-## 14. International Data Transfers
+Storage may use:
 
-All Plugin Data is stored locally on your server. No plugin data is transferred internationally by us.
+- YAML configuration files;
+- SQLite databases;
+- MySQL databases configured by the server operator.
 
-| Outbound Connection | Data Sent | Transfer Mechanism |
-|--------------------|-----------|-------------------|
-| Modrinth API (update check) | Plugin version (User-Agent only) | No personal data - mechanism not required |
-| bStats (optional metrics) | Anonymous statistics | EU servers - no transfer mechanism required |
-
----
-
-## 15. Changes to This Policy
-
-### 15.1 Notification of Material Changes
-
-When material changes are made, we will:
-
-1. Update the **"Last Updated"** date and **version number** at the top of this document
-2. Post an announcement in our **Discord server**
-3. Update the policy on the **official FPP website**
-
-Your continued use of the Plugin after the effective date constitutes acceptance of the updated policy.
-
-### 15.2 Version History
-
-| Version | Date | Summary of Changes |
-|---------|------|--------------------|
-| 2.2 | May 2, 2026 | Updated license reference from MIT to custom license |
-| 2.1 | April 13, 2026 | Updated to reflect open-source status; added GitHub repository link |
-| 2.0 | April 3, 2026 | Full rewrite: definitions, GDPR legal basis table, CCPA section, data retention table, third-party service details, cookies section, international transfers |
-| 1.0 | April 3, 2026 | Initial privacy policy |
+The Developer does not have direct access to server operator databases or local Plugin files.
 
 ---
 
-## 16. Contact Us
+## 7.2 Security Recommendations
 
-| Channel | Details | Response Time |
-|---------|---------|--------------|
-| **Discord Server** | https://discord.gg/QSN7f67nkJ | Typically within 7 business days |
-| **GitHub Issues** | https://github.com/Pepe-tf/fake-player-plugin/issues | Bug reports and privacy inquiries |
-| **Plugin Page** | https://modrinth.com/plugin/fake-player-plugin-(fpp) | Reviews and messages |
+Server operators are responsible for securing their infrastructure.
 
-We aim to provide a substantive response to all privacy inquiries within **30 days** in accordance with applicable data protection law.
+Recommended practices include:
+
+- Restricting file permissions;
+- Using secure database credentials;
+- Maintaining regular backups;
+- Keeping software updated;
+- Using TLS/SSL where applicable.
 
 ---
 
-*This Privacy Policy is effective as of April 3, 2026 and applies to Fake Player Plugin v1.5.8 and all subsequent versions.*
+# 8. Data Retention
 
-*Fake Player Plugin - Developed by Bill_Hub (El_Pepes). Released under the Fake Player Plugin Custom License — https://github.com/Pepe-tf/fake-player-plugin*
-*Not affiliated with Mojang AB, Microsoft Corporation, or any Minecraft platform provider.*
+Retention periods depend on server operator configuration.
 
-## Introduction
+Examples:
 
-This Privacy Policy describes how Fake Player Plugin ("FPP", "we", "our", or "the Plugin") handles information when you use our Minecraft server plugin.
+| Data | Typical Retention |
+|---|---|
+| Bot persistence data | Until manually deleted |
+| Temporary cooldowns | Memory-only / restart-cleared |
+| Website access logs | Limited retention period |
+| Anonymous metrics | Aggregated only |
 
-## Information We Collect
+Server operators control retention of locally stored Plugin data.
 
-### Plugin Usage
-FPP is a **server-side Minecraft plugin** that runs entirely on your own server. We do **not** collect, store, or transmit any personal information from plugin users.
+---
 
-### Optional Analytics
-If you enable metrics collection (`metrics.enabled: true` in config.yml), anonymous usage statistics are collected via FastStats/bStats:
-- Server version and plugin version
-- Number of active bots
-- Enabled features (fake chat, swap system, etc.)
-- Server platform (Paper, Velocity, etc.)
+# 9. Third-Party Services
 
-**No personally identifiable information** is collected. All metrics are anonymous and aggregated.
+FPP may interact with third-party services including:
 
-### Update Checker
-When the plugin checks for updates, it sends:
-- Current plugin version
-- Server platform (via User-Agent header)
+| Service | Purpose |
+|---|---|
+| Modrinth | Plugin distribution and update checks |
+| Mojang / Microsoft APIs | Skin and profile lookup |
+| bStats | Optional anonymous metrics |
+| Database providers | Server operator-managed storage |
 
-**No server IP addresses, player data, or other identifying information** is transmitted.
+Each third-party service operates under its own privacy policies and terms.
 
-## Data Storage
+---
 
-### Local Data
-FPP stores the following data **locally on your server**:
+# 10. Cookies & Tracking
 
-**Configuration Files:**
-- `config.yml` - Plugin settings
-- `bot-names.yml` - Bot name pool
-- `bot-messages.yml` - Chat message pool
-- `language/en.yml` - Localizable messages
+## Plugin
 
-**Database:**
-- SQLite (`data/fpp.db`) or MySQL - Bot persistence data, session history
-- Stored data: bot names, UUIDs, spawn locations, LuckPerms groups, display names
-- Player UUIDs (for bot ownership tracking in user commands)
+The Plugin itself does not use browser cookies, advertising trackers, or behavioural profiling systems.
 
-**Backups:**
-- Automatic backups of config files before migrations
-- Stored in `backups/` folder
+## Website
 
-All data remains **on your server** and is never transmitted to external services.
+Official websites may use minimal browser storage for functionality such as:
 
-## Third-Party Services
+- Theme preferences;
+- Session state;
+- Security protections.
 
-### Mojang API
-When `skin.mode: auto` is enabled, FPP fetches skin data from Mojang's public API using bot names. This is **read-only** and does not transmit any server or player data.
+No advertising or cross-site tracking technologies are intentionally used.
 
-### Modrinth API
-The update checker queries Modrinth's public API to check for new versions. Only the plugin version is sent in the request.
+---
 
-### Database Providers
-If you configure MySQL for network mode, data is stored on your MySQL server. You are responsible for securing your database.
+# 11. Your Rights
 
-## Network Mode / Proxy Support
+Depending on your jurisdiction, you may have rights including:
 
-When `database.mode: NETWORK` is enabled:
-- Bot data is shared across servers via a **shared MySQL database you control**
-- Plugin messages are sent between servers via proxy plugin-messaging channels
-- All data remains within **your proxy network**
-- **No external services** have access to this data
+- Access to personal data;
+- Correction of inaccurate data;
+- Deletion requests;
+- Restriction of processing;
+- Data portability;
+- Objection to processing;
+- Withdrawal of consent.
 
-## Data Retention
+Because most Plugin data is controlled locally by server operators, many requests should be directed to the relevant server operator.
 
-- **Bot data** persists until manually deleted via `/fpp despawn` or by clearing the database
-- **Session history** (if database is enabled) persists indefinitely unless manually deleted
-- **Backups** are automatically pruned to the most recent 10 backups
-- **Config files** persist until manually deleted
+---
 
-## Your Rights
+# 12. California Privacy Rights (CCPA/CPRA)
 
-As a server administrator, you have full control over all data:
-- **Access:** All data is stored in readable formats (YAML, SQLite, MySQL)
-- **Deletion:** Delete any bot, config, or database file at any time
-- **Export:** Use `/fpp migrate db export` to export data
-- **Disable:** Set `database.enabled: false` to disable all persistence
+California residents may have additional rights under applicable law.
 
+FPP does not knowingly:
 
-*This policy applies to Fake Player Plugin v1.5.8 and later.*
+- Sell personal information;
+- Share personal information for cross-context behavioural advertising.
 
+Most Plugin-related data remains under the direct control of server operators.
+
+---
+
+# 13. Children's Privacy (COPPA)
+
+FPP is intended for server operators and administrators, not children under 13.
+
+We do not knowingly collect personal information from children.
+
+Server operators remain responsible for their own legal compliance relating to player communities.
+
+---
+
+# 14. International Data Transfers
+
+Plugin data generally remains on infrastructure controlled by server operators.
+
+Some third-party services used by FPP may process requests internationally depending on their own infrastructure and policies.
+
+---
+
+# 15. Changes to This Policy
+
+We may update this Privacy Policy periodically.
+
+Material changes may be announced through:
+
+- GitHub;
+- Discord;
+- Official documentation pages.
+
+The updated revision date will appear at the top of this document.
+
+Continued use of FPP after changes become effective constitutes acceptance of the revised policy.
+
+---
+
+# 16. Contact Information
+
+For questions regarding this Privacy Policy:
+
+| Channel | Link |
+|---|---|
+| Discord | https://discord.gg/QSN7f67nkJ |
+| GitHub | https://github.com/Pepe-tf/fake-player-plugin |
+| Modrinth | https://modrinth.com/plugin/fake-player-plugin-(fpp) |
+
+---
+
+*Fake Player Plugin ("FPP") is developed by Bill_Hub (El_Pepes).*
+
+*FPP is source-available software distributed under the Fake Player Plugin License.*
+
+*Fake Player Plugin is not affiliated with Mojang AB or Microsoft Corporation.*

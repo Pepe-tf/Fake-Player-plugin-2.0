@@ -1,293 +1,277 @@
 # Copyright & License Notice
 
-**Effective Date:** May 2, 2026
-**Last Updated:** May 2, 2026
-**Version:** 3.0
+**Effective Date:** May 23, 2026  
+**Last Updated:** May 23, 2026  
+**Version:** 5.0
 
 ---
 
-> **Fake Player Plugin is available under a custom license.** The source code is publicly available at [https://github.com/Pepe-tf/fake-player-plugin](https://github.com/Pepe-tf/fake-player-plugin) for viewing and study. All rights beyond those explicitly granted below are reserved by the developer. **Commercial use, resale, and redistribution are prohibited without explicit written permission.**
+> **Fake Player Plugin is source-available software distributed under a custom license.**  
+> The source code is publicly accessible for viewing, study, and private modification at:
+>
+> https://github.com/Pepe-tf/fake-player-plugin
+>
+> Redistribution, resale, sublicensing, and commercial redistribution are prohibited unless explicitly authorised in writing by the Developer.
 
 ---
 
-## Copyright Notice
+# Copyright Notice
 
-```
+```text
 Copyright © 2024-2026 Bill_Hub (El_Pepes)
 
 Fake Player Plugin ("FPP")
 Developed and maintained by Bill_Hub (also known as El_Pepes)
 ```
 
-This copyright notice applies to:
+This notice applies to:
 
-- The Fake Player Plugin source code and compiled binary (`fpp-*.jar`)
-- All configuration file templates and default resources
-- All documentation, wiki pages, and associated written content
-- The official FPP website and its assets
-- Any derivative works created by the Developer
-- **All past and previous versions of the codebase**, including but not limited to every commit, release, tag, and distribution made prior to the effective date of this license
+- The Fake Player Plugin source code and compiled binaries (`fpp-*.jar`)
+- Configuration templates and bundled resources
+- Documentation, wiki pages, and written materials
+- Official FPP websites and assets
+- Developer-created derivative works and modifications
 
 ---
 
-## Current License Status
+# License Summary
 
-### Custom License — All Rights Reserved (with limited permissions)
-
-Fake Player Plugin is distributed under a **custom license**. The source code is publicly available for viewing and study at:
-
-**[https://github.com/Pepe-tf/fake-player-plugin](https://github.com/Pepe-tf/fake-player-plugin)**
+## Permitted
 
 | Permission | Status |
-|------------|--------|
-| Use the compiled Plugin binary on your own server | ✅ Permitted |
-| Configure and operate the Plugin | ✅ Permitted |
-| View and study the source code | ✅ Permitted |
-| Modify the Plugin's code for personal/private use | ✅ Permitted (no redistribution) |
-| Distribute or redistribute the Plugin | ❌ **Not permitted** |
-| Resell or commercially use the Plugin | ❌ **Not permitted** |
-| Create derivative works for distribution | ❌ **Not permitted** (without written permission) |
-| Use in commercial projects | ❌ **Not permitted** (without written permission) |
-| Sublicense | ❌ **Not permitted** |
-| Remove or alter copyright notices | ❌ **Not permitted** |
+|---|---|
+| Use the compiled Plugin on servers You own or operate | ✅ Allowed |
+| Configure and operate the Plugin | ✅ Allowed |
+| View and study the source code | ✅ Allowed |
+| Modify the source code for private/internal use | ✅ Allowed |
+| Create private forks for personal/internal use | ✅ Allowed |
 
-**Any permission not explicitly listed above is reserved by the Developer.** Requests for permissions beyond those granted here — including commercial use, redistribution, sublicensing, or derivative distribution — must be obtained in writing from the Developer (**@Bill_Hub** on Discord: [https://discord.gg/QSN7f67nkJ](https://discord.gg/QSN7f67nkJ)).
+## Prohibited
+
+| Restriction | Status |
+|---|---|
+| Redistribute the Plugin or modified versions | ❌ Prohibited |
+| Sell or sublicense the Plugin | ❌ Prohibited |
+| Commercially redistribute the Plugin | ❌ Prohibited |
+| Remove attribution or copyright notices | ❌ Prohibited |
+| Represent unofficial builds as official releases | ❌ Prohibited |
 
 ---
 
-## Full License Text
+# Full License Text
 
-```
-Fake Player Plugin Custom License
+```text
+Fake Player Plugin Source-Available License
+Version 4.0
+
 Copyright © 2024-2026 Bill_Hub (El_Pepes)
-
-Version: 3.0
-Effective Date: May 2, 2026
 
 1. DEFINITIONS
 
-"Plugin" or "FPP" means the Fake Player Plugin software, including all source code,
-compiled binaries, configuration files, documentation, assets, and associated materials.
+"Plugin" or "FPP" means the Fake Player Plugin software, including source code,
+compiled binaries, documentation, configuration files, assets, and associated materials.
 
-"Developer" or "Licensor" means Bill_Hub (also known as El_Pepes), the sole owner and
-developer of the Plugin.
+"Developer" or "Licensor" means Bill_Hub (also known as El_Pepes).
 
-"You" or "Licensee" means the individual or legal entity that downloads, installs, or
-operates the Plugin.
+"You" or "Licensee" means any person or legal entity that downloads, installs,
+accesses, modifies, or uses the Plugin.
 
-"Derivative Works" means any modification, adaptation, or enhancement of the Plugin
-that is based on or incorporates any part of the Plugin.
+"Redistribute" or "Redistribution" means making the Plugin available to any third
+party in any form, including but not limited to public repositories, download links,
+compiled distributions, mirrors, package managers, bundled software, or hosted services.
 
-"Redistribution" means the act of distributing, publishing, sharing, transmitting, or
-making available the Plugin (in whole or in part, original or modified) to any third
-party by any means, including but not limited to download links, repositories, package
-managers, or physical media.
+"Commercial Redistribution" means selling, sublicensing, licensing for payment,
+bundling into paid products/services, or redistributing the Plugin for monetary
+compensation or commercial advantage.
 
-"Commercial Use" means any use of the Plugin that is primarily intended for or directed
-toward commercial advantage or monetary compensation, including but not limited to
-resale, licensing for a fee, use in a commercial product or service, or use within a
-commercial organisation beyond internal server operations.
+2. LICENSE GRANT
 
-2. GRANT OF LICENSE
+Subject to this License, the Developer grants You a limited, non-exclusive,
+non-transferable, non-sublicensable license to:
 
-Subject to the terms and conditions of this License, the Developer hereby grants You a
-non-exclusive, non-transferable, non-sublicensable, revocable limited license to:
+  a) Use and operate the Plugin on Minecraft servers You own or manage;
+  b) Configure and modify the Plugin for private or internal use;
+  c) View and study the source code for educational and development purposes;
+  d) Create private forks for internal use only.
 
-  a) Install and run the Plugin binary on Minecraft servers You own or personally operate;
-  b) Configure the Plugin using its provided configuration files, commands, and APIs;
-  c) View and study the source code for educational and reference purposes;
-  d) Modify the Plugin's code solely for Your own private, non-commercial use on servers
-     You own or personally operate.
+3. RESTRICTIONS
 
-This license does NOT grant You any right to:
-  - Redistribute, publish, or share the Plugin (original or modified) in any form;
-  - Sell, resell, lease, license, or commercially exploit the Plugin;
-  - Create derivative works for distribution or commercial purposes;
-  - Use the Plugin in any commercial context beyond running it on Your own server(s);
-  - Sublicense or transfer this license to any third party;
-  - Remove, alter, or obscure any copyright, trademark, or attribution notices.
+You may NOT:
 
-3. COMMERCIAL AND REDISTRIBUTION RESTRICTIONS
+  a) Redistribute the Plugin or modified versions;
+  b) Sell, sublicense, lease, or commercially redistribute the Plugin;
+  c) Publish unofficial builds claiming to be official releases;
+  d) Remove or alter copyright, attribution, or license notices;
+  e) Use the Plugin in violation of applicable laws or third-party licenses.
 
-Commercial use and redistribution of the Plugin — in whole or in part, original or
-modified — are strictly prohibited without prior written permission from the Developer.
+4. COMMERCIAL USE
 
-To request permission for commercial use or redistribution, contact the Developer:
+Running the Plugin on public or monetized Minecraft servers is permitted.
 
-  Discord: @Bill_Hub — https://discord.gg/QSN7f67nkJ
+However, the Plugin itself may NOT be sold, sublicensed, licensed for payment,
+commercially redistributed, or bundled into paid products or services without prior
+written permission from the Developer.
 
-Requests will be reviewed on a case-by-case basis. Granting of permission for one
-purpose does not imply permission for any other purpose.
+5. SOURCE AVAILABILITY
 
-4. RETROACTIVE APPLICATION
+The Plugin source code is publicly visible for reference, educational use,
+and private modification.
 
-This License applies to ALL versions of the Fake Player Plugin codebase, including but
-not limited to:
+This project is source-available software and is NOT open-source software.
 
-  - All past, current, and future releases, tags, and commits;
-  - All versions previously distributed under the MIT License or any other license;
-  - All forks, copies, or mirrors made prior to the effective date of this License;
-  - All derivative works created from any version of the codebase.
+6. THIRD-PARTY COMPONENTS
 
-By continuing to use any version of the Plugin after the effective date of this
-License, You agree to be bound by the terms of this License for all versions,
-including those previously distributed under different licensing terms.
+Third-party libraries, APIs, and dependencies included with or used by the Plugin
+remain subject to their own licenses and terms.
 
-5. TAKEDOWN RIGHT
+Nothing in this License overrides rights granted under applicable third-party licenses.
 
-The Developer (Bill_Hub) reserves the sole and unconditional right to request the
-removal, takedown, or cessation of distribution of the Plugin (in whole or in part,
-original or modified) from any platform, repository, service, or distribution channel
-at any time and for any reason.
+7. ATTRIBUTION
 
-Upon receiving a takedown request from the Developer, You must promptly comply by:
-  a) Removing all copies of the Plugin from public or shared repositories, websites,
-     distribution platforms, and any other location accessible to third parties; and
-  b) Ceasing all redistribution or commercial use of the Plugin.
-
-Failure to comply with a takedown request within a reasonable timeframe (not to exceed
-14 calendar days) constitutes a material breach of this License and will result in
-immediate termination of all rights granted herein.
-
-6. ATTRIBUTION
-
-When using the Plugin (in any form permitted by this License), You must include the
-following attribution:
+When using the Plugin in any permitted form, the following attribution must be retained:
 
   "Fake Player Plugin by Bill_Hub — https://github.com/Pepe-tf/fake-player-plugin"
 
-Attribution must be retained in all copies, modified versions, and derivative works
-that You are authorised to possess.
+8. INTELLECTUAL PROPERTY
 
-7. INTELLECTUAL PROPERTY
+The Plugin and all associated materials remain the intellectual property of the Developer.
 
-The Plugin, including all source code, compiled code, internal logic, documentation,
-visual assets, and associated materials, is the intellectual property of the Developer.
-No title, ownership, or intellectual property rights in the Plugin are transferred to
-You under this License. The Developer retains all rights not explicitly granted herein.
+No ownership rights are transferred under this License.
 
-8. DISCLAIMED WARRANTIES
+All rights not expressly granted are reserved.
 
-THE PLUGIN IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTY OF ANY KIND,
-WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE. THE DEVELOPER DISCLAIMS ALL
-WARRANTIES, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR
-A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, AND ACCURACY.
+9. TERMINATION
 
-9. LIMITATION OF LIABILITY
+This License automatically terminates if You materially violate its terms.
+
+Upon termination, You must cease all unauthorised redistribution and commercial
+distribution activities involving the Plugin.
+
+10. DISCLAIMER OF WARRANTY
+
+THE PLUGIN IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NON-INFRINGEMENT.
+
+11. LIMITATION OF LIABILITY
 
 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE DEVELOPER SHALL NOT BE LIABLE
-FOR ANY INDIRECT, INCIDENTAL, SPECIAL, PUNITIVE, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-OF ANY KIND ARISING FROM OR IN CONNECTION WITH THE PLUGIN OR THIS LICENSE, REGARDLESS
-OF THE LEGAL THEORY UNDER WHICH SUCH DAMAGES ARE SOUGHT.
+FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES ARISING
+FROM USE OF THE PLUGIN.
 
-10. TERMINATION
+12. GOVERNING LAW
 
-The Developer may terminate this License at any time for any reason, including but not
-limited to Your breach of any term herein. Upon termination, You must immediately:
-  a) Cease all use of the Plugin;
-  b) Delete all copies of the Plugin from Your systems; and
-  c) Comply with any takedown request issued by the Developer.
+This License shall be governed by and interpreted under the laws of Sweden,
+without regard to conflict-of-law principles.
+
+13. SEVERABILITY
+
+If any provision of this License is determined unenforceable, the remaining provisions
+shall remain in full force and effect.
+
+14. PREVIOUS LICENSED VERSIONS
+
+Versions of the Plugin distributed under previous licenses remain subject to the
+license terms under which those versions were originally released.
 ```
 
 ---
 
-## Third-Party Licenses
+# Third-Party Licenses
 
-Fake Player Plugin bundles or depends on the following third-party components.
+Fake Player Plugin may bundle, depend on, or integrate with the following third-party software components.
 
-### PacketEvents
+## PacketEvents
 - **Author:** retrooper and contributors
 - **License:** GPL-3.0
-- **Purpose:** Packet-level tab list integration
+- **Purpose:** Packet-level networking integration
 - **Website:** https://packetevents.com
 
-### bStats / FastStats
+## bStats / FastStats
 - **Author:** Bastian Opperman and contributors
 - **License:** MIT License
-- **Purpose:** Optional anonymous plugin usage metrics
-- **Note:** Metrics collection is opt-in and can be disabled via config
+- **Purpose:** Anonymous optional metrics collection
 
-### Paper API / Bukkit API
-- **Author:** PaperMC contributors, Bukkit contributors
-- **License:** GPL-2.0 (Paper), LGPL-3.0 (Bukkit API)
-- **Purpose:** Server API used for plugin development
-- **Note:** FPP does not distribute Paper or Bukkit
+## Paper API / Bukkit API
+- **Author:** PaperMC and Bukkit contributors
+- **License:** GPL-2.0 / LGPL-3.0
+- **Purpose:** Minecraft server development APIs
 
-### Authlib (Mojang)
-- **Author:** Mojang AB
-- **License:** Proprietary (Microsoft/Mojang)
-- **Purpose:** GameProfile and skin data structures
-- **Note:** Used as a provided dependency from the Paper server classpath; not bundled
+## Authlib
+- **Author:** Mojang AB / Microsoft
+- **License:** Proprietary
+- **Purpose:** GameProfile and skin data handling
 
-### LuckPerms API (Optional)
+## LuckPerms API
 - **Author:** lucko and contributors
 - **License:** MIT License
-- **Purpose:** Per-bot permission groups and prefix/suffix integration
-- **Note:** Soft dependency - FPP works without it
+- **Purpose:** Permissions integration
 
-### PlaceholderAPI (Optional)
+## PlaceholderAPI
 - **Author:** PlaceholderAPI contributors
 - **License:** GPL-3.0
-- **Purpose:** Placeholder expansion for server plugins
-- **Note:** Soft dependency - FPP works without it
+- **Purpose:** Placeholder support
 
-### marked.js (Website)
+## marked.js
 - **Author:** Christopher Jeffrey and contributors
 - **License:** MIT License
-- **Purpose:** Markdown rendering on the documentation website
+- **Purpose:** Markdown rendering
 
-### DOMPurify (Website)
+## DOMPurify
 - **Author:** Cure53 and contributors
 - **License:** Apache-2.0 / MIT License
-- **Purpose:** XSS sanitization for rendered Markdown on the documentation website
+- **Purpose:** HTML sanitization
 
 ---
 
-## Trademark Notice
+# Trademark Notice
 
-**"Fake Player Plugin"**, **"FPP"**, and the FPP logo are identifiers of the Developer. They are not registered trademarks, but their use is protected under common law trademark principles.
+"Fake Player Plugin", "FPP", and associated branding are identifiers of the Developer.
 
 You may:
-- ✅ Refer to the Plugin by its name in reviews, tutorials, and documentation
-- ✅ Use the name to indicate compatibility (e.g., "Compatible with Fake Player Plugin")
-- ✅ Link to official distribution pages or this website
 
-You may not:
-- ❌ Use the name or logo to imply endorsement or official affiliation
-- ❌ Use the name or logo as part of a competing product's branding
-- ❌ Create unofficial distributions using the "Fake Player Plugin" name without attribution
+- Refer to the Plugin in reviews, tutorials, or compatibility notes
+- State compatibility with Fake Player Plugin
+- Link to official project pages
 
----
+You may NOT:
 
-## Attribution
-
-When using this software (in any form permitted by this License), please credit the project:
-
-> "Fake Player Plugin by Bill_Hub — https://github.com/Pepe-tf/fake-player-plugin"
+- Imply official endorsement or affiliation
+- Use the branding for competing distributions
+- Present unofficial builds as official releases
 
 ---
 
-## DMCA / Copyright Infringement
+# Attribution
 
-If you believe that content on the official FPP website or in the Plugin's resources infringes your copyright, please contact us via Discord.
+When using the Plugin in any permitted form, please retain attribution:
 
-**Contact for copyright notices:**
+> Fake Player Plugin by Bill_Hub — https://github.com/Pepe-tf/fake-player-plugin
+
+---
+
+# DMCA / Copyright Notices
+
+For copyright concerns or infringement notices, contact:
 
 | Channel | Details |
-|---------|---------|
-| **Discord** | https://discord.gg/QSN7f67nkJ |
-| **GitHub Issues** | https://github.com/Pepe-tf/fake-player-plugin/issues |
-| **Plugin Page** | https://modrinth.com/plugin/fake-player-plugin-(fpp) |
+|---|---|
+| Discord | https://discord.gg/QSN7f67nkJ |
+| GitHub Issues | https://github.com/Pepe-tf/fake-player-plugin/issues |
+| Modrinth | https://modrinth.com/plugin/fake-player-plugin-(fpp) |
 
 ---
 
-## Stay Updated
+# Official Links
 
-- 💻 **GitHub:** https://github.com/Pepe-tf/fake-player-plugin — source, releases, and issues
-- 💬 **Discord:** https://discord.gg/QSN7f67nkJ — community announcements
-- 📦 **Modrinth:** https://modrinth.com/plugin/fake-player-plugin-(fpp) — compiled releases
+- GitHub: https://github.com/Pepe-tf/fake-player-plugin
+- Discord: https://discord.gg/QSN7f67nkJ
+- Modrinth: https://modrinth.com/plugin/fake-player-plugin-(fpp)
 
 ---
 
-*Copyright © 2024-2026 Bill_Hub (El_Pepes). All rights reserved. Released under the Fake Player Plugin Custom License.*
-*Fake Player Plugin - Not affiliated with Mojang AB or Microsoft Corporation.*
+*Copyright © 2024-2026 Bill_Hub (El_Pepes). All rights reserved.*
+
+*Fake Player Plugin is source-available software distributed under the Fake Player Plugin Source-Available License v4.0.*
+
+*Fake Player Plugin is not affiliated with Mojang AB or Microsoft Corporation.*

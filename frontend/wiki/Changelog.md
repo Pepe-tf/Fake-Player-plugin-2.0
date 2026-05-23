@@ -1,6 +1,47 @@
 # Changelog
 
-## v1.6.6.11 (Current)
+## v1.6.6.12 (Current)
+
+### Breaking Changes
+- **Folia support removed** — FPP no longer supports Folia due to fundamental incompatibilities with regionised threading and entity ticking. Use Paper/Purpur instead.
+- **Body disable system removed** — `body.enabled` config option removed. Bots always spawn with physical bodies (tab-list only mode no longer available).
+- **SpigotMC distribution removed** — Plugin no longer distributed on SpigotMC. Download from Modrinth, PaperMC Hangar, or BuiltByBit.
+
+### Features Removed
+- **`%fpp_body%` placeholder** — Removed along with body disable system.
+- **Body toggle in GUI** — Removed from Settings GUI (body category).
+- **Skin system toggle** — Removed from Settings GUI.
+
+### New Features & Improvements
+- **Pathfinding overhaul** — Major improvements to `BotPathfinder.java` and `PathfindingService.java` with better A* navigation, gap walking, block break/place support, and stuck detection.
+- **Mine command improvements** — Added actual block breaking via `nms.gameMode.destroyBlock()`, improved progress tracking, and pickup flow.
+- **Use command enhancements** — Combined Use+Place functionality with `UseMode` enum, flexible targeting from bot look direction, and better ray-tracing.
+- **Head AI action locking** — Added `actingBots` concurrent set to fully disable head AI while bots perform actions (mining, using, placing).
+
+### Bug Fixes
+- **PacketEvents injection error** — Added try-catch wrapper around PacketEvents registration to prevent GrimAC/ViaVersion compatibility issues from breaking bot spawns.
+- **UseCommand NPE** — Fixed null pointer when storing ray-trace targets; only stores non-null targets.
+- **Head AI during actions** — Bots now properly disable head rotation while performing mine/use/place actions.
+- **Mining not breaking blocks** — MineCommand now actually breaks blocks via NMS game mode.
+
+### Code Quality
+- Removed `spawnBody()` config method and all references to body disable logic
+- Cleaned up `FakePlayerManager.java` spawn logic (no more bodyless mode)
+- Updated startup banner, metrics, and placeholders to remove body enable references
+- Removed unused custom metrics from `FppMetrics.java`
+- Removed outdated `AGENTS.md` file
+- Added `note.md` development tracking document
+
+### Documentation
+- Updated all wiki pages to reflect Paper/Purpur-only support
+- Removed Folia-Support wiki page
+- Updated FAQ to explicitly state Folia is not supported
+- Updated legal documents (copyright, privacy-policy, extensions, terms-of-service)
+- Updated README.md with platform changes
+
+---
+
+## v1.6.6.11
 
 ### Bug Fixes
 - **Online player count** — bots now correctly subtracted from real-player count in `/fpp stats` and network totals (commit `6afca8a`)
@@ -121,3 +162,19 @@ https://github.com/Pepe-tf/fake-player-plugin/commits/main
 ---
 
 > **Note:** The built-in ConfigMigrator handles upgrades transparently. Current config version: **73**. Always back up `plugins/FakePlayerPlugin/` before major updates.
+
+---
+
+## Migration Notes (v1.6.6.12)
+
+### From Folia to Paper/Purpur
+If you were running FPP on Folia:
+1. Switch to **Paper** or **Purpur** 1.21.11
+2. Migrate your world data using standard Folia→Paper migration tools
+3. FPP will work out of the box on Paper/Purpur
+
+### Body Disable System Removed
+If you were using `body.enabled: false` for tab-list only mode:
+- This option has been removed
+- All bots now spawn with physical bodies
+- Consider using `body.damageable: false` and `body.pushable: false` for invulnerable/immobile bots
