@@ -41,18 +41,18 @@ public final class LicenseCredentialsApi {
 
   // ── hardcoded API key ───────────────────────────────────────────────────────
   private static final int[] _AK = {
-      97, 102, 98, 50, 50, 48, 56, 49, 53, 57, 101, 51, 49, 57, 57,
-      101, 54, 101, 54, 54, 53, 56, 102, 99, 97, 100, 54, 100, 48, 100,
-      52, 56, 50, 55, 50, 99, 51, 50, 99, 98, 97, 55, 52, 49, 51,
-      101, 98, 100, 98, 97, 53, 51, 48, 52, 49, 51, 53, 48, 99, 53,
-      55, 55, 54, 54
+      56, 55, 49, 57, 49, 51, 56, 48, 50, 52, 98, 53, 57, 102, 99,
+      51, 57, 100, 98, 48, 57, 100, 100, 57, 49, 102, 51, 54, 51, 53,
+      101, 55, 54, 51, 51, 55, 52, 52, 102, 55, 56, 54, 99, 52, 99,
+      101, 50, 52, 48, 102, 54, 51, 101, 55, 102, 100, 100, 57, 53, 98,
+      49, 50, 52, 54
   };
 
   // ── hardcoded HMAC verification secret ─────────────────────────────────────
   private static final int[] _SS = {
-      52, 97, 48, 50, 49, 48, 52, 50, 45, 50, 51, 48, 99, 45, 52,
-      97, 99, 101, 45, 57, 49, 100, 100, 45, 55, 50, 55, 48, 101, 57,
-      56, 98, 55, 50, 52, 101
+      101, 48, 98, 102, 99, 56, 52, 99, 45, 99, 49, 101, 48, 45, 52,
+      50, 49, 97, 45, 57, 57, 102, 97, 45, 99, 53, 51, 57, 100, 52,
+      102, 52, 53, 101, 98, 49
   };
 
   private static String _d(int[] c) {
@@ -125,7 +125,6 @@ public final class LicenseCredentialsApi {
       int code = conn.getResponseCode();
       FppLogger.debug("LICENSE", Config.debugLicense(), "API response code: " + code);
       if (code != 200) {
-        // Read error body for diagnostics
         String errBody = null;
         try (BufferedReader br = new BufferedReader(
             new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
