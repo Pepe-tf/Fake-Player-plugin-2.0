@@ -1,6 +1,19 @@
 # Changelog
 
-## v1.6.6.12 (Current)
+## v1.6.6.12.1 (Current)
+
+### License System Updates
+- **License server migration** — Switched license verification from `license.fpp.wtf` to `app.lukittu.com`
+- **Frontend credential fetch** — Credentials now fetched from `fpp.wtf/api/license/free` with HMAC signature verification
+- **Improved license logging** — Better error messages and debug logging for license verification failures
+- **API key authentication** — Added Bearer token authentication for frontend API requests
+
+### Bug Fixes
+- **License credentials fetch** — Fixed API key encoding for frontend authentication
+
+---
+
+## v1.6.6.12
 
 ### Breaking Changes
 - **Folia support removed** — FPP no longer supports Folia due to fundamental incompatibilities with regionised threading and entity ticking. Use Paper/Purpur instead.

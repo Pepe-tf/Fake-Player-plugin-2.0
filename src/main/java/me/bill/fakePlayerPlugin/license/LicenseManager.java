@@ -38,7 +38,7 @@ public final class LicenseManager {
 
   private static final String RESULT_KEY = "result";
   private static final String VALID_KEY = "valid";
-  private static final String API_BASE_URL = "https://license.fpp.wtf/api/v1/client/teams";
+  private static final String API_BASE_URL = "https://app.lukittu.com/api/v1/client/teams";
   private static final String VERIFY_ENDPOINT = "/verification/verify";
   private static final String HEARTBEAT_ENDPOINT = "/verification/heartbeat";
   private static final String VERSION = "1.0.0";
