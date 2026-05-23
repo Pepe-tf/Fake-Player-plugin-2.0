@@ -25,7 +25,7 @@ Extensions operate within the same runtime environment as FPP and may access int
 Extension developers must comply with the following requirements:
 
 - Extensions must target Java 21 or newer.
-- Extensions must be compatible with supported Paper/Folia server versions documented by FPP.
+- Extensions must be compatible with supported Paper/Purpur server versions documented by FPP.
 - Extensions must declare their provider class using the required `META-INF/services/` registration format.
 - Extensions must implement the official `FppExtension` interface and comply with lifecycle methods including:
     - `onLoad`
@@ -44,7 +44,7 @@ Extensions may NOT:
 - Bundle, shade, redistribute, or repackage FPP source code, compiled classes, assets, or proprietary resources;
 - Misrepresent unofficial extensions as official FPP products;
 - Include malicious code, backdoors, spyware, cryptominers, or intentionally destructive functionality;
-- Exploit vulnerabilities in FPP, Paper, Folia, Bukkit, Spigot, or Minecraft server software.
+- Exploit vulnerabilities in FPP, Paper, Bukkit, Spigot, or Minecraft server software.
 
 ---
 

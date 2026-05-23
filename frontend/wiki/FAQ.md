@@ -3,7 +3,7 @@
 ## General
 
 ### Q: What server software is supported?
-**A:** Paper 1.21+ (up to 1.21.11). Folia is also supported.
+**A:** Paper/Purpur 1.21+ (up to 1.21.11). Folia is **not** supported.
 
 ### Q: Does it work on Spigot or CraftBukkit?
 **A:** No. FPP uses Paper-specific APIs and NMS Mojang-mapped classes.
@@ -75,9 +75,6 @@
 - Reduce `head-ai.tick-rate`
 - Increase `performance.position-sync-distance` (or set to `128`)
 - Reduce bot count or spawn in batches
-
-### Q: Folia: bots despawn unexpectedly.
-**A:** Ensure bot entities are not crossing region boundaries during tasks. This is a known edge case; `/fpp stop` and re-task usually fixes it.
 
 ## Building
 

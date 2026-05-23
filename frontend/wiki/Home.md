@@ -1,6 +1,6 @@
 # FakePlayerPlugin Wiki
 
-> Advanced NPC / Bot Plugin for Paper 1.21+
+> Advanced NPC / Bot Plugin for Paper/Purpur 1.21+
 
 Welcome to the FakePlayerPlugin (FPP) wiki. FPP spawns server-side bot entities that behave like players — useful for **AFK farms, automated tasks, testing, and NPC simulations**. It is **not** a fake-online-count or player-spoofing tool.
 
@@ -27,7 +27,6 @@ Some advanced subsystems are implemented as extensions and are not part of the b
 | [Database](Database) | SQLite / MySQL setup, network tables, and proxy-merged architecture |
 | [Proxy Support](Proxy-Support) | Velocity / BungeeCord multi-server networks with shared MySQL |
 | [Config Sync](Config-Sync) | Synchronize configs across proxy backends |
-| [Folia Support](Folia-Support) | Folia regionised threading compatibility |
 | [Extensions](Extensions) | Extension API for third-party developers |
 
 ## Reference

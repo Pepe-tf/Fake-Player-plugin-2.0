@@ -7,7 +7,7 @@
 - **CI:** GitHub Actions runs `./gradlew test` then `./gradlew shadowJar`.
 
 ## Architecture
-- **Single-module Gradle project** (Paper/Folia Minecraft plugin).
+- **Single-module Gradle project** (Paper/Purpur Minecraft plugin).
 - **Main:** `me.bill.fakePlayerPlugin.FakePlayerPlugin` (`plugin.yml`).
 - **NMS:** Uses Mojang-mapped classes via `paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT")`.
 - **FastStats:** Binary JARs under `src/main/resources/faststats/`, loaded via `URLClassLoader` at runtime. Do not text-filter or relocate.
@@ -18,6 +18,7 @@
 - `src/main/resources/plugin.yml` — Bukkit descriptor (commands, permissions).
 - `src/main/resources/velocity-plugin.json` — Velocity proxy descriptor.
 - `src/main/resources/config.yml` — Main config (auto-migrates to version 73).
+- **v1.6.6.12 changes:** Removed `body.enabled`, removed Folia support
 - `src/main/resources/language/en.yml` — MiniMessage format.
 - `src/main/resources/bot-names.yml`, `bad-words.yml` — Name/badword lists.
 
@@ -27,7 +28,7 @@
 
 ## Constraints
 - Paper API targets `1.21` (supports up to `1.21.11`).
-- Folia-compatible (regionised threading).
+- Purpur-compatible (full API compatibility).
 - Config auto-migration runs on enable; do not edit `config-version` manually.
 
 ## Docs

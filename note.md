@@ -19,7 +19,7 @@
 - [ ] **Issue:** PacketEvents injection fails on some servers
 - [ ] **TODO:**
   - Investigate injection timing (startup vs lazy)
-  - Check compatibility with different Paper/Folia versions
+  - Check compatibility with different Paper/Purpur versions
   - Add fallback mechanism if injection fails
   - Log detailed error with server version info
 
@@ -186,7 +186,7 @@ Before each release:
 - [ ] No console errors on startup
 - [ ] PacketEvents injection successful
 - [ ] Compatible with Paper 1.21.11
-- [ ] Compatible with Folia
+
 
 ---
 

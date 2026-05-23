@@ -1,6 +1,25 @@
 # Changelog
 
-## v1.6.6.11 (Current)
+## v1.6.6.12 (Current)
+
+### Breaking Changes
+- **Folia support removed** — FPP no longer supports Folia due to fundamental incompatibilities with regionised threading and entity ticking. Use Paper/Purpur instead.
+
+### Features Removed
+- **Body disable system** — `body.enabled` config option removed. Bots always spawn with physical bodies (tab-list only mode no longer available).
+- **`%fpp_body%` placeholder** — Removed along with body disable system.
+
+### Bug Fixes
+- **PacketEvents injection error** — Added try-catch wrapper around PacketEvents registration to prevent GrimAC/ViaVersion compatibility issues from breaking bot spawns.
+
+### Code Quality
+- Removed `spawnBody()` config method and all references to body disable logic
+- Cleaned up `FakePlayerManager.java` spawn logic (no more bodyless mode)
+- Updated startup banner, metrics, and placeholders to remove body enable references
+
+---
+
+## v1.6.6.11
 
 ### Bug Fixes
 - **Online player count** — bots now correctly subtracted from real-player count in `/fpp stats` and network totals (commit `6afca8a`)
@@ -121,3 +140,19 @@ https://github.com/Pepe-tf/fake-player-plugin/commits/main
 ---
 
 > **Note:** The built-in ConfigMigrator handles upgrades transparently. Current config version: **73**. Always back up `plugins/FakePlayerPlugin/` before major updates.
+
+---
+
+## Migration Notes (v1.6.6.12)
+
+### From Folia to Paper/Purpur
+If you were running FPP on Folia:
+1. Switch to **Paper** or **Purpur** 1.21.11
+2. Migrate your world data using standard Folia→Paper migration tools
+3. FPP will work out of the box on Paper/Purpur
+
+### Body Disable System Removed
+If you were using `body.enabled: false` for tab-list only mode:
+- This option has been removed
+- All bots now spawn with physical bodies
+- Consider using `body.damageable: false` and `body.pushable: false` for invulnerable/immobile bots
