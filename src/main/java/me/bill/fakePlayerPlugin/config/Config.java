@@ -129,7 +129,6 @@ public final class Config {
     cfg = plugin.getConfig();
     cfg.options().copyDefaults(true);
 
-    cfg.set("body.enabled", true);
     plugin.saveConfig();
   }
 
@@ -359,10 +358,6 @@ public final class Config {
 
   public static String skinMineSkinVisibility() {
     return cfg.getString("skin.mineskin.visibility", "public");
-  }
-
-  public static boolean spawnBody() {
-    return cfg.getBoolean("body.enabled", true);
   }
 
   public static boolean bodyPushable() {

@@ -250,10 +250,13 @@ public final class ConfigMigrator {
 
   private static boolean v4to5(YamlConfiguration cfg) {
     if (cfg.contains("body")) return false;
-    boolean prev = cfg.getBoolean("spawn-body", true);
-    cfg.set("body.enabled", prev);
+    cfg.set("body.pushable", true);
+    cfg.set("body.damageable", true);
+    cfg.set("body.pick-up-items", false);
+    cfg.set("body.pick-up-xp", false);
+    cfg.set("body.drop-items-on-despawn", false);
     cfg.set("spawn-body", null);
-    log("v4→v5", "spawn-body → body.enabled");
+    log("v4→v5", "removed spawn-body (bodies always enabled)");
     return true;
   }
 

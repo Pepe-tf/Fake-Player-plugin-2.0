@@ -292,7 +292,10 @@ public final class UseCommand implements FppCommand {
               }
 
               HitResult hit = rayTraceNms(nms);
-              activeUseTargets.put(uuid, getTargetFromHit(hit, b));
+              Object currentTarget = getTargetFromHit(hit, b);
+              if (currentTarget != null) {
+                activeUseTargets.put(uuid, currentTarget);
+              }
 
               boolean acted = false;
               boolean startedHolding = false;

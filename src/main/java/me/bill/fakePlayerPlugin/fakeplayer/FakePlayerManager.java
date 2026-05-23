@@ -413,7 +413,7 @@ public class FakePlayerManager {
 
               NmsPlayerSpawner.tickPhysics(bot);
 
-              boolean isActing = actionLockedBots.containsKey(fp.getUuid());
+              boolean isActing = actingBots.contains(fp.getUuid());
               boolean isNavLocked = navLockedBots.contains(fp.getUuid());
               if (Config.debugHeadAi()) {
                 if (isActing) {
@@ -689,7 +689,7 @@ public class FakePlayerManager {
   }
 
   public boolean physicalBodiesEnabled() {
-    return Config.spawnBody();
+    return true;
   }
 
   public boolean isRestorationInProgress() {
@@ -1256,9 +1256,8 @@ public class FakePlayerManager {
 
           int initialPing = computeInitialPing(fp);
 
-          if (!fp.isBodyless() && Config.spawnBody()) {
-            Player body =
-                fp.getPlayer() != null ? fp.getPlayer() : FakePlayerBody.spawn(fp, spawnLoc, initialPing);
+          if (!fp.isBodyless()) {
+            Player body = FakePlayerBody.spawn(fp, spawnLoc, initialPing);
             if (body != null) {
               fp.setPhysicsEntity(body);
               entityIdIndex.put(body.getEntityId(), fp);
@@ -1335,10 +1334,6 @@ public class FakePlayerManager {
           } else if (fp.isBodyless()) {
 
             Config.debug("Bodyless spawn: skipping physical body for " + fp.getName());
-          } else {
-
-            fp.setBodyless(true);
-            Config.debug("Body spawn skipped (body.enabled=false) for " + fp.getName());
           }
 
           List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
@@ -2667,6 +2662,8 @@ public class FakePlayerManager {
     navJumpHolding.put(botUuid, value);
   }
 
+  private final Set<UUID> actingBots = ConcurrentHashMap.newKeySet();
+
   public void lockForAction(UUID botUuid, Location loc) {
     lockForAction(botUuid, loc, false);
   }
@@ -2675,16 +2672,18 @@ public class FakePlayerManager {
     if (lockPosition) {
       actionLockedBots.put(botUuid, loc.clone());
     }
+    actingBots.add(botUuid);
     botHeadRotation.put(botUuid, new float[]{loc.getYaw(), loc.getPitch()});
     botSpawnRotation.put(botUuid, new float[]{loc.getYaw(), loc.getPitch()});
   }
 
   public void unlockAction(UUID botUuid) {
     actionLockedBots.remove(botUuid);
+    actingBots.remove(botUuid);
   }
 
   public boolean isActionLocked(UUID botUuid) {
-    return actionLockedBots.containsKey(botUuid);
+    return actingBots.contains(botUuid);
   }
 
   public void updateActionLockRotation(UUID botUuid, float yaw, float pitch) {

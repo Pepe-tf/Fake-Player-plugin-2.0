@@ -30,7 +30,6 @@ public final class FppMetrics {
         .addMetric(Metric.number("max_bots_config", Config::maxBots))
         .addMetric(Metric.number("user_bot_limit", Config::userBotLimit))
         .addMetric(Metric.number("persistence_enabled", () -> bool(Config.persistOnRestart())))
-        .addMetric(Metric.number("body_enabled", () -> bool(Config.spawnBody())))
         .addMetric(Metric.number("body_damageable", () -> bool(Config.bodyDamageable())))
         .addMetric(Metric.number("body_pushable", () -> bool(Config.bodyPushable())))
         .addMetric(Metric.number("fake_chat_enabled", () -> bool(Config.fakeChatEnabled())))
@@ -82,7 +81,6 @@ public final class FppMetrics {
 
   private static String[] collectActiveFeatures() {
     final List<String> features = new ArrayList<>();
-    if (Config.spawnBody()) features.add("body");
     if (Config.bodyDamageable()) features.add("body_damageable");
     if (Config.bodyPushable()) features.add("body_pushable");
     if (Config.persistOnRestart()) features.add("persistence");

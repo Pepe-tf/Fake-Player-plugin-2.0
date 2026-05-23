@@ -164,7 +164,6 @@ public final class FppLogger {
       int namePoolSize,
       String dbState,
       int dbSchemaVersion,
-      boolean bodyEnabled,
       boolean persistEnabled,
       boolean taskPersistEnabled,
       boolean luckPermsFound,
@@ -188,7 +187,6 @@ public final class FppLogger {
     kv("Startup time", startupMs + "ms");
 
     section("Features");
-    stateRow(bodyEnabled ? RowState.OK : RowState.OFF, "Physical bodies", onOff(bodyEnabled));
     stateRow(persistEnabled ? RowState.OK : RowState.OFF, "Persistence", onOff(persistEnabled));
     stateRow(
         taskPersistEnabled ? RowState.OK : RowState.OFF,

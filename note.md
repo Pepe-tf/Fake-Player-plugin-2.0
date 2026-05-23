@@ -7,15 +7,13 @@
 
 ## 🔴 Priority 1: Base Plugin Critical Fixes
 
-### 1. Head AI During Actions
-- [ ] **Issue:** Bots still look at players during mine/use actions (not disabled properly)
-- [ ] **Current State:** `actionLockedBots` check added but not working as expected
-- [ ] **TODO:** 
-  - Debug why `isActing` check isn't preventing head AI
-  - Verify `actionLockedBots.containsKey(uuid)` is true during mining/using
-  - Check if head AI runs before action lock is applied
-  - Consider adding `fp.setHeadAiEnabled(false)` temporarily during actions
-- [ ] **Files:** `FakePlayerManager.java:416-420`, `MineCommand.java`, `UseCommand.java`
+### 1. Head AI During Actions ✅ FIXED
+- [x] **Issue:** Bots still look at players during mine/use actions (not disabled properly)
+- [x] **Root Cause:** `lockForAction(uuid, loc, false)` didn't add to `actionLockedBots` set
+- [x] **Solution:** Created separate `actingBots` set that tracks all acting bots (regardless of position lock)
+- [x] **Files Updated:** `FakePlayerManager.java` (line 416), added `actingBots` set
+- [x] **Tested:** Head AI now fully disabled during `/fpp mine`, `/fpp use`, `/fpp place`
+- [x] **Debug:** Enable `logging.debug.head-ai: true` to see "SKIPPED - bot is acting" messages
 
 ### 2. PacketEvents Injection Failure
 - [ ] **Issue:** PacketEvents injection fails on some servers
@@ -39,7 +37,13 @@
 
 ## 🟡 Priority 2: Base Plugin New Features
 
-### 4. Mount Command
+### 4. Body System Updates
+- [x] **Removed:** Body disable toggle (bots always spawn with bodies)
+- [x] **Removed:** Skin system toggle from GUI
+- [x] **Kept:** Body settings (pushable, damageable, pickup items/xp, etc.)
+- [x] **Files:** `SettingGui.java` (body() method cleaned up)
+
+### 5. Mount Command
 - [ ] **Feature:** `/fpp mount <bot> <entity>` - Bot mounts entities (horses, minecarts, boats)
 - [ ] **TODO:**
   - Create `MountCommand.java`
@@ -49,7 +53,7 @@
   - Dismount command
   - Persistence for mounted state
 
-### 5. Multi-Action System
+### 6. Multi-Action System
 - [ ] **Feature:** Bots perform multiple actions in sequence/parallel
 - [ ] **TODO:**
   - Design action queue system
@@ -147,9 +151,11 @@
 - [x] Added `logging.debug.commands` and `logging.debug.head-ai` config options
 - [x] UseCommand now handles blocks AND entities
 - [x] Persistence updated for new UseCommand structure
+- [x] **Head AI fully disabled during actions** (mining/use/place) - uses `actingBots` set
+- [x] Fixed UseCommand NPE when bot looks at nothing (null target check)
+- [x] Fixed MineCommand - bots now actually break blocks (not just animation)
 
 ### Known Issues
-- [ ] Head AI still runs during actions (not properly disabled)
 - [ ] Some users report PacketEvents injection failures
 - [ ] Area mining/place jobs need tick implementation
 

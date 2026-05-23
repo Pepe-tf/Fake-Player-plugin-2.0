@@ -99,7 +99,6 @@ messages:
 # ── Bot Body ──────────────────────────────────────────────────────────────────
 # The physical entity that appears in the world.
 body:
-  enabled:      true   # false = tab-list / player-count only, no entity in world
   pushable:     true   # true = players and explosions can push the body
   damageable:   true   # true = body can take ALL damage (player + environmental)
                        # false = immune to player/entity damage only (fall, fire, etc. still apply)

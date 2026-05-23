@@ -523,7 +523,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
         !Config.databaseEnabled() ? "disabled" : (dbOk ? dbLabel : dbLabel + " (failed)");
     int dbSchemaVersion = databaseManager != null ? DatabaseManager.getCurrentSchemaVersion() : 0;
 
-    boolean effectiveSpawnBody = Config.spawnBody();
     boolean effectiveChunkLoading =
         Config.chunkLoadingEnabled() && Config.chunkLoadingRadius() != 0;
     boolean effectiveTaskPersist = Config.persistOnRestart() && databaseManager != null;
@@ -540,7 +539,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
         BotNameConfig.getNames().size(),
         dbState,
         dbSchemaVersion,
-        effectiveSpawnBody,
         Config.persistOnRestart(),
         effectiveTaskPersist,
         Bukkit.getPluginManager().getPlugin("LuckPerms") != null,

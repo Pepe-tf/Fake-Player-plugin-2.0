@@ -932,6 +932,7 @@ public final class MineCommand implements FppCommand {
         }
         nms.swing(InteractionHand.MAIN_HAND);
         NmsPlayerSpawner.destroyBlockProgress(nms, -1, targetPos, -1);
+        nms.gameMode.destroyBlock(targetPos);
         if (state.once || state.stopAfterForcedTarget) {
           beginPickupWait(fp, state, targetPos);
         } else {
