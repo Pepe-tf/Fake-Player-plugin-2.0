@@ -17,7 +17,6 @@ lukittu-java-simple-main
 # Gradle
 .gradle
 
-AGENTS.md
 note.md
 # IDEs
 .idea
