@@ -2,6 +2,7 @@ name: FakePlayerPlugin
 version: '1.6.6.12.1'
 main: me.bill.fakePlayerPlugin.FakePlayerPlugin
 api-version: '1.21'
+folia-supported: true
 authors: [ F_PP, Kyttu ]
 description: "Advanced Fake Player Spoofer for Paper 1.21+"
 website: "https://modrinth.com/plugin/fake-player-plugin-(fpp)"

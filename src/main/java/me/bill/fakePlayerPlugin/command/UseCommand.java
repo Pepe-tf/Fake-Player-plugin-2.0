@@ -356,7 +356,7 @@ public final class UseCommand implements FppCommand {
                       break;
                     }
 
-                    if (NmsPlayerSpawner.interactOnEntity(nms, entity, hand)
+                    if (NmsPlayerSpawner.interactOnEntity(nms, entity, hand, entityHit.getLocation())
                         && !(handWasEmpty && itemFrameEmpty)) {
                       nms.swing(hand);
                       acted = true;
