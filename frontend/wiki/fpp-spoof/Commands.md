@@ -9,6 +9,7 @@ Complete command reference for all FPP Extensions.
 - [fpp-peaks Commands](#fpp-peaks-commands)
 - [fpp-ping Commands](#fpp-ping-commands)
 - [fpp-skin Commands](#fpp-skin-commands)
+- [fpp-swap Commands](#fpp-swap-commands)
 - [fpp-waypoints Commands](#fpp-waypoints-commands)
 
 ---
@@ -399,6 +400,90 @@ Manage bot waypoints and patrol routes.
 - Waypoints are stored per-world
 - Patrol routes loop by default (configurable)
 - Bots will pathfind to waypoints using FPP's navigation system
+
+---
+
+## fpp-swap Commands
+
+Bot session rotation management.
+
+### Syntax
+
+```
+/fpp swap                          # Toggle swap on/off
+/fpp swap on                       # Enable swap system
+/fpp swap off                      # Disable swap system
+/fpp swap status                   # Show swap system status
+/fpp swap now <bot>                # Force bot to swap immediately
+/fpp swap list                     # List all scheduled bots
+/fpp swap info <bot>               # Show swap info for a bot
+```
+
+### Parameters
+
+| Parameter | Description | Required |
+|-----------|-------------|----------|
+| `<bot>` | Bot name | Yes (for now/info) |
+
+### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `on` | Enable the swap system |
+| `off` | Disable the swap system |
+| `status` | Show active sessions, swapped-out count, next swap time |
+| `now <bot>` | Force a specific bot to leave immediately |
+| `list` | List all bots with active swap sessions |
+| `info <bot>` | Show personality, swap count, remaining time |
+
+### Examples
+
+```
+# Toggle swap on
+/fpp swap on
+
+# Check swap status
+/fpp swap status
+
+# Force Bot1 to swap now
+/fpp swap now Bot1
+
+# List all scheduled bots
+/fpp swap list
+
+# Get info about Bot1
+/fpp swap info Bot1
+
+# Turn swap off
+/fpp swap off
+```
+
+### Status Output
+
+Running `/fpp swap status` shows:
+- Whether swap system is enabled
+- Number of active sessions
+- Number of swapped-out (offline) bots
+- Time until next scheduled swap
+- Minimum online setting
+
+### Info Output
+
+Running `/fpp swap info <bot>` shows:
+- Bot's personality type (CASUAL, GRINDER, etc.)
+- Total swap count
+- Remaining session time
+- Number of offline bots
+
+### Permissions
+
+- `fpp.swap` - Use swap commands (default: op)
+
+### Notes
+
+- Swap must be enabled in config (`swap.enabled: true`) to function
+- Bots must have online players detected for farewell/greeting chat
+- Inventory and XP are preserved across swaps
 
 ---
 

@@ -98,6 +98,12 @@ Example: `fpp.ping.set`, `fpp.skin.random`
 | `fpp.skin.reset` | Reset skin to default | op |
 | `fpp.skin.custom-url` | Use custom skin URLs | op |
 
+### fpp-swap Permissions
+
+| Permission | Description | Default |
+|------------|-------------|---------|
+| `fpp.swap` | Use swap commands | op |
+
 ### fpp-waypoints Permissions
 
 | Permission | Description | Default |

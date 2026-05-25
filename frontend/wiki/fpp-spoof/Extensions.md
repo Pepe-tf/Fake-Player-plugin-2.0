@@ -14,6 +14,7 @@ Complete reference for all FPP Extensions included in the fpp-spoof pack.
 - [fpp-peaks](#fpp-peaks) - Server performance monitoring
 - [fpp-ping](#fpp-ping) - Ping spoofing
 - [fpp-skin](#fpp-skin) - Skin management
+- [fpp-swap](#fpp-swap) - Bot session rotation
 - [fpp-waypoints](#fpp-waypoints) - Waypoint system
 
 ---
@@ -558,6 +559,68 @@ place-blocks: false
 
 ---
 
+## fpp-swap
+
+Bot session rotation system — bots periodically leave and rejoin the server.
+
+### Features
+
+- Session-based online/offline cycling
+- 6 bot personalities affecting session length
+- Farewell and greeting messages
+- Inventory and XP preservation across swaps
+- Name retention on rejoin
+- Settings GUI integration
+
+### Commands
+
+```
+/fpp swap                          # Toggle swap on/off
+/fpp swap status                   # Show swap status
+/fpp swap now <bot>                # Force a bot to swap
+/fpp swap list                     # List scheduled bots
+/fpp swap info <bot>               # Show bot swap info
+```
+
+### Configuration
+
+**File:** `plugins/FakePlayerPlugin/extensions/fpp-swap/config.yml`
+
+```yaml
+enabled: true
+swap:
+  enabled: false
+  farewell-chat: true
+  greeting-chat: true
+  same-name-on-rejoin: true
+  retry-rejoin: true
+  session:
+    min: 60
+    max: 300
+  absence:
+    min: 30
+    max: 120
+```
+
+### Permissions
+
+| Permission | Description | Default |
+|------------|-------------|---------|
+| `fpp.swap` | Use swap commands | op |
+
+### Personalities
+
+| Personality | Multiplier | Behavior |
+|-------------|-----------|----------|
+| CASUAL | 1.0x | Average sessions |
+| GRINDER | 1.6x | Long sessions |
+| SOCIAL | 0.65x | Short frequent visits |
+| LURKER | 2.2x | Very long sessions |
+| ACTIVE | 0.45x | Very brief pop-ins |
+| SPORADIC | 1.1x+ | Unpredictable |
+
+---
+
 ## Excluded Extensions
 
 The following extensions are **not** included in fpp-spoof:
@@ -565,4 +628,3 @@ The following extensions are **not** included in fpp-spoof:
 | Extension | Reason |
 |-----------|--------|
 | fpp-pathfinder | Functionality moved to base FPP plugin |
-| fpp-swap | Incompatible with FPP 1.6.6.12.1 API |

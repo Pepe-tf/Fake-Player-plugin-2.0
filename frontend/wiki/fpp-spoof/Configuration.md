@@ -374,6 +374,87 @@ format:
 
 ---
 
+## fpp-swap Configuration
+
+**File:** `plugins/FakePlayerPlugin/extensions/fpp-swap/config.yml`
+
+```yaml
+# Enable or disable the swap extension
+enabled: true
+
+# Permission node for swap commands
+permissions:
+  command: fpp.swap
+
+# Swap system settings
+swap:
+  # Master toggle for swap rotation
+  enabled: false
+
+  # Enable debug logging
+  debug: false
+
+  # Max bots offline at once (0 = unlimited)
+  max-swapped-out: 0
+
+  # Minimum bots to keep online
+  min-online: 0
+
+  # Try to reclaim original name on rejoin
+  same-name-on-rejoin: true
+
+  # Bot says farewell before leaving
+  farewell-chat: true
+
+  # Bot greets on return
+  greeting-chat: true
+
+  # Retry rejoin if it fails
+  retry-rejoin: true
+
+  # Delay before retry (seconds)
+  retry-delay: 60
+
+  # Session duration settings
+  session:
+    min: 60   # Shortest session (seconds)
+    max: 300  # Longest session (seconds)
+
+  # Absence duration settings
+  absence:
+    min: 30   # Shortest offline time (seconds)
+    max: 120  # Longest offline time (seconds)
+```
+
+### Key Settings
+
+| Setting | Description | Recommended |
+|---------|-------------|-------------|
+| `swap.enabled` | Master toggle | `true` to enable |
+| `session.min` | Shortest bot session | 60-120s |
+| `session.max` | Longest bot session | 300-600s |
+| `absence.min` | Shortest offline period | 30-60s |
+| `absence.max` | Longest offline period | 120-300s |
+| `max-swapped-out` | Max offline bots at once | 3-5 |
+| `min-online` | Minimum bots always online | 1-3 |
+| `retry-rejoin` | Retry on failed rejoin | `true` |
+
+### Personality Effects
+
+Session multipliers by bot personality:
+- **CASUAL**: 1.0x (average)
+- **GRINDER**: 1.6x (long sessions)
+- **SOCIAL**: 0.65x (short frequent visits)
+- **LURKER**: 2.2x (very long sessions)
+- **ACTIVE**: 0.45x (brief pop-ins)
+- **SPORADIC**: 1.1x + random (unpredictable)
+
+### Session Growth
+
+Session length increases up to 40% over the first 5 swaps (8% per swap), simulating bots that gradually stay online longer.
+
+---
+
 ## fpp-waypoints Configuration
 
 **File:** `plugins/FakePlayerPlugin/extensions/fpp-waypoints/config.yml`

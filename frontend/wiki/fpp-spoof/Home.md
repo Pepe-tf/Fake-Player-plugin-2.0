@@ -54,6 +54,7 @@ FPP Extensions are modular add-ons that extend the functionality of the base Fak
 | [fpp-peaks](Extensions#fpp-peaks) | Display server TPS and performance |
 | [fpp-ping](Extensions#fpp-ping) | Show or spoof bot ping values |
 | [fpp-skin](Extensions#fpp-skin) | Manage bot skins from MCHead/NameMC |
+| [fpp-swap](Extensions#fpp-swap) | Bot session rotation (leave/rejoin) |
 | [fpp-waypoints](Extensions#fpp-waypoints) | Bot waypoint/pathfinding system |
 
 ## Support
