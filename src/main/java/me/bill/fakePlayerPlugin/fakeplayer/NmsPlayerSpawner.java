@@ -12,6 +12,7 @@ import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -2277,22 +2278,18 @@ public final class NmsPlayerSpawner {
 
   // ── interactOn ──
 
-  private static volatile int interactOnProbeState;
-
-  public static boolean interactOnEntity(ServerPlayer nms, net.minecraft.world.entity.Entity entity, InteractionHand hand) {
-    if (interactOnProbeState == 0) {
-      try {
-        var result = nms.interactOn(entity, hand);
-        interactOnProbeState = 1;
-        return result != null && result.consumesAction();
-      } catch (NoSuchMethodError e) {
-        interactOnProbeState = 2;
-      }
-    } else if (interactOnProbeState == 1) {
-      var result = nms.interactOn(entity, hand);
+  public static boolean interactOnEntity(
+      ServerPlayer nms,
+      net.minecraft.world.entity.Entity entity,
+      InteractionHand hand,
+      Vec3 hitLocation) {
+    try {
+      var result = nms.interactOn(entity, hand, hitLocation);
       return result != null && result.consumesAction();
+    } catch (Throwable e) {
+      Config.debugNms("NmsPlayerSpawner.interactOnEntity failed: " + e.getMessage());
+      return false;
     }
-    return false;
   }
 
   // ── consumesAction helper ──

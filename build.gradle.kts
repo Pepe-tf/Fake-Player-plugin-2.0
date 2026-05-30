@@ -2,6 +2,7 @@ plugins {
     id("java")
     id("com.gradleup.shadow") version "9.4.1"
     id("io.papermc.paperweight.userdev") version "2.0.0-beta.21"
+    id("xyz.jpenilla.run-paper") version "3.0.2"
 }
 
 java {
@@ -28,8 +29,7 @@ repositories {
 }
 
 dependencies {
-    // paperweight.paperDevBundle("26.1.2.build.+") // todo: 26.1.2 support
-    paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("26.1.2.build.65-stable")
 
     implementation("dev.faststats.metrics:bukkit:0.22.0")
 
@@ -40,8 +40,25 @@ dependencies {
         exclude("com.google.guava", "guava")
         exclude("it.unimi.dsi", "fastutil")
     }
+
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.shadowJar {
     archiveBaseName.set("fake-player-plugin")
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+tasks.runServer {
+    minecraftVersion("1.21.11")
+    jvmArgs("-Xms1G", "-Xmx4G")
+}
+
+runPaper.folia.registerTask {
+    minecraftVersion("1.21.11")
+    jvmArgs("-Xms1G", "-Xmx4G")
 }

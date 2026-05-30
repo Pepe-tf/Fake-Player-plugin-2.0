@@ -30,27 +30,16 @@ import java.util.List;
 
 public final class FakeServerGamePacketListenerImpl extends ServerGamePacketListenerImpl {
 
-  private static volatile boolean entityIdDirectFailed = false;
-
   private static volatile boolean entityIdFallbackResolved = false;
 
   private static volatile Method cachedEntityIdMethod = null;
 
   private static int resolveEntityId(ClientboundSetEntityMotionPacket packet) {
 
-    if (!entityIdDirectFailed) {
-      try {
-        return packet.getId();
-      } catch (NoSuchMethodError e) {
-
-        entityIdDirectFailed = true;
-      }
-    }
-
     if (!entityIdFallbackResolved) {
       synchronized (FakeServerGamePacketListenerImpl.class) {
         if (!entityIdFallbackResolved) {
-          for (String name : new String[]{"getEntityId", "id"}) {
+          for (String name : new String[]{"id", "getId", "getEntityId"}) {
             try {
               Method m = ClientboundSetEntityMotionPacket.class.getMethod(name);
               if (m.getReturnType() == int.class) {

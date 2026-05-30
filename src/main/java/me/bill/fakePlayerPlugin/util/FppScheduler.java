@@ -1,75 +1,140 @@
 package me.bill.fakePlayerPlugin.util;
 
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public final class FppScheduler {
+
+  private static final AtomicInteger NEXT_TASK_ID = new AtomicInteger(1);
+  private static final Map<Integer, ScheduledTask> TASKS = new ConcurrentHashMap<>();
 
   private FppScheduler() {
   }
 
   public static void runAtEntity(Plugin plugin, Entity entity, Runnable runnable) {
     if (entity == null) return;
-    runSync(plugin, runnable);
+    entity.getScheduler().run(plugin, ignored -> runnable.run(), null);
   }
 
   public static int runAtEntityRepeatingWithId(
       Plugin plugin, Entity entity, Runnable runnable, long delayTicks, long periodTicks) {
-    return runSyncRepeatingWithId(plugin, runnable, delayTicks, periodTicks);
+    if (entity == null) return -1;
+    ScheduledTask task =
+        entity
+            .getScheduler()
+            .runAtFixedRate(
+                plugin,
+                ignored -> runnable.run(),
+                null,
+                normalizeDelay(delayTicks),
+                normalizePeriod(periodTicks));
+    return register(task);
   }
 
   public static int runAtEntityLaterWithId(
       Plugin plugin, Entity entity, Runnable runnable, long delayTicks) {
-    return runSyncLaterWithId(plugin, runnable, delayTicks);
+    if (entity == null) return -1;
+    ScheduledTask task =
+        entity
+            .getScheduler()
+            .runDelayed(plugin, ignored -> runnable.run(), null, normalizeDelay(delayTicks));
+    return register(task);
   }
 
   public static void runAtLocation(Plugin plugin, Location location, Runnable runnable) {
-    runSync(plugin, runnable);
+    if (location == null || location.getWorld() == null) {
+      runSync(plugin, runnable);
+      return;
+    }
+    Bukkit.getRegionScheduler().run(plugin, location, ignored -> runnable.run());
   }
 
   public static void runAtChunk(Plugin plugin, World world, int chunkX, int chunkZ, Runnable runnable) {
-    runSync(plugin, runnable);
+    if (world == null) {
+      runSync(plugin, runnable);
+      return;
+    }
+    Bukkit.getRegionScheduler().run(plugin, world, chunkX, chunkZ, ignored -> runnable.run());
   }
 
   public static void runSync(Plugin plugin, Runnable runnable) {
-    Bukkit.getScheduler().runTask(plugin, runnable);
+    Bukkit.getGlobalRegionScheduler().run(plugin, ignored -> runnable.run());
   }
 
   public static void runSyncRepeating(Plugin plugin, Runnable runnable, long delayTicks, long periodTicks) {
-    Bukkit.getScheduler().runTaskTimer(plugin, runnable, delayTicks, periodTicks);
+    Bukkit
+        .getGlobalRegionScheduler()
+        .runAtFixedRate(
+            plugin,
+            ignored -> runnable.run(),
+            normalizeDelay(delayTicks),
+            normalizePeriod(periodTicks));
   }
 
   public static int runSyncLaterWithId(Plugin plugin, Runnable runnable, long delayTicks) {
-    return Bukkit.getScheduler().runTaskLater(plugin, runnable, delayTicks).getTaskId();
+    ScheduledTask task =
+        Bukkit
+            .getGlobalRegionScheduler()
+            .runDelayed(plugin, ignored -> runnable.run(), normalizeDelay(delayTicks));
+    return register(task);
   }
 
   public static int runSyncRepeatingWithId(
       Plugin plugin, Runnable runnable, long delayTicks, long periodTicks) {
-    return Bukkit.getScheduler().runTaskTimer(plugin, runnable, delayTicks, periodTicks).getTaskId();
+    ScheduledTask task =
+        Bukkit
+            .getGlobalRegionScheduler()
+            .runAtFixedRate(
+                plugin,
+                ignored -> runnable.run(),
+                normalizeDelay(delayTicks),
+                normalizePeriod(periodTicks));
+    return register(task);
   }
 
   public static void runSyncLater(Plugin plugin, Runnable runnable, long delayTicks) {
-    Bukkit.getScheduler().runTaskLater(plugin, runnable, delayTicks);
+    Bukkit
+        .getGlobalRegionScheduler()
+        .runDelayed(plugin, ignored -> runnable.run(), normalizeDelay(delayTicks));
   }
 
   public static void runAsync(Plugin plugin, Runnable runnable) {
-    Bukkit.getScheduler().runTaskAsynchronously(plugin, runnable);
+    Bukkit.getAsyncScheduler().runNow(plugin, ignored -> runnable.run());
   }
 
   public static void teleportAsync(Entity entity, Location dest) {
-    if (entity instanceof Player p) {
-      p.teleportAsync(dest, PlayerTeleportEvent.TeleportCause.PLUGIN);
-    } else {
-      entity.teleport(dest);
-    }
+    if (entity == null || dest == null) return;
+    entity.teleportAsync(dest, PlayerTeleportEvent.TeleportCause.PLUGIN);
   }
 
   public static void cancelTask(int taskId) {
-    Bukkit.getScheduler().cancelTask(taskId);
+    ScheduledTask task = TASKS.remove(taskId);
+    if (task != null) {
+      task.cancel();
+    }
+  }
+
+  private static int register(ScheduledTask task) {
+    if (task == null) return -1;
+    int id = NEXT_TASK_ID.getAndIncrement();
+    TASKS.put(id, task);
+    return id;
+  }
+
+  private static long normalizeDelay(long delayTicks) {
+    return Math.max(1L, delayTicks);
+  }
+
+  private static long normalizePeriod(long periodTicks) {
+    return Math.max(1L, periodTicks);
   }
 }
