@@ -348,26 +348,33 @@ public class FakePlayerManager {
           final double posSyncDistSq = psd > 0 ? psd * psd : -1;
           visualSyncTickCounter++;
 
-          final int onlineCount = online.size();
-          final double[] playerX = new double[onlineCount];
-          final double[] playerY = new double[onlineCount];
-          final double[] playerZ = new double[onlineCount];
-          final World[] playerWorld = new World[onlineCount];
-          for (int pi = 0; pi < onlineCount; pi++) {
-            Location pl = online.get(pi).getLocation();
-            playerX[pi] = pl.getX();
-            playerY[pi] = pl.getY();
-            playerZ[pi] = pl.getZ();
-            playerWorld[pi] = pl.getWorld();
-          }
+          final List<Player> onlineSnapshot = online;
 
           for (FakePlayer fp : activePlayers.values()) {
             Player bot = fp.getPlayer();
 
-            if (bot == null || !bot.isValid() || !bot.isOnline() || bot.isDead()) continue;
+            if (bot == null) continue;
+            FppScheduler.runAtEntity(plugin, bot, () -> {
+            if (!activePlayers.containsKey(fp.getUuid())) return;
+            if (!bot.isValid() || !bot.isOnline() || bot.isDead()) return;
             boolean sendVisualSyncThisTick = shouldSendLaggedVisualUpdate(fp);
             boolean runBehaviorThisTick = shouldRunLaggedBehaviorUpdate(fp);
             Location before = bot.getLocation();
+
+            final int onlineCount = onlineSnapshot.size();
+            final double[] playerX = new double[onlineCount];
+            final double[] playerY = new double[onlineCount];
+            final double[] playerZ = new double[onlineCount];
+            final World[] playerWorld = new World[onlineCount];
+            for (int pi = 0; pi < onlineCount; pi++) {
+              Player p = onlineSnapshot.get(pi);
+              if (p == null || !p.isOnline() || !Bukkit.isOwnedByCurrentRegion(p)) continue;
+              Location pl = p.getLocation();
+              playerX[pi] = pl.getX();
+              playerY[pi] = pl.getY();
+              playerZ[pi] = pl.getZ();
+              playerWorld[pi] = pl.getWorld();
+            }
 
             if (!fp.isFrozen()) {
 
@@ -407,7 +414,7 @@ public class FakePlayerManager {
                   NmsPlayerSpawner.tickPhysics(bot);
                   var fppApiTickSleep = plugin.getFppApiImpl();
                   if (fppApiTickSleep != null) fppApiTickSleep.fireTickHandlers(fp, bot);
-                  continue;
+                  return;
                 }
               }
 
@@ -443,7 +450,8 @@ public class FakePlayerManager {
                 Player target = null;
                 double bestSq = rangeSq;
                 for (int pi2 = 0; pi2 < onlineCount; pi2++) {
-                  Player p = online.get(pi2);
+                  Player p = onlineSnapshot.get(pi2);
+                  if (playerWorld[pi2] == null) continue;
                   if (activePlayers.containsKey(p.getUniqueId())) continue;
                   if (p.getGameMode() == GameMode.SPECTATOR) continue;
                   if (playerWorld[pi2] != before.getWorld()) continue;
@@ -498,7 +506,7 @@ public class FakePlayerManager {
                   NmsPlayerSpawner.setHeadYaw(bot, rot[0]);
                   if (sendVisualSyncThisTick) {
                     for (int pi2 = 0; pi2 < onlineCount; pi2++) {
-                      Player p = online.get(pi2);
+                      Player p = onlineSnapshot.get(pi2);
                       if (p.getUniqueId().equals(fp.getUuid())) continue;
                       if (playerWorld[pi2] != before.getWorld()) continue;
                       if (posSyncDistSq > 0) {
@@ -548,8 +556,9 @@ public class FakePlayerManager {
                 && (moved || (vx * vx + vy * vy + vz2 * vz2) > 1e-6)) {
               if (onlineCount > 0) {
                 for (int pi2 = 0; pi2 < onlineCount; pi2++) {
-                  Player p = online.get(pi2);
+                  Player p = onlineSnapshot.get(pi2);
                   if (p.equals(bot)) continue;
+                  if (playerWorld[pi2] == null) continue;
 
                   if (posSyncDistSq > 0) {
                     if (playerWorld[pi2] != after.getWorld()) continue;
@@ -562,6 +571,7 @@ public class FakePlayerManager {
                 }
               }
             }
+            });
           }
         },
         1L,
@@ -671,6 +681,7 @@ public class FakePlayerManager {
     for (Player viewer : cachedOnlinePlayers) {
       if (viewer == null
           || !viewer.isOnline()
+          || !Bukkit.isOwnedByCurrentRegion(viewer)
           || viewer.getWorld() != bot.getWorld()
           || viewer.getLocation().distanceSquared(bot.getLocation()) > 256 * 256) {
         continue;
