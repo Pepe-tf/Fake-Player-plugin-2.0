@@ -87,6 +87,7 @@ permissions:
       fpp.stats:                true
       fpp.freeze:               true
       fpp.settings:             true
+      fpp.check:                true
       fpp.move:                 true
       fpp.move.to:              true
       fpp.move.stop:            true
@@ -655,6 +656,10 @@ permissions:
 
   fpp.settings:
     description: Open the interactive settings GUI with /fpp settings.
+    default: op
+
+  fpp.check:
+    description: Run system health check with /fpp check.
     default: op
 
   # ════════════════════════════════════════════════════════════════════════════

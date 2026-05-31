@@ -11,6 +11,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import me.bill.fakePlayerPlugin.util.FppScheduler;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -101,7 +102,7 @@ public class TpCommand implements FppCommand {
             return true;
         }
 
-        player.teleport(dest);
+        FppScheduler.teleportAsync(player, dest);
         sender.sendMessage(Component.empty()
                 .append(Component.text("[ꜰᴘᴘ] ").color(ACCENT))
                 .append(Component.text("Teleported you to ").color(MUTED))

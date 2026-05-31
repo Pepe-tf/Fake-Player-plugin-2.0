@@ -30,14 +30,11 @@ import com.google.gson.JsonParser;
  */
 public final class LicenseCredentialsApi {
 
-    // ── hardcoded endpoint ──────────────────────────────────────────────────────
-    // https://fpp.wtf/api/license/free
     private static final int[] _EP = {
         104, 116, 116, 112, 115, 58, 47, 47, 102, 112, 112, 46, 119, 116, 102, 47, 97, 112, 105, 47, 108, 105, 99, 101,
         110, 115, 101, 47, 102, 114, 101, 101
     };
 
-    // ── hardcoded API key ───────────────────────────────────────────────────────
     private static final int[] _AK = {
         56, 55, 49, 57, 49, 51, 56, 48, 50, 52, 98, 53, 57, 102, 99,
         51, 57, 100, 98, 48, 57, 100, 100, 57, 49, 102, 51, 54, 51, 53,
@@ -46,7 +43,6 @@ public final class LicenseCredentialsApi {
         49, 50, 52, 54
     };
 
-    // ── hardcoded HMAC verification secret ─────────────────────────────────────
     private static final int[] _SS = {
         101, 48, 98, 102, 99, 56, 52, 99, 45, 99, 49, 101, 48, 45, 52,
         50, 49, 97, 45, 57, 57, 102, 97, 45, 99, 53, 51, 57, 100, 52,
@@ -67,13 +63,6 @@ public final class LicenseCredentialsApi {
 
     public record Credentials(String teamId, String productId, String publicKey, String licenseKey, String signature) {}
 
-    /**
-     * Fetches credentials from the frontend API (preferred) or local cache (fallback).
-     * Verifies the HMAC signature before returning.
-     *
-     * @param plugin the plugin instance for cache I/O
-     * @return validated credentials, or null if nothing valid could be obtained
-     */
     public static Credentials fetch(Plugin plugin) {
         Credentials live = fetchFromApi();
         if (live != null) {

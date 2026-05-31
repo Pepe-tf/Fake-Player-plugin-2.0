@@ -141,6 +141,8 @@ public final class Perm {
 
     public static final String SETTINGS = "fpp.settings";
 
+    public static final String CHECK = "fpp.check";
+
     public static final String BYPASS_MAX = "fpp.bypass.max";
 
     public static final String BYPASS_COOLDOWN = "fpp.bypass.cooldown";

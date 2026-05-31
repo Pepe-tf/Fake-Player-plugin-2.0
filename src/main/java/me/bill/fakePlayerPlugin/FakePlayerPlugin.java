@@ -12,6 +12,7 @@ import me.bill.fakePlayerPlugin.api.FppApi;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
 import me.bill.fakePlayerPlugin.command.AttackCommand;
 import me.bill.fakePlayerPlugin.command.BadwordCommand;
+import me.bill.fakePlayerPlugin.command.CheckCommand;
 import me.bill.fakePlayerPlugin.command.CommandManager;
 import me.bill.fakePlayerPlugin.command.DeleteCommand;
 import me.bill.fakePlayerPlugin.command.ExtensionCommand;
@@ -338,6 +339,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
         commandManager.register(new MigrateCommand(this));
         commandManager.register(new BadwordCommand(this, fakePlayerManager));
         commandManager.register(new StatsCommand(fakePlayerManager, databaseManager));
+        commandManager.register(new CheckCommand(this, fakePlayerManager));
         commandManager.register(new ExtensionCommand(this));
         commandManager.register(new FreezeCommand(fakePlayerManager));
         commandManager.register(new RenameCommand(this, fakePlayerManager));

@@ -202,17 +202,19 @@ public final class FakePlayerBody {
         FakePlayerPlugin fpp = FakePlayerPlugin.getInstance();
         SkinManager skinManager = fpp != null ? fpp.getSkinManager() : null;
         if (skinManager == null) {
-            onReady.run();
-            if (onSkinApplied != null) onSkinApplied.run();
+            FppScheduler.runAtLocation(plugin, loc, () -> {
+                onReady.run();
+                if (onSkinApplied != null) onSkinApplied.run();
+            });
             return;
         }
 
         SkinProfile resolved = fp.getResolvedSkin();
         if (resolved == null || !resolved.isValid()) {
-            onReady.run();
+            FppScheduler.runAtLocation(plugin, loc, onReady);
             skinManager.resolveEffectiveSkin(
                     fp,
-                    skin -> FppScheduler.runSync(plugin, () -> {
+                    skin -> FppScheduler.runAtLocation(plugin, loc, () -> {
                         Player body = fp.getPlayer();
                         if (body != null && body.isOnline()) {
                             applyResolvedSkin(plugin, fp, body);
@@ -226,7 +228,7 @@ public final class FakePlayerBody {
 
         skinManager.resolveEffectiveSkin(
                 fp,
-                skin -> FppScheduler.runSync(plugin, () -> {
+                skin -> FppScheduler.runAtLocation(plugin, loc, () -> {
                     onReady.run();
                     if (skin != null && skin.isValid() && onSkinApplied != null) {
                         onSkinApplied.run();

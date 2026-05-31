@@ -1255,33 +1255,63 @@ public final class NmsPlayerSpawner {
             if (cookie == null) return false;
 
             Method placeMethod = findMethod(playerList.getClass(), "placeNewPlayer", 3);
-            if (placeMethod != null) {
-                placeMethod.setAccessible(true);
-                placeMethod.invoke(playerList, conn, serverPlayer, cookie);
-                return true;
+            if (placeMethod == null) {
+                FppLogger.warn("NmsPlayerSpawner: placeNewPlayer(3-arg) not found on PlayerList");
+                return false;
             }
-            FppLogger.warn("NmsPlayerSpawner: placeNewPlayer(3-arg) not found on PlayerList");
+            placeMethod.setAccessible(true);
+
+            for (int attempt = 0; attempt < 5; attempt++) {
+                try {
+                    placeMethod.invoke(playerList, conn, serverPlayer, cookie);
+                    if (attempt > 0) {
+                        FppLogger.debug("NmsPlayerSpawner.placePlayer succeeded on attempt " + (attempt + 1));
+                    }
+                    return true;
+                } catch (Exception e) {
+                    Throwable cause = e.getCause() != null ? e.getCause() : e;
+                    if (isWorldDataNotReadyFailure(cause) && attempt < 4) {
+                        FppLogger.debug("NmsPlayerSpawner.placePlayer: world data not ready, retrying (attempt "
+                                + (attempt + 1) + "/5) ...");
+                        try {
+                            Thread.sleep(50);
+                        } catch (InterruptedException ignored) {
+                            Thread.currentThread().interrupt();
+                            return false;
+                        }
+                        continue;
+                    }
+                    FppLogger.warn("NmsPlayerSpawner.placePlayer failed: "
+                            + cause.getClass().getSimpleName()
+                            + ": "
+                            + cause.getMessage());
+                    return false;
+                }
+            }
         } catch (Exception e) {
             Throwable cause = e.getCause() != null ? e.getCause() : e;
-            if (isWorldDataNotReadyFailure(cause)) {
-                FppLogger.warn("NmsPlayerSpawner.placePlayer deferred: world data not ready on this thread yet");
-            } else {
-                FppLogger.warn("NmsPlayerSpawner.placePlayer failed: "
-                        + cause.getClass().getSimpleName()
-                        + ": "
-                        + cause.getMessage());
-            }
+            FppLogger.warn("NmsPlayerSpawner.placePlayer failed: "
+                    + cause.getClass().getSimpleName()
+                    + ": "
+                    + cause.getMessage());
         }
         return false;
     }
 
     private static boolean isWorldDataNotReadyFailure(Throwable cause) {
         if (cause == null) return false;
+        if (!(cause instanceof NullPointerException)) return false;
         String msg = cause.getMessage();
-        return cause instanceof NullPointerException
-                && msg != null
-                && msg.contains("getCurrentWorldData()")
-                && msg.contains("connections");
+        if (msg == null) return false;
+        String lower = msg.toLowerCase();
+        boolean matches = lower.contains("getcurrentworlddata")
+                || lower.contains("connections")
+                || lower.contains("serverlevel")
+                || lower.contains("worlddata");
+        if (!matches) {
+            FppLogger.debug("NmsPlayerSpawner: NPE not matched as world-data failure: " + msg);
+        }
+        return matches;
     }
 
     public static boolean isFoliaServer() {
