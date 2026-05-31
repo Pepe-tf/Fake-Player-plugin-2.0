@@ -12,6 +12,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import me.bill.fakePlayerPlugin.util.BotAccess;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -188,7 +189,7 @@ public final class AttackCommand implements FppCommand {
     }
 
     if (args.length == 1
-        && (args[0].equalsIgnoreCase("stop") || args[0].equalsIgnoreCase("--stop"))) {
+        && args[0].equalsIgnoreCase("--stop")) {
       stopAll();
       sender.sendMessage(Lang.get("attack-stopped-all"));
       return true;
@@ -208,8 +209,8 @@ public final class AttackCommand implements FppCommand {
     for (int i = 1; i < args.length; i++) {
       String a = args[i].toLowerCase();
       switch (a) {
-        case "once", "--once" -> once = true;
-        case "stop", "--stop" -> stop = true;
+        case "--once" -> once = true;
+        case "--stop" -> stop = true;
         case "--move" -> moveToTarget = true;
         case "--mob" -> {
           mobMode = true;
@@ -295,12 +296,21 @@ public final class AttackCommand implements FppCommand {
 
     if (botName.equalsIgnoreCase("--all")) {
       if (stop) {
+        if (sender instanceof Player player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+          sender.sendMessage(Lang.get("no-permission"));
+          return true;
+        }
         stopAll();
         sender.sendMessage(Lang.get("attack-stopped-all"));
         return true;
       }
       int count = 0;
       for (FakePlayer fp : manager.getActivePlayers()) {
+        if (sender instanceof Player player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+          if (!BotAccess.canAdminister(player, fp)) {
+            continue;
+          }
+        }
         Player bot = fp.getPlayer();
         if (bot == null || !bot.isOnline()) continue;
         startForBot(sender, fp, once, mobFlags);
@@ -464,8 +474,7 @@ public final class AttackCommand implements FppCommand {
     List<String> flags =
         new ArrayList<>(
             List.of(
-                "--once", "--stop", "--mob", "--hunt", "--range", "--type", "--priority", "--move",
-                "once", "stop"));
+                "--once", "--stop", "--mob", "--hunt", "--range", "--type", "--priority", "--move"));
     if (mobNameProvided || huntNameProvided) flags.remove("--type");
 
     for (String flag : flags) if (!used.contains(flag) && flag.startsWith(prefix)) out.add(flag);

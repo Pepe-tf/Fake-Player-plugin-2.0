@@ -1,5 +1,5 @@
 name: FakePlayerPlugin
-version: '1.6.6.12.1'
+version: '1.6.6.12.2'
 main: me.bill.fakePlayerPlugin.FakePlayerPlugin
 api-version: '1.21'
 folia-supported: true
@@ -93,6 +93,18 @@ permissions:
       fpp.inventory:            true
       fpp.inventory.cmd:        true
       fpp.inventory.rightclick: true
+      fpp.left-click:           true
+      fpp.left-click.start:     true
+      fpp.left-click.once:      true
+      fpp.left-click.repeat:    true
+      fpp.left-click.hold:      true
+      fpp.left-click.stop:      true
+      fpp.right-click:          true
+      fpp.right-click.start:    true
+      fpp.right-click.once:     true
+      fpp.right-click.repeat:   true
+      fpp.right-click.hold:     true
+      fpp.right-click.stop:     true
       fpp.mine:                 true
       fpp.mine.start:           true
       fpp.mine.once:            true
@@ -397,6 +409,7 @@ permissions:
     children:
       fpp.inventory.cmd:        true
       fpp.inventory.rightclick: true
+      fpp.inventory.own:        true
 
   fpp.inventory.cmd:
     description: >
@@ -410,39 +423,78 @@ permissions:
       Does not affect the /fpp inventory command.
     default: op
 
+  fpp.inventory.own:
+    description: Open inventory of bots you personally spawned. User-tier access.
+    default: false
+
   # ════════════════════════════════════════════════════════════════════════════
   #  MINE  (granular sub-nodes)
   # ════════════════════════════════════════════════════════════════════════════
 
-  fpp.mine:
+  fpp.left-click:
     description: >
-      Bot mining automation — grants fpp.mine.start, fpp.mine.once,
-      fpp.mine.stop, fpp.mine.area.
+      Bot left-click automation (break blocks, attack entities) — grants
+      fpp.left-click.start, fpp.left-click.once, fpp.left-click.repeat,
+      fpp.left-click.hold, fpp.left-click.stop.
     default: op
     children:
-      fpp.mine.start: true
-      fpp.mine.once:  true
-      fpp.mine.stop:  true
-      fpp.mine.area:  true
+      fpp.left-click.start:   true
+      fpp.left-click.once:    true
+      fpp.left-click.repeat:  true
+      fpp.left-click.hold:    true
+      fpp.left-click.stop:    true
 
-  fpp.mine.start:
-    description: Start continuous mining (/fpp mine <bot>).
+  fpp.left-click.start:
+    description: Start continuous left-click (/fpp left-click <bot>).
     default: op
 
-  fpp.mine.once:
-    description: Mine a single block (/fpp mine <bot> --once).
+  fpp.left-click.once:
+    description: Single left-click (/fpp left-click <bot> --once).
     default: op
 
-  fpp.mine.stop:
-    description: Stop mining (/fpp mine <bot> --stop).
+  fpp.left-click.repeat:
+    description: Repeating left-click (/fpp left-click <bot> --repeat).
     default: op
 
-  fpp.mine.area:
-    description: Area-selection mining (--pos1 / --pos2 / --start).
+  fpp.left-click.hold:
+    description: Hold left-click (/fpp left-click <bot> --hold).
     default: op
 
-  fpp.mine.wesel:
-    description: Use a WorldEdit selection as the mine area (--wesel).
+  fpp.left-click.stop:
+    description: Stop left-clicking (/fpp left-click <bot> --stop).
+    default: op
+
+  fpp.right-click:
+    description: >
+      Bot right-click automation (use items, interact) — grants
+      fpp.right-click.start, fpp.right-click.once, fpp.right-click.repeat,
+      fpp.right-click.hold, fpp.right-click.stop.
+    default: op
+    children:
+      fpp.right-click.start:   true
+      fpp.right-click.once:    true
+      fpp.right-click.repeat:  true
+      fpp.right-click.hold:    true
+      fpp.right-click.stop:    true
+
+  fpp.right-click.start:
+    description: Start continuous right-click (/fpp right-click <bot>).
+    default: op
+
+  fpp.right-click.once:
+    description: Single right-click (/fpp right-click <bot> --once).
+    default: op
+
+  fpp.right-click.repeat:
+    description: Repeating right-click (/fpp right-click <bot> --repeat).
+    default: op
+
+  fpp.right-click.hold:
+    description: Hold right-click (/fpp right-click <bot> --hold).
+    default: op
+
+  fpp.right-click.stop:
+    description: Stop right-clicking (/fpp right-click <bot> --stop).
     default: op
 
   # ════════════════════════════════════════════════════════════════════════════
@@ -487,7 +539,10 @@ permissions:
     description: >
       Bot PvE attack — walk to sender, mirror look direction, attack entities.
       Respects 1.9+ attack cooldown and item-specific cooldowns dynamically.
+      Grants fpp.attack.hunt automatically.
     default: op
+    children:
+      fpp.attack.hunt: true
 
   fpp.attack.hunt:
     description: >
@@ -557,6 +612,10 @@ permissions:
   fpp.place.wesel:
     description: Use a WorldEdit selection as the place fill area (--wesel).
     default: op
+    children:
+      fpp.place.start: true
+      fpp.place.once: true
+      fpp.place.stop: true
 
   # ════════════════════════════════════════════════════════════════════════════
   #  STORAGE

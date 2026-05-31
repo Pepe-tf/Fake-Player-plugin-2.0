@@ -1,7 +1,7 @@
 # Extension & Addon Policy
 
 **Effective Date:** May 23, 2026  
-**Applies To:** Fake Player Plugin v1.6.6.12.1 and later  
+**Applies To:** Fake Player Plugin v1.6.6.12.2 and later  
 **Document Version:** 3.0
 
 ---

@@ -9,7 +9,7 @@ Before installing FPP Extensions, ensure you have:
 - ✅ Minecraft server running 1.21 or higher
 - ✅ Paper or Spigot server software
 - ✅ Java 21 installed
-- ✅ Fake Player Plugin 1.6.6.12.1 or higher installed
+- ✅ Fake Player Plugin 1.6.6.12.2 or higher installed
 - ✅ LuckPerms (optional, for group/nametag extensions)
 
 ## Installation
@@ -125,7 +125,7 @@ Send a chat message near a bot. If configured correctly, the bot may respond bas
 ### Extensions Not Loading
 
 1. Check server logs for error messages
-2. Verify FPP version is 1.6.6.12.1 or higher
+2. Verify FPP version is 1.6.6.12.2 or higher
 3. Ensure the JAR file is in the correct directory
 4. Check that the file name ends with `.jar`
 

@@ -1088,7 +1088,12 @@ public class FakePlayerManager {
 
     int total = batch.size();
 
-    FppScheduler.runSync(plugin, () -> visualChain(batch, 0, location));
+    if (NmsPlayerSpawner.isFoliaServer()) {
+      FppLogger.debug("FakePlayerManager.spawn: Folia detected - scheduling spawn on region thread");
+      FppScheduler.runAtLocation(plugin, location, () -> visualChain(batch, 0, location));
+    } else {
+      FppScheduler.runSync(plugin, () -> visualChain(batch, 0, location));
+    }
     return total;
   }
 
@@ -2370,15 +2375,10 @@ public class FakePlayerManager {
 
     var moveCmd = plugin.getMoveCommand();
     if (moveCmd != null) moveCmd.cleanupBot(uuid);
-    var mineCmd = plugin.getMineCommand();
-    if (mineCmd != null) {
-      mineCmd.cleanupBot(uuid);
-      mineCmd.clearSelection(uuid);
-    }
-    var placeCmd = plugin.getPlaceCommand();
-    if (placeCmd != null) placeCmd.cleanupBot(uuid);
-    var useCmd = plugin.getUseCommand();
-    if (useCmd != null) useCmd.stopUsing(uuid);
+    var leftClickCmd = plugin.getLeftClickCommand();
+    if (leftClickCmd != null) leftClickCmd.stopClicking(uuid);
+    var rightClickCmd = plugin.getRightClickCommand();
+    if (rightClickCmd != null) rightClickCmd.stopClicking(uuid);
     var followCmd = plugin.getFollowCommand();
     if (followCmd != null) followCmd.cleanupBot(uuid);
     var sleepCmd = plugin.getSleepCommand();
@@ -2579,17 +2579,12 @@ public class FakePlayerManager {
         var cmd = plugin.getMoveCommand();
         if (cmd != null) cmd.cleanupBot(botUuid);
       }
-      case MINE -> {
-        var cmd = plugin.getMineCommand();
-        if (cmd != null) cmd.stopMining(botUuid);
-      }
-      case PLACE -> {
-        var cmd = plugin.getPlaceCommand();
-        if (cmd != null) cmd.stopPlacing(botUuid);
-      }
-      case USE -> {
-        var cmd = plugin.getUseCommand();
-        if (cmd != null) cmd.stopUsing(botUuid);
+      case MINE, USE, PLACE -> {
+        // Legacy task types — migrated to left-click/right-click
+        var leftCmd = plugin.getLeftClickCommand();
+        if (leftCmd != null) leftCmd.stopClicking(botUuid);
+        var rightCmd = plugin.getRightClickCommand();
+        if (rightCmd != null) rightCmd.stopClicking(botUuid);
       }
       case ATTACK -> {
         var cmd = plugin.getAttackCommand();

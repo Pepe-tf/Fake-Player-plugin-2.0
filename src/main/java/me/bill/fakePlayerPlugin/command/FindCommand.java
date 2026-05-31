@@ -71,7 +71,6 @@ public final class FindCommand implements FppCommand {
   private final FakePlayerPlugin plugin;
   private final FakePlayerManager manager;
   private final PathfindingService pathfinding;
-  private final MineCommand mineCommand;
 
   private final Map<UUID, FindJob> jobs = new ConcurrentHashMap<>();
   private final Map<UUID, Integer> miningTasks = new ConcurrentHashMap<>();
@@ -82,12 +81,10 @@ public final class FindCommand implements FppCommand {
   public FindCommand(
       FakePlayerPlugin plugin,
       FakePlayerManager manager,
-      PathfindingService pathfinding,
-      MineCommand mineCommand) {
+      PathfindingService pathfinding) {
     this.plugin = plugin;
     this.manager = manager;
     this.pathfinding = pathfinding;
-    this.mineCommand = mineCommand;
   }
 
   @Override
@@ -208,9 +205,12 @@ public final class FindCommand implements FppCommand {
       }
     }
 
-    // Stop any existing find/mine jobs for this bot
+    // Stop any existing find/click jobs for this bot
     cleanupBot(fp.getUuid());
-    mineCommand.stopMining(fp.getUuid());
+    var leftCmd = plugin.getLeftClickCommand();
+    if (leftCmd != null) leftCmd.stopClicking(fp.getUuid());
+    var rightCmd = plugin.getRightClickCommand();
+    if (rightCmd != null) rightCmd.stopClicking(fp.getUuid());
 
     UUID starterUuid = sender instanceof Player p ? p.getUniqueId() : null;
     FindJob job =
@@ -291,7 +291,10 @@ public final class FindCommand implements FppCommand {
     }
 
     cleanupBot(fp.getUuid());
-    mineCommand.stopMining(fp.getUuid());
+    var leftCmd = plugin.getLeftClickCommand();
+    if (leftCmd != null) leftCmd.stopClicking(fp.getUuid());
+    var rightCmd = plugin.getRightClickCommand();
+    if (rightCmd != null) rightCmd.stopClicking(fp.getUuid());
     UUID starterUuid = sender instanceof Player p ? p.getUniqueId() : null;
     FindJob job = new FindJob(material, radius, count, preferVisible, starterUuid, sender instanceof Player);
     jobs.put(fp.getUuid(), job);
@@ -307,7 +310,6 @@ public final class FindCommand implements FppCommand {
       String prefix = args[0].toLowerCase(Locale.ROOT);
       List<String> out = new ArrayList<>();
       if ("--stop".startsWith(prefix)) out.add("--stop");
-      if ("stop".startsWith(prefix)) out.add("stop");
       for (FakePlayer fp : manager.getActivePlayers()) {
         if (fp.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) out.add(fp.getName());
       }
@@ -320,7 +322,6 @@ public final class FindCommand implements FppCommand {
       // Suggest --stop or block names
       List<String> out = new ArrayList<>();
       if ("--STOP".startsWith(prefix)) out.add("--stop");
-      if ("STOP".startsWith(prefix)) out.add("stop");
       for (Material m : Material.values()) {
         if (!m.isAir() && m.isBlock() && m.name().startsWith(prefix)) {
           out.add(m.name().toLowerCase(Locale.ROOT));
@@ -1083,7 +1084,7 @@ public final class FindCommand implements FppCommand {
   }
 
   private static boolean isStop(String arg) {
-    return arg.equalsIgnoreCase("stop") || arg.equalsIgnoreCase("--stop");
+    return arg.equalsIgnoreCase("--stop");
   }
 
   private record BlockTarget(UUID worldId, int x, int y, int z, long key) {

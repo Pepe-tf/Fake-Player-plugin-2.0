@@ -39,7 +39,7 @@ Yes, FPP Extensions are free and open-source under the MIT License.
 
 ### What version of FPP do I need?
 
-FPP Extensions 1.1.0 requires **Fake Player Plugin 1.6.6.12.1 or higher**.
+FPP Extensions 1.1.0 requires **Fake Player Plugin 1.6.6.12.2 or higher**.
 
 ### Do extensions work on Spigot?
 
@@ -190,7 +190,7 @@ See the [Proxy Support](../Proxy-Support) guide for more details.
 **Problem:** Extensions don't appear after installation
 
 **Solutions:**
-1. Verify FPP version is 1.6.6.12.1 or higher
+1. Verify FPP version is 1.6.6.12.2 or higher
 2. Check server logs for error messages
 3. Ensure JAR is in `plugins/FakePlayerPlugin/extensions/` (not `plugins/`)
 4. Run `/fpp reload` and check for errors

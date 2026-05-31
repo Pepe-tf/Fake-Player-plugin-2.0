@@ -5,7 +5,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Internal — managed automatically. Do NOT edit.
-config-version: 73
+config-version: 74
 language: en
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -256,6 +256,7 @@ logging:
     database: false     # DB init, migrations, and session writes
     commands: false     # Command execution flow and ray tracing (mine/place/use)
     head-ai: false      # Head AI rotation and player tracking
+    right-click: false  # Right-click action debugging (block interactions, hit detection)
 
 # ── Update Checker ────────────────────────────────────────────────────────────
 update-checker:

@@ -1350,6 +1350,15 @@ public final class NmsPlayerSpawner {
         && msg.contains("connections");
   }
 
+  public static boolean isFoliaServer() {
+    try {
+      Class.forName("io.papermc.paper.threadedregions.ThreadedRegionizer");
+      return true;
+    } catch (ClassNotFoundException e) {
+      return false;
+    }
+  }
+
   private static void cleanupFailedSpawn(Object minecraftServer, Object serverPlayer, String name) {
     try {
       Method getBukkitEntity = serverPlayerClass.getMethod("getBukkitEntity");

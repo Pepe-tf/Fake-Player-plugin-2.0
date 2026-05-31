@@ -192,10 +192,6 @@ public final class Config {
     return isDebug() || debugFlag("logging.debug.head-ai");
   }
 
-  public static boolean debugLicense() {
-    return isDebug();
-  }
-
   public static boolean updateCheckerEnabled() {
     return cfg.getBoolean("update-checker.enabled", true);
   }

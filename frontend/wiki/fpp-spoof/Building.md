@@ -9,7 +9,7 @@ Before building, ensure you have:
 - ✅ **Java 21** (JDK 21 required)
 - ✅ **Git** installed
 - ✅ **Gradle** (wrapper included in project)
-- ✅ **FPP 1.6.6.12.1+** (for testing)
+- ✅ **FPP 1.6.6.12.2+** (for testing)
 
 ## Quick Start
 
@@ -148,7 +148,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
     
     // FPP API (provided - not included in JAR)
-    compileOnly(files("../libs/fpp-1.6.6.12.1.jar"))
+       compileOnly(files("../libs/fpp-1.6.6.12.2.jar"))
     
     // Adventure API (provided by Paper)
     compileOnly("net.kyori:adventure-api:4.14.0")
@@ -320,7 +320,7 @@ See detailed build logs:
    
    dependencies {
        compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
-       compileOnly(files("../libs/fpp-1.6.6.12.1.jar"))
+    compileOnly(files("../libs/fpp-1.6.6.12.2.jar"))
    }
    ```
 
@@ -398,13 +398,13 @@ set JAVA_HOME=C:\Program Files\Java\jdk-21
 
 ### FPP JAR Not Found
 
-**Error:** `Could not find fpp-1.6.6.12.1.jar`
+**Error:** `Could not find fpp-1.6.6.12.2.jar`
 
 **Solution:** Place FPP JAR in `libs/` directory:
 
 ```bash
 mkdir libs
-cp /path/to/fpp-1.6.6.12.1.jar libs/
+cp /path/to/fpp-1.6.6.12.2.jar libs/
 ```
 
 ### Gradle Daemon Issues

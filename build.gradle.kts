@@ -18,7 +18,7 @@ tasks.compileJava {
 }
 
 group = "me.bill.fpp"
-version = "1.6.6.12.1"
+version = "1.6.6.12.2"
 
 repositories {
     mavenCentral()
@@ -47,6 +47,9 @@ dependencies {
 
 tasks.shadowJar {
     archiveBaseName.set("fake-player-plugin")
+    manifest {
+        attributes["Main-Class"] = "me.bill.fakePlayerPlugin.Launcher"
+    }
 }
 
 tasks.test {

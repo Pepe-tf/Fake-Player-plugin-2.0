@@ -9,6 +9,7 @@ import me.bill.fakePlayerPlugin.util.TextUtil;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -65,6 +66,33 @@ public class DeleteCommand implements FppCommand {
       }
       manager.removeAll();
       sender.sendMessage(Lang.get("delete-all", "count", String.valueOf(count)));
+      return true;
+    }
+
+    if (args[0].equalsIgnoreCase("--own")) {
+      if (!(sender instanceof Player player)) {
+        sender.sendMessage(Lang.get("player-only"));
+        return true;
+      }
+      if (Perm.missing(sender, Perm.DESPAWN_OWN)) {
+        sender.sendMessage(Lang.get("no-permission"));
+        return true;
+      }
+      if (manager.isRestorationInProgress()) {
+        sender.sendMessage(Lang.get("delete-restore-in-progress"));
+        return true;
+      }
+      List<FakePlayer> owned = manager.getBotsOwnedBy(player.getUniqueId());
+      if (owned.isEmpty()) {
+        sender.sendMessage(Lang.get("delete-none"));
+        return true;
+      }
+      int deleted = 0;
+      for (FakePlayer fp : owned) {
+        manager.delete(fp.getName());
+        deleted++;
+      }
+      sender.sendMessage(Lang.get("delete-own-success", "count", String.valueOf(deleted)));
       return true;
     }
 
@@ -150,6 +178,9 @@ public class DeleteCommand implements FppCommand {
       List<String> suggestions = new ArrayList<>();
       String typed = args[0].toLowerCase();
       if (Perm.has(sender, Perm.DELETE_ALL) && "--all".startsWith(typed)) suggestions.add("--all");
+      if (sender instanceof Player && Perm.has(sender, Perm.DESPAWN_OWN) && "--own".startsWith(typed)) {
+        suggestions.add("--own");
+      }
       if (Perm.has(sender, Perm.DELETE)) {
         if ("--random".startsWith(typed)) suggestions.add("--random");
         if ("--count".startsWith(typed)) suggestions.add("--count");

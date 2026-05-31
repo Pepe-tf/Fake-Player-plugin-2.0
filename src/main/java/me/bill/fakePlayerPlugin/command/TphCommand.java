@@ -52,7 +52,7 @@ public class TphCommand implements FppCommand {
       return true;
     }
 
-    boolean isAdmin = Perm.has(sender, Perm.OP);
+    boolean isAdmin = Perm.hasOrOp(sender, Perm.ADMIN);
 
     List<FakePlayer> candidates =
         isAdmin

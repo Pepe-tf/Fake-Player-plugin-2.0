@@ -4,9 +4,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.bukkit.plugin.Plugin;
 
-import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.util.FppLogger;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -84,28 +81,19 @@ public final class LicenseCredentialsApi {
    * @return validated credentials, or null if nothing valid could be obtained
    */
   public static Credentials fetch(Plugin plugin) {
-    FppLogger.debug("LICENSE", Config.debugLicense(), "Fetching license credentials from API...");
     Credentials live = fetchFromApi();
     if (live != null) {
-      FppLogger.debug("LICENSE", Config.debugLicense(), "API returned credentials: teamId=" + live.teamId() + ", productId=" + live.productId() + ", licenseKey=" + (live.licenseKey() != null ? live.licenseKey().substring(0, Math.min(8, live.licenseKey().length())) + "..." : "null"));
       if (verifySignature(live)) {
-        FppLogger.debug("LICENSE", Config.debugLicense(), "Live credentials signature verified.");
         saveCache(plugin, live);
         return live;
-      } else {
-        FppLogger.debug("LICENSE", Config.debugLicense(), "Live credentials signature verification failed.");
       }
     }
 
     Credentials cached = loadCache(plugin);
     if (cached != null && verifySignature(cached)) {
-      FppLogger.debug("LICENSE", Config.debugLicense(), "Using cached credentials (signature valid).");
       return cached;
-    } else if (cached != null) {
-      FppLogger.debug("LICENSE", Config.debugLicense(), "Cached credentials signature verification failed.");
     }
 
-    FppLogger.debug("LICENSE", Config.debugLicense(), "No valid license credentials available.");
     return null;
   }
 
@@ -113,17 +101,16 @@ public final class LicenseCredentialsApi {
     HttpURLConnection conn = null;
     try {
       String endpoint = _d(_EP);
-      FppLogger.debug("LICENSE", Config.debugLicense(), "API endpoint: " + endpoint);
+      String apiKey = _d(_AK);
       conn = (HttpURLConnection) URI.create(endpoint).toURL().openConnection();
       conn.setRequestMethod("GET");
-      conn.setRequestProperty("Authorization", "Bearer " + _d(_AK));
+      conn.setRequestProperty("Authorization", "Bearer " + apiKey);
       conn.setRequestProperty("User-Agent", "FakePlayerPlugin-License");
       conn.setConnectTimeout((int) CONNECT_TIMEOUT_MS);
       conn.setReadTimeout((int) READ_TIMEOUT_MS);
       conn.setInstanceFollowRedirects(true);
 
       int code = conn.getResponseCode();
-      FppLogger.debug("LICENSE", Config.debugLicense(), "API response code: " + code);
       if (code != 200) {
         String errBody = null;
         try (BufferedReader br = new BufferedReader(
@@ -134,7 +121,6 @@ public final class LicenseCredentialsApi {
           errBody = sb.toString();
         } catch (Exception ignored) {
         }
-        FppLogger.debug("LICENSE", Config.debugLicense(), "API error body: " + errBody);
         return null;
       }
 
@@ -146,11 +132,10 @@ public final class LicenseCredentialsApi {
         while ((line = br.readLine()) != null) sb.append(line);
         body = sb.toString();
       }
-      FppLogger.debug("LICENSE", Config.debugLicense(), "API raw response: " + body);
 
-      return parse(body);
+      Credentials parsed = parse(body);
+      return parsed;
     } catch (Exception e) {
-      FppLogger.debug("LICENSE", Config.debugLicense(), "API fetch failed: " + e.getMessage());
       return null;
     } finally {
       if (conn != null) {
@@ -193,7 +178,8 @@ public final class LicenseCredentialsApi {
       String payload = String.join("|",
           creds.teamId, creds.productId, creds.publicKey, creds.licenseKey);
       String expected = hmacSha256(payload, _d(_SS));
-      return constantTimeEquals(expected, creds.signature);
+      boolean matches = constantTimeEquals(expected, creds.signature);
+      return matches;
     } catch (Exception e) {
       return false;
     }
@@ -246,7 +232,7 @@ public final class LicenseCredentialsApi {
       obj.addProperty("cached_at", System.currentTimeMillis());
       Files.writeString(file.toPath(), obj.toString(), StandardCharsets.UTF_8);
     } catch (Exception e) {
-      // ignore cache write failures
+      // ignored
     }
   }
 

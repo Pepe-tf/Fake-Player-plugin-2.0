@@ -14,10 +14,10 @@ import me.bill.fakePlayerPlugin.command.InfoCommand;
 import me.bill.fakePlayerPlugin.command.InventoryCommand;
 import me.bill.fakePlayerPlugin.command.ListCommand;
 import me.bill.fakePlayerPlugin.command.MigrateCommand;
-import me.bill.fakePlayerPlugin.command.MineCommand;
+import me.bill.fakePlayerPlugin.command.LeftClickCommand;
 import me.bill.fakePlayerPlugin.command.MoveCommand;
-import me.bill.fakePlayerPlugin.command.PlaceCommand;
 import me.bill.fakePlayerPlugin.command.ReloadCommand;
+import me.bill.fakePlayerPlugin.command.RightClickCommand;
 import me.bill.fakePlayerPlugin.command.RenameCommand;
 import me.bill.fakePlayerPlugin.command.SaveCommand;
 import me.bill.fakePlayerPlugin.command.SetOwnerCommand;
@@ -30,7 +30,6 @@ import me.bill.fakePlayerPlugin.command.StorageCommand;
 import me.bill.fakePlayerPlugin.command.StorageStore;
 import me.bill.fakePlayerPlugin.command.TpCommand;
 import me.bill.fakePlayerPlugin.command.TphCommand;
-import me.bill.fakePlayerPlugin.command.UseCommand;
 import me.bill.fakePlayerPlugin.command.XpCommand;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
@@ -111,10 +110,9 @@ public final class FakePlayerPlugin extends JavaPlugin {
   private NetworkHeartbeatManager networkHeartbeat;
   private XpCommand xpCommand;
   private MoveCommand moveCommand;
-  private MineCommand mineCommand;
-  private PlaceCommand placeCommand;
-  private UseCommand useCommand;
   private AttackCommand attackCommand;
+  private LeftClickCommand leftClickCommand;
+  private RightClickCommand rightClickCommand;
   private FollowCommand followCommand;
   private SleepCommand sleepCommand;
   private FindCommand findCommand;
@@ -165,39 +163,53 @@ public final class FakePlayerPlugin extends JavaPlugin {
     enabledAt = System.currentTimeMillis();
     FppLogger.init(getLogger());
 
+    // ── Folia Detection ─────────────────────────────────────────────────────
+    boolean isFolia = false;
+    try {
+      Class.forName("io.papermc.paper.threadedregions.ThreadedRegionizer");
+      isFolia = true;
+    } catch (ClassNotFoundException ignored) {
+    }
+    if (isFolia) {
+      FppLogger.info("═══════════════════════════════════════════════════════════════════");
+      FppLogger.info("  ✓ FOLIA DETECTED - Folia compatibility mode enabled");
+      FppLogger.info("═══════════════════════════════════════════════════════════════════");
+      FppLogger.info("  FakePlayerPlugin v" + getPluginMeta().getVersion() + " supports Folia.");
+      FppLogger.info("  Bot spawning will use region scheduler for proper threading.");
+      FppLogger.info("═══════════════════════════════════════════════════════════════════");
+    }
+
     ConfigMigrator.migrateIfNeeded(this);
 
     Config.init(this);
     Config.debugStartup("config.yml loaded.");
 
     // ── License Verification ─────────────────────────────────────────────────
-    FppLogger.debug("LICENSE", Config.debugLicense(), "Starting license credential fetch...");
     LicenseCredentialsApi.Credentials credentials = LicenseCredentialsApi.fetch(this);
     if (credentials == null) {
       FppLogger.warn("═══════════════════════════════════════════════════════════════════");
-      FppLogger.warn("  ⚠  LICENSE CREDENTIALS NOT AVAILABLE - PLUGIN DISABLED ⚠");
+      FppLogger.warn("  ⚠  LICENSE CREDENTIALS NOT AVAILABLE - RUNNING IN LIMITED MODE  ⚠");
       FppLogger.warn("═══════════════════════════════════════════════════════════════════");
       FppLogger.warn("  Reason: Could not fetch valid license credentials from fpp.wtf");
-      FppLogger.warn("  Check your internet connection and try again.");
+      FppLogger.warn("  The plugin will continue with limited functionality.");
+      FppLogger.warn("  For support, join: https://discord.gg/YqkgFxcm");
       FppLogger.warn("═══════════════════════════════════════════════════════════════════");
-      getServer().getPluginManager().disablePlugin(this);
-      return;
+      // Create minimal dummy credentials to continue in limited mode
+      credentials = new LicenseCredentialsApi.Credentials(
+          "offline", "offline", "offline", "offline", "unsigned");
     }
 
     licenseManager = new LicenseManager(this, credentials);
-    FppLogger.debug("LICENSE", Config.debugLicense(), "LicenseManager created with credentials.");
     try {
       FppLogger.info("Verifying license...");
       licenseManager.verify();
       licenseManager.startHeartbeat();
       FppLogger.info("License verification passed.");
-      FppLogger.debug("LICENSE", Config.debugLicense(), "License heartbeat scheduler started (15 min interval).");
     } catch (Exception e) {
       FppLogger.warn("═══════════════════════════════════════════════════════════════════");
       FppLogger.warn("  ⚠  LICENSE VERIFICATION FAILED - PLUGIN DISABLED ⚠");
       FppLogger.warn("═══════════════════════════════════════════════════════════════════");
       FppLogger.warn("  Reason: " + e.getMessage());
-      FppLogger.debug("LICENSE", Config.debugLicense(), "License verification exception: " + e.getMessage());
       FppLogger.warn("═══════════════════════════════════════════════════════════════════");
       getServer().getPluginManager().disablePlugin(this);
       return;
@@ -344,29 +356,18 @@ public final class FakePlayerPlugin extends JavaPlugin {
     storageStore = new StorageStore(this);
     storageStore.load();
     commandManager.register(moveCommand);
-    mineCommand =
-        new MineCommand(
-            this, fakePlayerManager, storageStore, pathfindingService);
-    commandManager.register(mineCommand);
-    findCommand =
-        new FindCommand(
-            this, fakePlayerManager, pathfindingService, mineCommand);
-    mineCommand.setFindCommand(findCommand);
-    commandManager.register(findCommand);
-    commandManager.register(
-        new StorageCommand(this, fakePlayerManager, storageStore, pathfindingService));
-    placeCommand =
-        new PlaceCommand(
-            this, fakePlayerManager, storageStore, pathfindingService);
-    commandManager.register(placeCommand);
-    useCommand =
-        new UseCommand(
-            this, fakePlayerManager, pathfindingService);
-    commandManager.register(useCommand);
     attackCommand =
         new AttackCommand(
             this, fakePlayerManager, pathfindingService);
     commandManager.register(attackCommand);
+    leftClickCommand =
+        new LeftClickCommand(
+            this, fakePlayerManager, pathfindingService);
+    commandManager.register(leftClickCommand);
+    rightClickCommand =
+        new RightClickCommand(
+            this, fakePlayerManager, pathfindingService);
+    commandManager.register(rightClickCommand);
     followCommand =
         new FollowCommand(
             this, fakePlayerManager, pathfindingService);
@@ -387,14 +388,8 @@ public final class FakePlayerPlugin extends JavaPlugin {
     Config.debugStartup("Commands registered: " + commandManager.getCommands().size() + " total.");
 
     botPersistence.setMoveCommand(moveCommand);
-    botPersistence.setMineCommand(mineCommand);
-    botPersistence.setPlaceCommand(placeCommand);
-    botPersistence.setUseCommand(useCommand);
     botPersistence.setAttackCommand(attackCommand);
     botPersistence.setFollowCommand(followCommand);
-    sleepCommand.setMineCommand(mineCommand);
-    sleepCommand.setUseCommand(useCommand);
-    sleepCommand.setPlaceCommand(placeCommand);
     sleepCommand.setAttackCommand(attackCommand);
     sleepCommand.setFollowCommand(followCommand);
     sleepCommand.setMoveCommand(moveCommand);
@@ -402,9 +397,8 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     stopCommand = new StopCommand(fakePlayerManager);
     stopCommand.setMoveCommand(moveCommand);
-    stopCommand.setMineCommand(mineCommand);
-    stopCommand.setUseCommand(useCommand);
-    stopCommand.setPlaceCommand(placeCommand);
+    stopCommand.setLeftClickCommand(leftClickCommand);
+    stopCommand.setRightClickCommand(rightClickCommand);
     stopCommand.setAttackCommand(attackCommand);
     stopCommand.setFollowCommand(followCommand);
     stopCommand.setFindCommand(findCommand);
@@ -685,16 +679,12 @@ public final class FakePlayerPlugin extends JavaPlugin {
     return moveCommand;
   }
 
-  public MineCommand getMineCommand() {
-    return mineCommand;
+  public LeftClickCommand getLeftClickCommand() {
+    return leftClickCommand;
   }
 
-  public PlaceCommand getPlaceCommand() {
-    return placeCommand;
-  }
-
-  public UseCommand getUseCommand() {
-    return useCommand;
+  public RightClickCommand getRightClickCommand() {
+    return rightClickCommand;
   }
 
   public AttackCommand getAttackCommand() {

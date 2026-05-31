@@ -78,11 +78,9 @@ public final class SleepCommand implements FppCommand {
   private final PathfindingService pathfinding;
 
   @Nullable
-  private MineCommand mineCommand;
+  private LeftClickCommand leftClickCommand;
   @Nullable
-  private UseCommand useCommand;
-  @Nullable
-  private PlaceCommand placeCommand;
+  private RightClickCommand rightClickCommand;
   @Nullable
   private AttackCommand attackCommand;
   @Nullable
@@ -96,7 +94,7 @@ public final class SleepCommand implements FppCommand {
    * Activity types that can be paused and resumed around sleep.
    */
   private enum Activity {
-    NONE, MINE, USE, PLACE, ATTACK, FOLLOW, ROAM, FIND
+    NONE, LEFT_CLICK, RIGHT_CLICK, ATTACK, FOLLOW, ROAM, FIND
   }
 
   // Per-bot state for activity capture/restore
@@ -139,16 +137,12 @@ public final class SleepCommand implements FppCommand {
 
   // ── Dependency injection ─────────────────────────────────────────────────
 
-  public void setMineCommand(@Nullable MineCommand cmd) {
-    this.mineCommand = cmd;
+  public void setLeftClickCommand(@Nullable LeftClickCommand cmd) {
+    this.leftClickCommand = cmd;
   }
 
-  public void setUseCommand(@Nullable UseCommand cmd) {
-    this.useCommand = cmd;
-  }
-
-  public void setPlaceCommand(@Nullable PlaceCommand cmd) {
-    this.placeCommand = cmd;
+  public void setRightClickCommand(@Nullable RightClickCommand cmd) {
+    this.rightClickCommand = cmd;
   }
 
   public void setAttackCommand(@Nullable AttackCommand cmd) {
@@ -460,15 +454,12 @@ public final class SleepCommand implements FppCommand {
 
     Config.debugChat("[Sleep] captureAndPauseTask for " + uuid);
 
-    if (mineCommand != null && mineCommand.isMining(uuid)) {
-      previousActivity.put(uuid, Activity.MINE);
-      mineCommand.stopMining(uuid);
-    } else if (useCommand != null && useCommand.isUsing(uuid)) {
-      previousActivity.put(uuid, Activity.USE);
-      useCommand.stopUsing(uuid);
-    } else if (placeCommand != null && placeCommand.isPlacing(uuid)) {
-      previousActivity.put(uuid, Activity.PLACE);
-      placeCommand.stopPlacing(uuid);
+    if (leftClickCommand != null && leftClickCommand.isClicking(uuid)) {
+      previousActivity.put(uuid, Activity.LEFT_CLICK);
+      leftClickCommand.stopClicking(uuid, false);
+    } else if (rightClickCommand != null && rightClickCommand.isClicking(uuid)) {
+      previousActivity.put(uuid, Activity.RIGHT_CLICK);
+      rightClickCommand.stopClicking(uuid, false);
     } else if (attackCommand != null && attackCommand.isAttacking(uuid)) {
       previousActivity.put(uuid, Activity.ATTACK);
       attackCommand.stopAttacking(uuid);
@@ -505,14 +496,11 @@ public final class SleepCommand implements FppCommand {
 
     FppScheduler.runSyncLater(plugin, () -> {
       switch (act) {
-        case MINE -> {
-          if (mineCommand != null) mineCommand.resumeMining(fp);
+        case LEFT_CLICK -> {
+          if (leftClickCommand != null) leftClickCommand.resumeClicking(fp);
         }
-        case USE -> {
-          if (useCommand != null) useCommand.resumeUsing(fp);
-        }
-        case PLACE -> {
-          if (placeCommand != null) placeCommand.resumePlacing(fp);
+        case RIGHT_CLICK -> {
+          if (rightClickCommand != null) rightClickCommand.resumeClicking(fp);
         }
         case ATTACK -> {
           if (attackCommand != null) attackCommand.resumeAttacking(fp);

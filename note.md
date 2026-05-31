@@ -1,7 +1,7 @@
 # FakePlayerPlugin — Development Notes
 
-**Last Updated:** May 23, 2026  
-**Current Version:** 1.6.6.12
+**Last Updated:** May 30, 2026  
+**Current Version:** 1.6.6.12.2
 
 ---
 

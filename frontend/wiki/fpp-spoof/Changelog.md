@@ -164,14 +164,14 @@ Initial release with 11 extensions:
 The following extensions are **not** included:
 
 - **fpp-pathfinder** - Functionality moved to base FPP plugin
-- **fpp-swap** - Incompatible with FPP 1.6.6.12.1 API
+- **fpp-swap** - Incompatible with FPP 1.6.6.12.2 API
 
 ### Requirements
 
 - Minecraft 1.21+
 - Paper/Spigot 1.21+
 - Java 21
-- Fake Player Plugin 1.6.6.12.1+
+- Fake Player Plugin 1.6.6.12.2+
 - LuckPerms (optional, for group/nametag extensions)
 
 ---

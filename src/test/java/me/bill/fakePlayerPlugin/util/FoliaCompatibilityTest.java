@@ -15,7 +15,7 @@ class FoliaCompatibilityTest {
 
     assertTrue(
         pluginYml.lines().anyMatch(line -> line.trim().equals("folia-supported: true")),
-        "plugin.yml must declare folia-supported: true for Canvas/Folia");
+        "plugin.yml must declare folia-supported: true for Folia compatibility");
   }
 
   @Test

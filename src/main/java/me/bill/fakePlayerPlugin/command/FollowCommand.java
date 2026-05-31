@@ -11,6 +11,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import me.bill.fakePlayerPlugin.util.BotAccess;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -130,8 +131,15 @@ public final class FollowCommand implements FppCommand {
 
   private boolean executeAll(CommandSender sender, String[] args) {
     if (args.length >= 2 && args[1].equalsIgnoreCase("--stop")) {
+      if (sender instanceof Player player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+        sender.sendMessage(Lang.get("no-permission"));
+        return true;
+      }
       int stopped = 0;
       for (FakePlayer fp : manager.getActivePlayers()) {
+        if (sender instanceof Player player && !BotAccess.canAdminister(player, fp)) {
+          continue;
+        }
         if (isFollowing(fp.getUuid())) {
           stopFollowing(fp.getUuid());
           stopped++;
@@ -158,6 +166,12 @@ public final class FollowCommand implements FppCommand {
 
     int started = 0, skipped = 0;
     for (FakePlayer fp : manager.getActivePlayers()) {
+      if (sender instanceof Player player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+        if (!BotAccess.canAdminister(player, fp)) {
+          skipped++;
+          continue;
+        }
+      }
       Player bot = fp.getPlayer();
       if (bot == null || !bot.isOnline()) {
         skipped++;

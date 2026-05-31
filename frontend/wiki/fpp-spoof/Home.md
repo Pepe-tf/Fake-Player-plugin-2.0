@@ -31,7 +31,7 @@ FPP Extensions are modular add-ons that extend the functionality of the base Fak
 - Minecraft 1.21+
 - Paper/Spigot 1.21+
 - Java 21
-- Fake Player Plugin 1.6.6.12.1+
+- Fake Player Plugin 1.6.6.12.2+
 
 ## Quick Start
 

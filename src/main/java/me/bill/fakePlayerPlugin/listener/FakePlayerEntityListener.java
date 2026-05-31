@@ -280,20 +280,26 @@ public class FakePlayerEntityListener implements Listener {
 
             var vc2 = plugin.getVelocityChannel();
             if (vc2 != null) vc2.broadcastBotDespawn(fp.getUuid());
-            if (deadPlayer != null) {
-              try {
-                if (manager.isExplicitUuidBot(fp)) {
-                  NmsPlayerSpawner.removeFakePlayerFast(deadPlayer);
-                } else {
-                  NmsPlayerSpawner.removeFakePlayer(deadPlayer);
-                }
-              } finally {
-                fp.setPlayer(null);
-                manager.restoreExplicitUuidSourceState(fp);
-                manager.clearDespawningNextTick(deathDespawnUuid);
-              }
-            }
-            manager.removeByName(name);
+            Location loc = deadPlayer.getLocation();
+            FppScheduler.runAtLocation(
+                plugin,
+                loc,
+                () -> {
+                  if (deadPlayer != null) {
+                    try {
+                      if (manager.isExplicitUuidBot(fp)) {
+                        NmsPlayerSpawner.removeFakePlayerFast(deadPlayer);
+                      } else {
+                        NmsPlayerSpawner.removeFakePlayer(deadPlayer);
+                      }
+                    } finally {
+                      fp.setPlayer(null);
+                      manager.restoreExplicitUuidSourceState(fp);
+                      manager.clearDespawningNextTick(deathDespawnUuid);
+                    }
+                  }
+                  manager.removeByName(name);
+                });
           },
           20L);
     }

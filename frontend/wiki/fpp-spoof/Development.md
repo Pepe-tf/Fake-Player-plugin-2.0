@@ -181,7 +181,7 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
-    compileOnly(files("/path/to/fpp-1.6.6.12.1.jar"))
+    compileOnly(files("/path/to/fpp-1.6.6.12.2.jar"))
 }
 
 tasks.jar {

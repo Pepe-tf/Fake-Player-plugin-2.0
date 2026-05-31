@@ -85,9 +85,23 @@ public final class Perm {
 
   public static final String MINE_AREA = "fpp.mine.area";
 
-  public static final String USE_CMD = "fpp.useitem";
+  public static final String LEFT_CLICK = "fpp.left-click";
+  public static final String LEFT_CLICK_START = "fpp.left-click.start";
+  public static final String LEFT_CLICK_ONCE = "fpp.left-click.once";
+  public static final String LEFT_CLICK_REPEAT = "fpp.left-click.repeat";
+  public static final String LEFT_CLICK_HOLD = "fpp.left-click.hold";
+  public static final String LEFT_CLICK_STOP = "fpp.left-click.stop";
 
-  public static final String USE_ACTION = "fpp.use.cmd";
+  public static final String RIGHT_CLICK = "fpp.right-click";
+  public static final String RIGHT_CLICK_START = "fpp.right-click.start";
+  public static final String RIGHT_CLICK_ONCE = "fpp.right-click.once";
+  public static final String RIGHT_CLICK_REPEAT = "fpp.right-click.repeat";
+  public static final String RIGHT_CLICK_HOLD = "fpp.right-click.hold";
+  public static final String RIGHT_CLICK_STOP = "fpp.right-click.stop";
+
+  public static final String USE_CMD = "fpp.use.cmd";
+
+  public static final String USEITEM_LEGACY = "fpp.useitem";
 
   public static final String USE_START = "fpp.useitem.start";
 

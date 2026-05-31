@@ -31,8 +31,13 @@ public final class FakePlayerBody {
   }
 
   public static Player spawn(FakePlayer fp, Location loc, int initialPing) {
-    if (loc == null || loc.getWorld() == null) return null;
+    if (loc == null || loc.getWorld() == null) {
+      FppLogger.warn("FakePlayerBody.spawn: location or world is null for " + fp.getName());
+      return null;
+    }
+    
     try {
+      FppLogger.debug("FakePlayerBody.spawn: START for '" + fp.getName() + "' at " + loc + " (Folia=" + NmsPlayerSpawner.isFoliaServer() + ")");
 
       Player player =
           NmsPlayerSpawner.spawnFakePlayer(
@@ -48,15 +53,18 @@ public final class FakePlayerBody {
               initialPing);
 
       if (player == null) {
-        FppLogger.warn("FakePlayerBody.spawn: NmsPlayerSpawner returned null for " + fp.getName());
+        FppLogger.warn("FakePlayerBody.spawn: NmsPlayerSpawner returned null for '" + fp.getName() + "'");
         return null;
       }
 
+      FppLogger.debug("FakePlayerBody.spawn: NmsPlayerSpawner returned player, calling finalizeSpawnedBody...");
       finalizeSpawnedBody(fp, player);
+      FppLogger.debug("FakePlayerBody.spawn: SUCCESS for '" + fp.getName() + "'");
       return player;
 
     } catch (Exception e) {
-      FppLogger.error("FakePlayerBody.spawn failed for " + fp.getName() + ": " + e.getMessage());
+      FppLogger.error("FakePlayerBody.spawn failed for '" + fp.getName() + "': " + e.getMessage());
+      FppLogger.debug("  Stack trace: " + java.util.Arrays.toString(e.getStackTrace()));
       return null;
     }
   }

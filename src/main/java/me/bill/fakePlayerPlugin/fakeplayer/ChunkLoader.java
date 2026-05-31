@@ -60,6 +60,20 @@ public final class ChunkLoader {
       UUID botId = fp.getUuid();
       activeUuids.add(botId);
 
+      if (me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner.isFoliaServer()) {
+        Location loc = fp.getPlayer() != null ? fp.getPlayer().getLocation() : fp.getSpawnLocation();
+        if (loc.getWorld() != null) {
+          plugin
+              .getServer()
+              .getRegionScheduler()
+              .run(
+                  plugin,
+                  loc,
+                  task -> tickBot(fp, globalRadius));
+          continue;
+        }
+      }
+
       tickBot(fp, globalRadius);
     }
 

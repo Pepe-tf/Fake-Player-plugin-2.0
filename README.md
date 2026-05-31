@@ -201,7 +201,7 @@ FPP uses a two-tier permission system.
 
 ## 📊 Placeholders
 
-Requires **PlaceholderAPI**. **70+ placeholders** — all prefixed with `%fpp_`.
+Requires **PlaceholderAPI**. **76+ placeholders** — all prefixed with `%fpp_`.
 
 ### Server-Wide
 
@@ -272,7 +272,7 @@ Requires **PlaceholderAPI**. **70+ placeholders** — all prefixed with `%fpp_`.
 | `%fpp_user_ping_avg%` | Average ping of player's bots |
 | `%fpp_user_frozen%` | Number of player's frozen bots |
 | `%fpp_user_oldest%` / `%fpp_user_newest%` | Name of oldest/newest bot |
-| `%fpp_user_uptime%` | Combined uptime of player's bots |
+| `%fpp_user_uptime%` / `%fpp_user_total_uptime%` | Combined uptime of player's bots |
 | `%fpp_user_count_<world>%` | Player's bot count in specific world |
 
 ### Per-Bot
@@ -281,11 +281,17 @@ Requires **PlaceholderAPI**. **70+ placeholders** — all prefixed with `%fpp_`.
 |-------------|-------------|
 | `%fpp_ping_<bot_name>%` | Specific bot's ping |
 | `%fpp_health_<bot_name>%` | Bot's current health |
+| `%fpp_health_max_<bot_name>%` | Bot's max health |
 | `%fpp_world_<bot_name>%` | Bot's current world |
 | `%fpp_loc_x_<bot_name>%` / `%fpp_loc_y_<bot_name>%` / `%fpp_loc_z_<bot_name>%` | Bot's coordinates |
 | `%fpp_frozen_<bot_name>%` / `%fpp_sleeping_<bot_name>%` | `yes` / `no` |
-| `%fpp_owner_<bot_name>%` | Who spawned the bot |
+| `%fpp_owner_<bot_name>%` / `%fpp_spawned_by_<bot_name>%` | Who spawned the bot |
 | `%fpp_pve_<bot_name>%` | `yes` / `no` |
+| `%fpp_displayname_<bot_name>%` | Bot's display name |
+| `%fpp_uuid_<bot_name>%` | Bot's UUID |
+| `%fpp_spawn_time_<bot_name>%` | When bot was spawned (ISO format) |
+| `%fpp_task_<bot_name>%` | Current active task (mining, moving, etc.) or `idle` |
+| `%fpp_following_<bot_name>%` | Who the bot is following (if any) |
 
 ### Ping
 

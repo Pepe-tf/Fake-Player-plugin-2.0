@@ -90,6 +90,23 @@ public final class FppScheduler {
 
   public static int runSyncRepeatingWithId(
       Plugin plugin, Runnable runnable, long delayTicks, long periodTicks) {
+    return runSyncRepeatingWithId(plugin, null, runnable, delayTicks, periodTicks);
+  }
+
+  public static int runSyncRepeatingWithId(
+      Plugin plugin, org.bukkit.entity.Entity entity, Runnable runnable, long delayTicks, long periodTicks) {
+    if (isFolia() && entity != null) {
+      ScheduledTask task =
+          entity
+              .getScheduler()
+              .runAtFixedRate(
+                  plugin,
+                  ignored -> runnable.run(),
+                  null,
+                  normalizeDelay(delayTicks),
+                  normalizePeriod(periodTicks));
+      return register(task);
+    }
     ScheduledTask task =
         Bukkit
             .getGlobalRegionScheduler()
@@ -99,6 +116,30 @@ public final class FppScheduler {
                 normalizeDelay(delayTicks),
                 normalizePeriod(periodTicks));
     return register(task);
+  }
+
+  public static int runSyncRepeatingWithIdAtEntity(
+      Plugin plugin, Entity entity, Runnable runnable, long delayTicks, long periodTicks) {
+    if (entity == null) return -1;
+    ScheduledTask task =
+        entity
+            .getScheduler()
+            .runAtFixedRate(
+                plugin,
+                ignored -> runnable.run(),
+                null,
+                normalizeDelay(delayTicks),
+                normalizePeriod(periodTicks));
+    return register(task);
+  }
+
+  private static boolean isFolia() {
+    try {
+      Class.forName("io.papermc.paper.threadedregions.ThreadedRegionizer");
+      return true;
+    } catch (ClassNotFoundException e) {
+      return false;
+    }
   }
 
   public static void runSyncLater(Plugin plugin, Runnable runnable, long delayTicks) {

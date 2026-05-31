@@ -11,6 +11,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import me.bill.fakePlayerPlugin.util.BotAccess;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -300,6 +301,11 @@ public final class MoveCommand implements FppCommand {
     if (flag.equals("--stop")) {
       int stopped = 0;
       for (FakePlayer fp : manager.getActivePlayers()) {
+        if (sender instanceof Player player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+          if (!BotAccess.canAdminister(player, fp)) {
+            continue;
+          }
+        }
         Player bot = fp.getPlayer();
         if (bot == null) continue;
         UUID uid = bot.getUniqueId();
@@ -367,6 +373,12 @@ public final class MoveCommand implements FppCommand {
 
       int started = 0, skipped = 0;
       for (FakePlayer fp : manager.getActivePlayers()) {
+        if (sender instanceof Player player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+          if (!BotAccess.canAdminister(player, fp)) {
+            skipped++;
+            continue;
+          }
+        }
         Player bot = fp.getPlayer();
         if (bot == null || !bot.isOnline()) {
           skipped++;
@@ -402,6 +414,12 @@ public final class MoveCommand implements FppCommand {
         double cz = parseCoord(args[4], base != null ? base.getZ() : 0);
         int started = 0, skipped = 0;
         for (FakePlayer fp : manager.getActivePlayers()) {
+          if (sender instanceof Player player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+            if (!BotAccess.canAdminister(player, fp)) {
+              skipped++;
+              continue;
+            }
+          }
           Player bot = fp.getPlayer();
           if (bot == null || !bot.isOnline()) {
             skipped++;
@@ -451,6 +469,12 @@ public final class MoveCommand implements FppCommand {
 
     int started = 0, skipped = 0;
     for (FakePlayer fp : manager.getActivePlayers()) {
+      if (sender instanceof Player player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+        if (!BotAccess.canAdminister(player, fp)) {
+          skipped++;
+          continue;
+        }
+      }
       Player bot = fp.getPlayer();
       if (bot == null || !bot.isOnline()) {
         skipped++;

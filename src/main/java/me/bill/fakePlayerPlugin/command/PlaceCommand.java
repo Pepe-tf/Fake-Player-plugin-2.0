@@ -14,6 +14,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
 import me.bill.fakePlayerPlugin.fakeplayer.StorageInteractionHelper;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import me.bill.fakePlayerPlugin.util.BotAccess;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -132,8 +133,7 @@ public final class PlaceCommand implements FppCommand {
       return true;
     }
 
-    if ((args[0].equalsIgnoreCase("stop") || args[0].equalsIgnoreCase("--stop"))
-        && args.length == 1) {
+    if (args[0].equalsIgnoreCase("--stop") && args.length == 1) {
       stopAll();
       sender.sendMessage(Lang.get("place-stopped-all"));
       return true;
@@ -144,6 +144,14 @@ public final class PlaceCommand implements FppCommand {
       sender.sendMessage(Lang.get("place-not-found", "name", args[0]));
       return true;
     }
+
+    if (sender instanceof Player player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+      if (!BotAccess.canAdminister(player, fp)) {
+        sender.sendMessage(Lang.get("no-permission"));
+        return true;
+      }
+    }
+
     Player bot = fp.getPlayer();
     if (bot == null || !bot.isOnline()) {
       sender.sendMessage(Lang.get("place-bot-offline", "name", fp.getDisplayName()));
@@ -165,7 +173,7 @@ public final class PlaceCommand implements FppCommand {
       }
 
       switch (action) {
-        case "stop", "--stop" -> {
+        case "--stop" -> {
           cleanupBot(fp.getUuid());
           sender.sendMessage(Lang.get("place-stopped", "name", fp.getDisplayName()));
           return true;
@@ -346,14 +354,12 @@ public final class PlaceCommand implements FppCommand {
       String prefix = args[0].toLowerCase(Locale.ROOT);
       List<String> out = new ArrayList<>();
       if ("--stop".startsWith(prefix)) out.add("--stop");
-      if ("stop".startsWith(prefix)) out.add("stop");
       for (FakePlayer fp : manager.getActivePlayers())
         if (fp.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) out.add(fp.getName());
       return out;
     }
 
     if (args.length == 2
-        && !args[0].equalsIgnoreCase("stop")
         && !args[0].equalsIgnoreCase("--stop")) {
       String prefix = args[1].toLowerCase(Locale.ROOT);
       List<String> out = new ArrayList<>();
@@ -367,10 +373,8 @@ public final class PlaceCommand implements FppCommand {
               "--start",
               "--status",
               "--stop",
-              "--once",
-              "stop",
-              "once")
-              : List.of("--once", "--stop", "once", "stop");
+              "--once")
+              : List.of("--once", "--stop");
       for (String opt : opts) if (opt.startsWith(prefix)) out.add(opt);
       return out;
     }
@@ -442,9 +446,11 @@ public final class PlaceCommand implements FppCommand {
     state.forcedTarget = targetPos;
     placeStates.put(uuid, state);
 
+    Player botPlayer = fp.getPlayer();
     int taskId =
         FppScheduler.runSyncRepeatingWithId(
             plugin,
+            botPlayer,
             () -> {
               Player b = fp.getPlayer();
               if (b == null || !b.isOnline()) {
@@ -759,9 +765,10 @@ public final class PlaceCommand implements FppCommand {
     cleanupBot(fp.getUuid());
     PlaceJob job = new PlaceJob(sel.copy(), spec, fillable, sender);
     placeJobs.put(fp.getUuid(), job);
+    Player botPlayer = fp.getPlayer();
     int taskId =
         FppScheduler.runSyncRepeatingWithId(
-            plugin, () -> tickPlaceJob(fp.getUuid()), 0L, CONTROLLER_PERIOD);
+            plugin, botPlayer, () -> tickPlaceJob(fp.getUuid()), 0L, CONTROLLER_PERIOD);
     placeTasks.put(fp.getUuid(), taskId);
     sender.sendMessage(
         Lang.get(

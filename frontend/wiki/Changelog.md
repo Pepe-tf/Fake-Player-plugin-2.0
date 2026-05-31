@@ -1,6 +1,13 @@
 # Changelog
 
-## v1.6.6.12.1 (Current)
+## v1.6.6.12.2 (Current)
+
+### Version Bump
+- Updated version from 1.6.6.12.1 to 1.6.6.12.2
+
+---
+
+## v1.6.6.12.1
 
 ### License System Updates
 - **License server migration** — Switched license verification from `license.fpp.wtf` to `app.lukittu.com`
@@ -17,7 +24,7 @@
 
 ### Breaking Changes
 - **Folia support removed** — FPP no longer supports Folia due to fundamental incompatibilities with regionised threading and entity ticking. Use Paper/Purpur instead.
-- **Body disable system removed** — `body.enabled` config option removed. Bots always spawn with physical bodies (tab-list only mode no longer available).
+- **Body disable system removed** — `body.enabled` config opttion removed. Bots always spawn with physical bodies (tab-list only mode no longer available).
 - **SpigotMC distribution removed** — Plugin no longer distributed on SpigotMC. Download from Modrinth, PaperMC Hangar, or BuiltByBit.
 
 ### Features Removed

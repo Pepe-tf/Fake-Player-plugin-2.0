@@ -96,6 +96,8 @@ delete-not-found:      "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍ�
 delete-random-success: "{prefix}<#0079FF>{count}</#0079FF> <gray>ʀᴀɴᴅᴏᴍ ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ(ꜱ) <white>ᴅɪꜱᴄᴏɴɴᴇᴄᴛᴇᴅ<gray>."
 # {count} — number of bots despawned in order (oldest first)
 delete-num-success:    "{prefix}<#0079FF>{count}</#0079FF> <gray>ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ(ꜱ) <white>ᴅɪꜱᴄᴏɴɴᴇᴄᴛᴇᴅ<gray>."
+# {count} — number of bots despawned that belong to the sender
+delete-own-success:    "{prefix}<#0079FF>{count}</#0079FF> <gray>ʏᴏᴜʀ ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ(ꜱ) <white>ᴅɪꜱᴄᴏɴɴᴇᴄᴛᴇᴅ<gray>."
 despawn-num-usage:     "{prefix}<red>ᴜꜱᴀɢᴇ: <white>/fpp despawn --num <num></white>."
 
 
@@ -510,7 +512,41 @@ place-wesel-applied:      "{prefix}<gray>WorldEdit ꜱᴇʟᴇᴄᴛɪᴏɴ ᴀ�
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#  16 · USE COMMAND
+#  15.7 · LEFT-CLICK COMMAND
+# ═════════════════════════════════════════════════════════════════════════════
+
+left-click-usage:        "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp left-click <bot> [--once|--repeat|--hold|--stop]</#0079FF><gray>."
+left-click-not-found:    "{prefix}<red>ʙᴏᴛ <#0079FF>{name}</#0079FF><red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
+left-click-bot-offline:  "{prefix}<red><#0079FF>{name}</#0079FF><red> ʜᴀꜱ ɴᴏ ᴀᴄᴛɪᴠᴇ ᴘʟᴀʏᴇʀ ʙᴏᴅʏ."
+left-click-walking:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ᴡᴀʟᴋɪɴɢ ᴛᴏ ᴄʟɪᴄᴋ ꜱᴘᴏᴛ..."
+left-click-started:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴀʀᴛᴇᴅ ʟᴇꜰᴛ-ᴄʟɪᴄᴋɪɴɢ."
+left-click-started-once: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʟᴇꜰᴛ-ᴄʟɪᴄᴋɪɴɢ ᴏɴᴄᴇ..."
+left-click-started-repeat: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʟᴇꜰᴛ-ᴄʟɪᴄᴋɪɴɢ ʀᴇᴘᴇᴀᴛᴇᴅʟʏ..."
+left-click-started-hold: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʜᴏʟᴅɪɴɢ ʟᴇꜰᴛ-ᴄʟɪᴄᴋ..."
+left-click-stopped:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴏᴘᴘᴇᴅ ʟᴇꜰᴛ-ᴄʟɪᴄᴋɪɴɢ."
+left-click-stopped-all:  "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴀʟʟ ʙᴏᴛꜱ ꜰʀᴏᴍ ʟᴇꜰᴛ-ᴄʟɪᴄᴋɪɴɢ."
+left-click-look-at-target:  "{prefix}<red>ʟᴏᴏᴋ ᴀᴛ ᴀ ʙʟᴏᴄᴋ ᴏʀ ᴇɴᴛɪᴛʏ ꜰɪʀꜱᴛ."
+left-click-no-path:         "{prefix}<red><#0079FF>{name}</#0079FF><red> ᴄᴏᴜʟᴅ ɴᴏᴛ ꜰɪɴᴅ ᴀ ᴘᴀᴛʜ ᴛᴏ ᴛʜᴇ ᴛᴀʀɢᴇᴛ."
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  15.8 · RIGHT-CLICK COMMAND
+# ═════════════════════════════════════════════════════════════════════════════
+
+right-click-usage:        "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp right-click <bot> [--once|--repeat|--hold|--stop]</#0079FF><gray>."
+right-click-not-found:    "{prefix}<red>ʙᴏᴛ <#0079FF>{name}</#0079FF><red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
+right-click-bot-offline:  "{prefix}<red><#0079FF>{name}</#0079FF><red> ʜᴀꜱ ɴᴏ ᴀᴄᴛɪᴠᴇ ᴘʟᴀʏᴇʀ ʙᴏᴅʏ."
+right-click-walking:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ᴡᴀʟᴋɪɴɢ ᴛᴏ ᴄʟɪᴄᴋ ꜱᴘᴏᴛ..."
+right-click-started:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴀʀᴛᴇᴅ ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ."
+right-click-started-once: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ ᴏɴᴄᴇ..."
+right-click-started-repeat: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ ʀᴇᴘᴇᴀᴛᴇᴅʟʏ..."
+right-click-started-hold: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʜᴏʟᴅɪɴɢ ʀɪɢʜᴛ-ᴄʟɪᴄᴋ..."
+right-click-stopped:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴏᴘᴘᴇᴅ ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ."
+right-click-stopped-all:  "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴀʟʟ ʙᴏᴛꜱ ꜰʀᴏᴍ ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ."
+right-click-look-at-target:  "{prefix}<red>ʟᴏᴏᴋ ᴀᴛ ᴀ ʙʟᴏᴄᴋ ᴏʀ ᴇɴᴛɪᴛʏ ꜰɪʀꜱᴛ."
+right-click-no-path:         "{prefix}<red><#0079FF>{name}</#0079FF><red> ᴄᴏᴜʟᴅ ɴᴏᴛ ꜰɪɴᴅ ᴀ ᴘᴀᴛʜ ᴛᴏ ᴛʜᴇ ᴛᴀʀɢᴇᴛ."
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  16 · USE COMMAND (LEGACY)
 # ═════════════════════════════════════════════════════════════════════════════
 
 # /fpp use <bot> [once|stop]  |  /fpp use stop
@@ -518,10 +554,10 @@ use-usage:        "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp use <bot> [o
 use-not-found:    "{prefix}<red>ʙᴏᴛ <#0079FF>{name}</#0079FF><red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
 use-bot-offline:  "{prefix}<red><#0079FF>{name}</#0079FF><red> ʜᴀꜱ ɴᴏ ᴀᴄᴛɪᴠᴇ ᴘʟᴀʏᴇʀ ʙᴏᴅʏ."
 use-walking:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ᴡᴀʟᴋɪɴɢ ᴛᴏ ᴜꜱᴇ ꜱᴘᴏᴛ..."
-use-started:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴀʀᴛᴇᴅ ʀɪɡʜᴛ-ᴄʟɪᴄᴋɪɴɢ ᴄᴏɴᴛɪɴᴜᴏᴜꜱʟʏ."
-use-started-once: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʀɪɡʜᴛ-ᴄʟɪᴄᴋɪɴɢ ᴏɴᴄᴇ..."
-use-stopped:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴏᴘᴘᴇᴅ ʀɪɡʜᴛ-ᴄʟɪᴄᴋɪɴɢ."
-use-stopped-all:  "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴀʟʟ ʙᴏᴛꜱ ꜰʀᴏᴍ ʀɪɡʜᴛ-ᴄʟɪᴄᴋɪɴɢ."
+use-started:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴀʀᴛᴇᴅ ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ ᴄᴏɴᴛɪɴᴜᴏᴜꜱʟʏ."
+use-started-once: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ ᴏɴᴄᴇ..."
+use-stopped:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴏᴘᴘᴇᴅ ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ."
+use-stopped-all:  "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴀʟʟ ʙᴏᴛꜱ ꜰʀᴏᴍ ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ."
 use-look-at-target:  "{prefix}<red>ʟᴏᴏᴋ ᴀᴛ ᴀ ʙʟᴏᴄᴋ ᴏʀ ᴇɴᴛɪᴛʏ ꜰɪʀꜱᴛ."
 use-no-path:         "{prefix}<red><#0079FF>{name}</#0079FF><red> ᴄᴏᴜʟᴅ ɴᴏᴛ ꜰɪɴᴅ ᴀ ᴘᴀᴛʜ ᴛᴏ ᴛʜᴇ ᴛᴀʀɢᴇᴛ."
 

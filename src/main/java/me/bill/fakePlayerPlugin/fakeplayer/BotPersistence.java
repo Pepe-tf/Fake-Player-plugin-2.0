@@ -5,10 +5,7 @@ import me.bill.fakePlayerPlugin.api.FppBotSaveEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.command.AttackCommand;
 import me.bill.fakePlayerPlugin.command.FollowCommand;
-import me.bill.fakePlayerPlugin.command.MineCommand;
 import me.bill.fakePlayerPlugin.command.MoveCommand;
-import me.bill.fakePlayerPlugin.command.PlaceCommand;
-import me.bill.fakePlayerPlugin.command.UseCommand;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.util.BotDataYaml;
@@ -63,26 +60,11 @@ public final class BotPersistence {
   private final FakePlayerPlugin plugin;
 
   private MoveCommand moveCommand;
-  private MineCommand mineCommand;
-  private PlaceCommand placeCommand;
-  private UseCommand useCommand;
   private AttackCommand attackCommand;
   private FollowCommand followCommand;
 
   public void setMoveCommand(MoveCommand cmd) {
     this.moveCommand = cmd;
-  }
-
-  public void setMineCommand(MineCommand cmd) {
-    this.mineCommand = cmd;
-  }
-
-  public void setPlaceCommand(PlaceCommand cmd) {
-    this.placeCommand = cmd;
-  }
-
-  public void setUseCommand(UseCommand cmd) {
-    this.useCommand = cmd;
   }
 
   public void setAttackCommand(AttackCommand cmd) {
@@ -196,77 +178,27 @@ public final class BotPersistence {
 
       String rcc = fp.getRightClickCommand();
 
+      // Legacy mine/use/place removed - migrated to left-click/right-click commands
       String useWorld = null;
       double useX = 0, useY = 0, useZ = 0;
       float useYaw = 0, usePitch = 0;
       boolean useOnce = false;
-      if (useCommand != null) {
-        Location useLoc = useCommand.getActiveUseLocation(fp.getUuid());
-        if (useLoc != null && useLoc.getWorld() != null) {
-          useWorld = useLoc.getWorld().getName();
-          useX = useLoc.getX();
-          useY = useLoc.getY();
-          useZ = useLoc.getZ();
-          useYaw = useLoc.getYaw();
-          usePitch = useLoc.getPitch();
-          useOnce = useCommand.isActiveUseOnce(fp.getUuid());
-        }
-      }
 
       String mineWorld = null;
       double mineX = 0, mineY = 0, mineZ = 0;
       float mineYaw = 0, minePitch = 0;
       boolean mineOnce = false;
-      if (mineCommand != null) {
-        BlockPos minePos = mineCommand.getActiveMineTarget(fp.getUuid());
-        if (minePos != null && fp.getPlayer() != null && fp.getPlayer().getWorld() != null) {
-          mineWorld = fp.getPlayer().getWorld().getName();
-          mineX = minePos.getX();
-          mineY = minePos.getY();
-          mineZ = minePos.getZ();
-          mineOnce = mineCommand.isActiveMineOnce(fp.getUuid());
-        }
-      }
 
       String placeWorld = null;
       double placeX = 0, placeY = 0, placeZ = 0;
       float placeYaw = 0, placePitch = 0;
       boolean placeOnce = false;
-      if (placeCommand != null) {
-        Location placeLoc = placeCommand.getActivePlaceLocation(fp.getUuid());
-        if (placeLoc != null && placeLoc.getWorld() != null) {
-          placeWorld = placeLoc.getWorld().getName();
-          placeX = placeLoc.getX();
-          placeY = placeLoc.getY();
-          placeZ = placeLoc.getZ();
-          placeYaw = placeLoc.getYaw();
-          placePitch = placeLoc.getPitch();
-          placeOnce = placeCommand.isActivePlaceOnce(fp.getUuid());
-        }
-      }
 
+      // Area mining removed - migrated to left-click/right-click commands
       String areaPos1World = null, areaPos2World = null;
       double areaPos1X = 0, areaPos1Y = 0, areaPos1Z = 0;
       double areaPos2X = 0, areaPos2Y = 0, areaPos2Z = 0;
       boolean areaActive = false;
-      if (mineCommand != null) {
-        Location aPos1 = mineCommand.getSelectionPos1(fp.getUuid());
-        Location aPos2 = mineCommand.getSelectionPos2(fp.getUuid());
-        if (aPos1 != null
-            && aPos1.getWorld() != null
-            && aPos2 != null
-            && aPos2.getWorld() != null) {
-          areaPos1World = aPos1.getWorld().getName();
-          areaPos1X = aPos1.getX();
-          areaPos1Y = aPos1.getY();
-          areaPos1Z = aPos1.getZ();
-          areaPos2World = aPos2.getWorld().getName();
-          areaPos2X = aPos2.getX();
-          areaPos2Y = aPos2.getY();
-          areaPos2Z = aPos2.getZ();
-          areaActive = mineCommand.hasActiveAreaJob(fp.getUuid());
-        }
-      }
 
       String attackWorld = null;
       double attackX = 0, attackY = 0, attackZ = 0;
@@ -1349,74 +1281,7 @@ public final class BotPersistence {
               Player bot = restored.getPlayer();
               if (bot == null || !bot.isOnline()) return;
 
-              if (task.mineWorld() != null && mineCommand != null) {
-                World w = Bukkit.getWorld(task.mineWorld());
-                if (w != null && w.equals(bot.getWorld())) {
-                  Location mineLoc =
-                      new Location(
-                          w,
-                          task.mineX(),
-                          task.mineY(),
-                          task.mineZ(),
-                          task.mineYaw(),
-                          task.minePitch());
-                  mineCommand.resumeMining(restored, task.mineOnce(), mineLoc);
-                  Config.debug("Resumed mine task for bot '" + restored.getName() + "'.");
-                }
-              }
-
-              if (task.areaActive()
-                  && task.areaPos1World() != null
-                  && task.areaPos2World() != null
-                  && mineCommand != null) {
-                World w1 = Bukkit.getWorld(task.areaPos1World());
-                World w2 = Bukkit.getWorld(task.areaPos2World());
-                if (w1 != null && w2 != null && w1.equals(w2) && w1.equals(bot.getWorld())) {
-                  Location pos1 =
-                      new Location(w1, task.areaPos1X(), task.areaPos1Y(), task.areaPos1Z());
-                  Location pos2 =
-                      new Location(w2, task.areaPos2X(), task.areaPos2Y(), task.areaPos2Z());
-                  mineCommand.restoreAreaJob(restored, pos1, pos2);
-                }
-              }
-
-              if (task.useWorld() != null && useCommand != null) {
-                World w = Bukkit.getWorld(task.useWorld());
-                if (w != null && w.equals(bot.getWorld())) {
-                  Location useLoc =
-                      new Location(
-                          w,
-                          task.useX(),
-                          task.useY(),
-                          task.useZ(),
-                          task.useYaw(),
-                          task.usePitch());
-                  Object useTarget = null;
-                  if (task.useX() != 0 || task.useY() != 0 || task.useZ() != 0) {
-                    useTarget = bot.getWorld().getBlockAt((int) task.useX(), (int) task.useY(), (int) task.useZ());
-                  }
-                  if (useTarget != null) {
-                    useCommand.resumeUsing(restored, task.useOnce(), useLoc, useTarget, UseCommand.UseMode.USE_ONLY);
-                  }
-                  Config.debug("Resumed use loop for bot '" + restored.getName() + "'.");
-                }
-              }
-
-              if (task.placeWorld() != null && placeCommand != null) {
-                World w = Bukkit.getWorld(task.placeWorld());
-                if (w != null && w.equals(bot.getWorld())) {
-                  Location placeLoc =
-                      new Location(
-                          w,
-                          task.placeX(),
-                          task.placeY(),
-                          task.placeZ(),
-                          task.placeYaw(),
-                          task.placePitch());
-                  placeCommand.resumePlacing(restored, task.placeOnce(), placeLoc);
-                  Config.debug("Resumed place task for bot '" + restored.getName() + "'.");
-                }
-              }
+              // Legacy mine/use/place task restoration removed - migrated to left-click/right-click commands
 
               if (task.attackWorld() != null && attackCommand != null) {
                 World w = Bukkit.getWorld(task.attackWorld());

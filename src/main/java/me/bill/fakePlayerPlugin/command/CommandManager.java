@@ -206,7 +206,8 @@ public class CommandManager implements CommandExecutor, TabCompleter {
   private static boolean requiresBotOwnership(String name) {
     return Set.of(
             "move", "mine", "find", "place", "use", "attack", "follow", "sleep", "stop",
-            "storage", "inventory", "inv", "settings", "xp", "cmd", "rename", "skin")
+            "storage", "inventory", "inv", "settings", "xp", "cmd", "rename", "skin",
+            "left-click", "right-click")
         .contains(name.toLowerCase(Locale.ROOT));
   }
 
@@ -229,7 +230,8 @@ public class CommandManager implements CommandExecutor, TabCompleter {
   }
 
   private static boolean isTaskCommand(String name) {
-    return Set.of("move", "mine", "find", "place", "use", "attack", "follow", "sleep", "stop", "storage")
+    return Set.of("move", "mine", "find", "place", "use", "attack", "follow", "sleep", "stop", "storage",
+            "left-click", "right-click")
         .contains(name.toLowerCase());
   }
 

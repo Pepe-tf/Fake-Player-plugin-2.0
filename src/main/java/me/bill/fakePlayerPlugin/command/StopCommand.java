@@ -16,6 +16,18 @@ import java.util.UUID;
  * /fpp stop [&lt;bot&gt;|all]
  * <p>
  * Immediately cancels every active task for one bot or all bots:
+ * move/patrol/roam, left-click, right-click, attack, follow, find, sleep.
+ * <p>
+ * This command intentionally does NOT touch the sleep-origin/radius
+ * configuration (use "/fpp sleep &lt;bot&gt; --stop" to permanently disable the
+ * sleep system for a bot).  It only interrupts tasks that are currently
+ * running.
+ */
+
+/**
+ * /fpp stop [&lt;bot&gt;|all]
+ * <p>
+ * Immediately cancels every active task for one bot or all bots:
  * move/patrol/roam, mine, use, place, attack, follow, find, sleep.
  * <p>
  * This command intentionally does NOT touch the sleep-origin/radius
@@ -31,11 +43,9 @@ public final class StopCommand implements FppCommand {
   @Nullable
   private MoveCommand moveCommand;
   @Nullable
-  private MineCommand mineCommand;
+  private LeftClickCommand leftClickCommand;
   @Nullable
-  private UseCommand useCommand;
-  @Nullable
-  private PlaceCommand placeCommand;
+  private RightClickCommand rightClickCommand;
   @Nullable
   private AttackCommand attackCommand;
   @Nullable
@@ -57,16 +67,12 @@ public final class StopCommand implements FppCommand {
     this.moveCommand = cmd;
   }
 
-  public void setMineCommand(@Nullable MineCommand cmd) {
-    this.mineCommand = cmd;
+  public void setLeftClickCommand(@Nullable LeftClickCommand cmd) {
+    this.leftClickCommand = cmd;
   }
 
-  public void setUseCommand(@Nullable UseCommand cmd) {
-    this.useCommand = cmd;
-  }
-
-  public void setPlaceCommand(@Nullable PlaceCommand cmd) {
-    this.placeCommand = cmd;
+  public void setRightClickCommand(@Nullable RightClickCommand cmd) {
+    this.rightClickCommand = cmd;
   }
 
   public void setAttackCommand(@Nullable AttackCommand cmd) {
@@ -156,16 +162,12 @@ public final class StopCommand implements FppCommand {
       moveCommand.cleanupBot(uuid);
       did = true;
     }
-    if (mineCommand != null && mineCommand.isMining(uuid)) {
-      mineCommand.stopMining(uuid);
+    if (leftClickCommand != null && leftClickCommand.isClicking(uuid)) {
+      leftClickCommand.stopClicking(uuid);
       did = true;
     }
-    if (useCommand != null && useCommand.isUsing(uuid)) {
-      useCommand.stopUsing(uuid);
-      did = true;
-    }
-    if (placeCommand != null && placeCommand.isPlacing(uuid)) {
-      placeCommand.stopPlacing(uuid);
+    if (rightClickCommand != null && rightClickCommand.isClicking(uuid)) {
+      rightClickCommand.stopClicking(uuid);
       did = true;
     }
     if (attackCommand != null && attackCommand.isAttacking(uuid)) {
