@@ -1,16 +1,17 @@
 package me.bill.fakePlayerPlugin.command;
 
-import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
-import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
-import me.bill.fakePlayerPlugin.lang.Lang;
-import me.bill.fakePlayerPlugin.permission.Perm;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
+import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
+import me.bill.fakePlayerPlugin.lang.Lang;
+import me.bill.fakePlayerPlugin.permission.Perm;
 
 /**
  * /fpp stop [&lt;bot&gt;|all]
@@ -37,184 +38,190 @@ import java.util.UUID;
  */
 public final class StopCommand implements FppCommand {
 
-  private final FakePlayerManager manager;
+    private final FakePlayerManager manager;
 
-  // All references are nullable — injected after construction.
-  @Nullable
-  private MoveCommand moveCommand;
-  @Nullable
-  private LeftClickCommand leftClickCommand;
-  @Nullable
-  private RightClickCommand rightClickCommand;
-  @Nullable
-  private AttackCommand attackCommand;
-  @Nullable
-  private FollowCommand followCommand;
-  @Nullable
-  private FindCommand findCommand;
-  @Nullable
-  private SleepCommand sleepCommand;
+    // All references are nullable — injected after construction.
+    @Nullable
+    private MoveCommand moveCommand;
 
-  // ── Constructor ──────────────────────────────────────────────────────────
+    @Nullable
+    private LeftClickCommand leftClickCommand;
 
-  public StopCommand(@NotNull FakePlayerManager manager) {
-    this.manager = manager;
-  }
+    @Nullable
+    private RightClickCommand rightClickCommand;
 
-  // ── Dependency injection ─────────────────────────────────────────────────
+    @Nullable
+    private AttackCommand attackCommand;
 
-  public void setMoveCommand(@Nullable MoveCommand cmd) {
-    this.moveCommand = cmd;
-  }
+    @Nullable
+    private FollowCommand followCommand;
 
-  public void setLeftClickCommand(@Nullable LeftClickCommand cmd) {
-    this.leftClickCommand = cmd;
-  }
+    @Nullable
+    private FindCommand findCommand;
 
-  public void setRightClickCommand(@Nullable RightClickCommand cmd) {
-    this.rightClickCommand = cmd;
-  }
+    @Nullable
+    private SleepCommand sleepCommand;
 
-  public void setAttackCommand(@Nullable AttackCommand cmd) {
-    this.attackCommand = cmd;
-  }
+    // ── Constructor ──────────────────────────────────────────────────────────
 
-  public void setFollowCommand(@Nullable FollowCommand cmd) {
-    this.followCommand = cmd;
-  }
-
-  public void setFindCommand(@Nullable FindCommand cmd) {
-    this.findCommand = cmd;
-  }
-
-  public void setSleepCommand(@Nullable SleepCommand cmd) {
-    this.sleepCommand = cmd;
-  }
-
-  // ── FppCommand metadata ──────────────────────────────────────────────────
-
-  @Override
-  public String getName() {
-    return "stop";
-  }
-
-  @Override
-  public String getPermission() {
-    return Perm.STOP;
-  }
-
-  @Override
-  public boolean canUse(CommandSender sender) {
-    return Perm.has(sender, Perm.STOP);
-  }
-
-  @Override
-  public String getUsage() {
-    return "[<bot>|all]";
-  }
-
-  @Override
-  public String getDescription() {
-    return "Stop all active tasks for one bot or all bots.";
-  }
-
-  // ── Command execution ─────────────────────────────────────────────────────
-
-  @Override
-  public boolean execute(CommandSender sender, String[] args) {
-    // Default: stop all if no argument is supplied.
-    if (args.length == 0 || args[0].equalsIgnoreCase("--all")) {
-      int stopped = stopAllBots();
-      if (stopped == 0) {
-        sender.sendMessage(Lang.get("stop-all-nothing"));
-      } else {
-        sender.sendMessage(Lang.get("stop-all-done", "count", String.valueOf(stopped)));
-      }
-      return true;
+    public StopCommand(@NotNull FakePlayerManager manager) {
+        this.manager = manager;
     }
 
-    FakePlayer fp = manager.getByName(args[0]);
-    if (fp == null) {
-      sender.sendMessage(Lang.get("stop-not-found", "name", args[0]));
-      return true;
+    // ── Dependency injection ─────────────────────────────────────────────────
+
+    public void setMoveCommand(@Nullable MoveCommand cmd) {
+        this.moveCommand = cmd;
     }
 
-    boolean didAnything = stopBot(fp.getUuid());
-    if (didAnything) {
-      sender.sendMessage(Lang.get("stop-done", "name", fp.getDisplayName()));
-    } else {
-      sender.sendMessage(Lang.get("stop-nothing", "name", fp.getDisplayName()));
-    }
-    return true;
-  }
-
-  // ── Stop helpers ─────────────────────────────────────────────────────────
-
-  /**
-   * Stops all running tasks for a single bot.
-   *
-   * @return true if at least one task was cancelled.
-   */
-  private boolean stopBot(@NotNull UUID uuid) {
-    boolean did = false;
-
-    if (moveCommand != null) {
-      moveCommand.cleanupBot(uuid);
-      did = true;
-    }
-    if (leftClickCommand != null && leftClickCommand.isClicking(uuid)) {
-      leftClickCommand.stopClicking(uuid);
-      did = true;
-    }
-    if (rightClickCommand != null && rightClickCommand.isClicking(uuid)) {
-      rightClickCommand.stopClicking(uuid);
-      did = true;
-    }
-    if (attackCommand != null && attackCommand.isAttacking(uuid)) {
-      attackCommand.stopAttacking(uuid);
-      did = true;
-    }
-    if (followCommand != null && followCommand.isFollowing(uuid)) {
-      followCommand.stopFollowing(uuid);
-      did = true;
-    }
-    if (findCommand != null && findCommand.isFinding(uuid)) {
-      findCommand.cleanupBot(uuid);
-      did = true;
-    }
-    // Interrupt current sleep navigation without disabling the sleep schedule.
-    if (sleepCommand != null && sleepCommand.isSleeping(uuid)) {
-      sleepCommand.cleanupBot(uuid);
-      did = true;
+    public void setLeftClickCommand(@Nullable LeftClickCommand cmd) {
+        this.leftClickCommand = cmd;
     }
 
-    return did;
-  }
-
-  /**
-   * Stops all running tasks for every active bot.
-   *
-   * @return total number of bots that had at least one task stopped.
-   */
-  private int stopAllBots() {
-    int count = 0;
-    for (FakePlayer fp : new ArrayList<>(manager.getActivePlayers())) {
-      if (stopBot(fp.getUuid())) count++;
+    public void setRightClickCommand(@Nullable RightClickCommand cmd) {
+        this.rightClickCommand = cmd;
     }
-    return count;
-  }
 
-  // ── Tab-completion ────────────────────────────────────────────────────────
-
-  @Override
-  public List<String> tabComplete(CommandSender sender, String[] args) {
-    List<String> out = new ArrayList<>();
-    if (args.length == 1) {
-      String in = args[0].toLowerCase();
-      if ("--all".startsWith(in)) out.add("--all");
-      for (FakePlayer fp : manager.getActivePlayers())
-        if (fp.getName().toLowerCase().startsWith(in)) out.add(fp.getName());
+    public void setAttackCommand(@Nullable AttackCommand cmd) {
+        this.attackCommand = cmd;
     }
-    return out;
-  }
+
+    public void setFollowCommand(@Nullable FollowCommand cmd) {
+        this.followCommand = cmd;
+    }
+
+    public void setFindCommand(@Nullable FindCommand cmd) {
+        this.findCommand = cmd;
+    }
+
+    public void setSleepCommand(@Nullable SleepCommand cmd) {
+        this.sleepCommand = cmd;
+    }
+
+    // ── FppCommand metadata ──────────────────────────────────────────────────
+
+    @Override
+    public String getName() {
+        return "stop";
+    }
+
+    @Override
+    public String getPermission() {
+        return Perm.STOP;
+    }
+
+    @Override
+    public boolean canUse(CommandSender sender) {
+        return Perm.has(sender, Perm.STOP);
+    }
+
+    @Override
+    public String getUsage() {
+        return "[<bot>|all]";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Stop all active tasks for one bot or all bots.";
+    }
+
+    // ── Command execution ─────────────────────────────────────────────────────
+
+    @Override
+    public boolean execute(CommandSender sender, String[] args) {
+        // Default: stop all if no argument is supplied.
+        if (args.length == 0 || args[0].equalsIgnoreCase("--all")) {
+            int stopped = stopAllBots();
+            if (stopped == 0) {
+                sender.sendMessage(Lang.get("stop-all-nothing"));
+            } else {
+                sender.sendMessage(Lang.get("stop-all-done", "count", String.valueOf(stopped)));
+            }
+            return true;
+        }
+
+        FakePlayer fp = manager.getByName(args[0]);
+        if (fp == null) {
+            sender.sendMessage(Lang.get("stop-not-found", "name", args[0]));
+            return true;
+        }
+
+        boolean didAnything = stopBot(fp.getUuid());
+        if (didAnything) {
+            sender.sendMessage(Lang.get("stop-done", "name", fp.getDisplayName()));
+        } else {
+            sender.sendMessage(Lang.get("stop-nothing", "name", fp.getDisplayName()));
+        }
+        return true;
+    }
+
+    // ── Stop helpers ─────────────────────────────────────────────────────────
+
+    /**
+     * Stops all running tasks for a single bot.
+     *
+     * @return true if at least one task was cancelled.
+     */
+    private boolean stopBot(@NotNull UUID uuid) {
+        boolean did = false;
+
+        if (moveCommand != null) {
+            moveCommand.cleanupBot(uuid);
+            did = true;
+        }
+        if (leftClickCommand != null && leftClickCommand.isClicking(uuid)) {
+            leftClickCommand.stopClicking(uuid);
+            did = true;
+        }
+        if (rightClickCommand != null && rightClickCommand.isClicking(uuid)) {
+            rightClickCommand.stopClicking(uuid);
+            did = true;
+        }
+        if (attackCommand != null && attackCommand.isAttacking(uuid)) {
+            attackCommand.stopAttacking(uuid);
+            did = true;
+        }
+        if (followCommand != null && followCommand.isFollowing(uuid)) {
+            followCommand.stopFollowing(uuid);
+            did = true;
+        }
+        if (findCommand != null && findCommand.isFinding(uuid)) {
+            findCommand.cleanupBot(uuid);
+            did = true;
+        }
+        // Interrupt current sleep navigation without disabling the sleep schedule.
+        if (sleepCommand != null && sleepCommand.isSleeping(uuid)) {
+            sleepCommand.cleanupBot(uuid);
+            did = true;
+        }
+
+        return did;
+    }
+
+    /**
+     * Stops all running tasks for every active bot.
+     *
+     * @return total number of bots that had at least one task stopped.
+     */
+    private int stopAllBots() {
+        int count = 0;
+        for (FakePlayer fp : new ArrayList<>(manager.getActivePlayers())) {
+            if (stopBot(fp.getUuid())) count++;
+        }
+        return count;
+    }
+
+    // ── Tab-completion ────────────────────────────────────────────────────────
+
+    @Override
+    public List<String> tabComplete(CommandSender sender, String[] args) {
+        List<String> out = new ArrayList<>();
+        if (args.length == 1) {
+            String in = args[0].toLowerCase();
+            if ("--all".startsWith(in)) out.add("--all");
+            for (FakePlayer fp : manager.getActivePlayers())
+                if (fp.getName().toLowerCase().startsWith(in)) out.add(fp.getName());
+        }
+        return out;
+    }
 }

@@ -15,37 +15,35 @@ import org.bukkit.attribute.Attribute;
  */
 public final class AttributeCompat {
 
-  /**
-   * Resolved at class-load; never null unless the server is very broken.
-   */
-  public static final Attribute MAX_HEALTH = resolve("MAX_HEALTH", "GENERIC_MAX_HEALTH");
+    /**
+     * Resolved at class-load; never null unless the server is very broken.
+     */
+    public static final Attribute MAX_HEALTH = resolve("MAX_HEALTH", "GENERIC_MAX_HEALTH");
 
-  private AttributeCompat() {
-  }
+    private AttributeCompat() {}
 
-  /**
-   * Returns the max-health {@link Attribute} constant that exists on the current server,
-   * or {@code null} if neither name could be found (should never happen on any supported version).
-   */
-  public static Attribute maxHealth() {
-    return MAX_HEALTH;
-  }
-
-  // ── internal ──────────────────────────────────────────────────────────────
-
-  @SuppressWarnings("unchecked")
-  private static <T extends Attribute> T resolve(String... names) {
-    for (String name : names) {
-      try {
-        return (T) Attribute.class.getField(name).get(null);
-      } catch (NoSuchFieldException ignored) {
-        // try next candidate
-      } catch (Exception e) {
-        FppLogger.warn("AttributeCompat: unexpected error resolving '" + name + "': " + e.getMessage());
-      }
+    /**
+     * Returns the max-health {@link Attribute} constant that exists on the current server,
+     * or {@code null} if neither name could be found (should never happen on any supported version).
+     */
+    public static Attribute maxHealth() {
+        return MAX_HEALTH;
     }
-    FppLogger.warn("AttributeCompat: could not resolve any of: " + String.join(", ", names));
-    return null;
-  }
-}
 
+    // ── internal ──────────────────────────────────────────────────────────────
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Attribute> T resolve(String... names) {
+        for (String name : names) {
+            try {
+                return (T) Attribute.class.getField(name).get(null);
+            } catch (NoSuchFieldException ignored) {
+                // try next candidate
+            } catch (Exception e) {
+                FppLogger.warn("AttributeCompat: unexpected error resolving '" + name + "': " + e.getMessage());
+            }
+        }
+        FppLogger.warn("AttributeCompat: could not resolve any of: " + String.join(", ", names));
+        return null;
+    }
+}

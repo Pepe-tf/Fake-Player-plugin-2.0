@@ -3,6 +3,7 @@ plugins {
     id("com.gradleup.shadow") version "9.4.1"
     id("io.papermc.paperweight.userdev") version "2.0.0-beta.21"
     id("xyz.jpenilla.run-paper") version "3.0.2"
+    id("com.diffplug.spotless") version "7.0.3"
 }
 
 java {
@@ -64,4 +65,19 @@ tasks.runServer {
 runPaper.folia.registerTask {
     minecraftVersion("1.21.11")
     jvmArgs("-Xms1G", "-Xmx4G")
+}
+
+spotless {
+    java {
+        target("src/**/*.java")
+        palantirJavaFormat("2.56.0")
+        importOrder("java", "javax", "org", "com", "me.bill")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    kotlinGradle {
+        target("*.gradle.kts")
+        ktlint()
+    }
 }

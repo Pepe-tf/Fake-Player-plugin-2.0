@@ -1,5 +1,13 @@
 package me.bill.fakePlayerPlugin.command;
 
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -7,136 +15,127 @@ import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.BotAccess;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class XpCommand implements FppCommand {
 
-  private static final int XP_COOLDOWN_SECONDS = 30;
+    private static final int XP_COOLDOWN_SECONDS = 30;
 
-  private final FakePlayerPlugin plugin;
-  private final FakePlayerManager manager;
+    private final FakePlayerPlugin plugin;
+    private final FakePlayerManager manager;
 
-  private final Map<UUID, Long> xpCooldowns = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> xpCooldowns = new ConcurrentHashMap<>();
 
-  public XpCommand(FakePlayerPlugin plugin, FakePlayerManager manager) {
-    this.plugin = plugin;
-    this.manager = manager;
-  }
-
-  @Override
-  public String getName() {
-    return "xp";
-  }
-
-  @Override
-  public String getUsage() {
-    return "/fpp xp <bot>";
-  }
-
-  @Override
-  public String getDescription() {
-    return "Collect XP from a bot";
-  }
-
-  @Override
-  public String getPermission() {
-    return Perm.USER_XP;
-  }
-
-  @Override
-  public boolean canUse(CommandSender sender) {
-    return Perm.has(sender, Perm.USER_XP);
-  }
-
-  @Override
-  public boolean execute(CommandSender sender, String[] args) {
-    if (args.length == 0) {
-      sender.sendMessage(Lang.get("xp-usage"));
-      return false;
+    public XpCommand(FakePlayerPlugin plugin, FakePlayerManager manager) {
+        this.plugin = plugin;
+        this.manager = manager;
     }
 
-    String botName = args[0];
-    FakePlayer fp = manager.getByName(botName);
-
-    if (fp == null) {
-      sender.sendMessage(Lang.get("xp-not-found", "name", botName));
-      return false;
+    @Override
+    public String getName() {
+        return "xp";
     }
 
-    Player botPlayer = fp.getPlayer();
-    if (botPlayer == null) {
-      sender.sendMessage(Lang.get("xp-not-found", "name", botName));
-      return false;
+    @Override
+    public String getUsage() {
+        return "/fpp xp <bot>";
     }
 
-    if (sender instanceof Player player) {
-      if (!BotAccess.canAdminister(player, fp)) {
-        sender.sendMessage(Lang.get("no-permission"));
-        return false;
-      }
+    @Override
+    public String getDescription() {
+        return "Collect XP from a bot";
     }
 
-    int totalXp = botPlayer.getTotalExperience();
-
-    if (totalXp <= 0) {
-      sender.sendMessage(Lang.get("xp-no-xp", "name", fp.getDisplayName()));
-      return false;
+    @Override
+    public String getPermission() {
+        return Perm.USER_XP;
     }
 
-    if (sender instanceof Player player) {
-      player.giveExp(totalXp, false);
+    @Override
+    public boolean canUse(CommandSender sender) {
+        return Perm.has(sender, Perm.USER_XP);
     }
 
-    botPlayer.setTotalExperience(0);
-    botPlayer.setLevel(0);
-    botPlayer.setExp(0f);
+    @Override
+    public boolean execute(CommandSender sender, String[] args) {
+        if (args.length == 0) {
+            sender.sendMessage(Lang.get("xp-usage"));
+            return false;
+        }
 
-    UUID botUuid = fp.getUuid();
-    long cooldownEnd = System.currentTimeMillis() + (XP_COOLDOWN_SECONDS * 1000L);
-    xpCooldowns.put(botUuid, cooldownEnd);
+        String botName = args[0];
+        FakePlayer fp = manager.getByName(botName);
 
-    FppScheduler.runSyncLater(
-        plugin, () -> xpCooldowns.remove(botUuid), XP_COOLDOWN_SECONDS * 20L);
+        if (fp == null) {
+            sender.sendMessage(Lang.get("xp-not-found", "name", botName));
+            return false;
+        }
 
-    sender.sendMessage(
-        Lang.get(
-            "xp-success",
-            "name",
-            fp.getDisplayName(),
-            "xp",
-            String.valueOf(totalXp),
-            "seconds",
-            String.valueOf(XP_COOLDOWN_SECONDS)));
-    return true;
-  }
+        Player botPlayer = fp.getPlayer();
+        if (botPlayer == null) {
+            sender.sendMessage(Lang.get("xp-not-found", "name", botName));
+            return false;
+        }
 
-  @Override
-  public List<String> tabComplete(CommandSender sender, String[] args) {
-    if (args.length == 1) {
-      return manager.getActivePlayers().stream()
-          .map(FakePlayer::getName)
-          .filter(name -> name.toLowerCase().startsWith(args[0].toLowerCase()))
-          .toList();
+        if (sender instanceof Player player) {
+            if (!BotAccess.canAdminister(player, fp)) {
+                sender.sendMessage(Lang.get("no-permission"));
+                return false;
+            }
+        }
+
+        int totalXp = botPlayer.getTotalExperience();
+
+        if (totalXp <= 0) {
+            sender.sendMessage(Lang.get("xp-no-xp", "name", fp.getDisplayName()));
+            return false;
+        }
+
+        if (sender instanceof Player player) {
+            player.giveExp(totalXp, false);
+        }
+
+        botPlayer.setTotalExperience(0);
+        botPlayer.setLevel(0);
+        botPlayer.setExp(0f);
+
+        UUID botUuid = fp.getUuid();
+        long cooldownEnd = System.currentTimeMillis() + (XP_COOLDOWN_SECONDS * 1000L);
+        xpCooldowns.put(botUuid, cooldownEnd);
+
+        FppScheduler.runSyncLater(plugin, () -> xpCooldowns.remove(botUuid), XP_COOLDOWN_SECONDS * 20L);
+
+        sender.sendMessage(Lang.get(
+                "xp-success",
+                "name",
+                fp.getDisplayName(),
+                "xp",
+                String.valueOf(totalXp),
+                "seconds",
+                String.valueOf(XP_COOLDOWN_SECONDS)));
+        return true;
     }
-    return List.of();
-  }
 
-  public boolean isOnXpCooldown(UUID botUuid) {
-    Long cooldownEnd = xpCooldowns.get(botUuid);
-    if (cooldownEnd == null) return false;
-    return System.currentTimeMillis() < cooldownEnd;
-  }
+    @Override
+    public List<String> tabComplete(CommandSender sender, String[] args) {
+        if (args.length == 1) {
+            return manager.getActivePlayers().stream()
+                    .map(FakePlayer::getName)
+                    .filter(name -> name.toLowerCase().startsWith(args[0].toLowerCase()))
+                    .toList();
+        }
+        return List.of();
+    }
 
-  public int getRemainingXpCooldown(UUID botUuid) {
-    Long cooldownEnd = xpCooldowns.get(botUuid);
-    if (cooldownEnd == null) return 0;
-    long remaining = cooldownEnd - System.currentTimeMillis();
-    return remaining > 0 ? (int) Math.ceil(remaining / 1000.0) : 0;
-  }
+    public boolean isOnXpCooldown(UUID botUuid) {
+        Long cooldownEnd = xpCooldowns.get(botUuid);
+        if (cooldownEnd == null) return false;
+        return System.currentTimeMillis() < cooldownEnd;
+    }
+
+    public int getRemainingXpCooldown(UUID botUuid) {
+        Long cooldownEnd = xpCooldowns.get(botUuid);
+        if (cooldownEnd == null) return 0;
+        long remaining = cooldownEnd - System.currentTimeMillis();
+        return remaining > 0 ? (int) Math.ceil(remaining / 1000.0) : 0;
+    }
 }

@@ -1,54 +1,48 @@
 package me.bill.fakePlayerPlugin.fakeplayer.network;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import io.netty.channel.ChannelFutureListener;
 import net.minecraft.network.Connection;
 import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketFlow;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 
 public final class FakeConnection extends Connection {
 
-  public FakeConnection(InetAddress address) {
-    super(PacketFlow.SERVERBOUND);
-    this.channel = new FakeChannel(null, address);
-    this.address = new InetSocketAddress(address, 25565);
+    public FakeConnection(InetAddress address) {
+        super(PacketFlow.SERVERBOUND);
+        this.channel = new FakeChannel(null, address);
+        this.address = new InetSocketAddress(address, 25565);
 
-    Connection.configureSerialization(this.channel.pipeline(), PacketFlow.SERVERBOUND, false, null);
-  }
+        Connection.configureSerialization(this.channel.pipeline(), PacketFlow.SERVERBOUND, false, null);
+    }
 
-  @Override
-  public void tick() {
-    // Prevent parent Connection.tick() from running keepalive state machines.
-    // Fake players have no real network client to respond to keepalive challenges.
-  }
+    @Override
+    public void tick() {
+        // Prevent parent Connection.tick() from running keepalive state machines.
+        // Fake players have no real network client to respond to keepalive challenges.
+    }
 
-  @Override
-  public boolean isConnected() {
-    return true;
-  }
+    @Override
+    public boolean isConnected() {
+        return true;
+    }
 
-  @Override
-  public void send(@NotNull Packet<?> packet) {
-  }
+    @Override
+    public void send(@NotNull Packet<?> packet) {}
 
-  @Override
-  public void send(@NotNull Packet<?> packet, @Nullable ChannelFutureListener listener) {
-  }
+    @Override
+    public void send(@NotNull Packet<?> packet, @Nullable ChannelFutureListener listener) {}
 
-  @Override
-  public void send(
-      @NotNull Packet<?> packet, @Nullable ChannelFutureListener listener, boolean flush) {
-  }
+    @Override
+    public void send(@NotNull Packet<?> packet, @Nullable ChannelFutureListener listener, boolean flush) {}
 
-  public void send(@NotNull Packet<?> packet, @Nullable PacketSendListener listener) {
-  }
+    public void send(@NotNull Packet<?> packet, @Nullable PacketSendListener listener) {}
 
-  public void send(
-      @NotNull Packet<?> packet, @Nullable PacketSendListener listener, boolean flush) {
-  }
+    public void send(@NotNull Packet<?> packet, @Nullable PacketSendListener listener, boolean flush) {}
 }

@@ -6,15 +6,20 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public interface FppSettingsItem {
-  @NotNull String getId();
+    @NotNull
+    String getId();
 
-  @NotNull String getLabel();
+    @NotNull
+    String getLabel();
 
-  @NotNull String getDescription();
+    @NotNull
+    String getDescription();
 
-  @NotNull Material getIcon();
+    @NotNull
+    Material getIcon();
 
-  @Nullable String getValue();
+    @Nullable
+    String getValue();
 
-  void onClick(@NotNull Player viewer);
+    void onClick(@NotNull Player viewer);
 }

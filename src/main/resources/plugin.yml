@@ -146,6 +146,10 @@ permissions:
       fpp.xp:                   true
       fpp.info.user:            true
       fpp.spawn.limit.1:        true
+      fpp.left-click.once:      true
+      fpp.left-click.stop:      true
+      fpp.right-click.once:     true
+      fpp.right-click.stop:     true
 
   # ════════════════════════════════════════════════════════════════════════════
   #  VISIBILITY

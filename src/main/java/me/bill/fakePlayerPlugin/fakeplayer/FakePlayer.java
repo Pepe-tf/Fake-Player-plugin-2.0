@@ -1,14 +1,5 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import com.destroystokyo.paper.profile.PlayerProfile;
-import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.database.BotRecord;
-import org.bukkit.Location;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashSet;
@@ -18,843 +9,864 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.destroystokyo.paper.profile.PlayerProfile;
+
+import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.database.BotRecord;
+
 @SuppressWarnings("unused")
 public final class FakePlayer {
 
-  private final String name;
-  private final PlayerProfile profile;
-  private final UUID uuid;
+    private final String name;
+    private final PlayerProfile profile;
+    private final UUID uuid;
 
-  private Location spawnLocation;
+    private Location spawnLocation;
 
-  private Player player;
+    private Player player;
 
-  private String spawnedBy = "UNKNOWN";
-  private UUID spawnedByUuid = new UUID(0, 0);
-  private BotRecord dbRecord;
-  private Instant spawnTime = Instant.now();
+    private String spawnedBy = "UNKNOWN";
+    private UUID spawnedByUuid = new UUID(0, 0);
+    private BotRecord dbRecord;
+    private Instant spawnTime = Instant.now();
 
-  private String displayName = null;
+    private String displayName = null;
 
-  private String rawDisplayName = null;
+    private String rawDisplayName = null;
 
-  private String skinName = null;
+    private String skinName = null;
 
-  private SkinProfile resolvedSkin = null;
+    private SkinProfile resolvedSkin = null;
 
-  private double totalDamageTaken = 0.0;
+    private double totalDamageTaken = 0.0;
 
-  private int deathCount = 0;
+    private int deathCount = 0;
 
-  private int lastChunkX = Integer.MIN_VALUE;
-  private int lastChunkZ = Integer.MIN_VALUE;
+    private int lastChunkX = Integer.MIN_VALUE;
+    private int lastChunkZ = Integer.MIN_VALUE;
 
-  private Entity nametagEntity = null;
+    private Entity nametagEntity = null;
 
-  private String packetProfileName = null;
+    private String packetProfileName = null;
 
-  private boolean alive = true;
+    private boolean alive = true;
 
-  private boolean respawning = false;
-  private boolean respawnOnDeath = Config.respawnOnDeath();
+    private boolean respawning = false;
+    private boolean respawnOnDeath = Config.respawnOnDeath();
 
-  private int tabRefreshCount = 0;
+    private int tabRefreshCount = 0;
 
-  private transient volatile Object cachedNmsDisplayComponent;
+    private transient volatile Object cachedNmsDisplayComponent;
 
-  private transient volatile String cachedNmsDisplaySource;
+    private transient volatile String cachedNmsDisplaySource;
 
-  private transient volatile Object cachedTabListGameProfile;
+    private transient volatile Object cachedTabListGameProfile;
 
-  private boolean frozen = false;
+    private boolean frozen = false;
 
-  private String lastKnownWorld = null;
+    private String lastKnownWorld = null;
 
-  private boolean bodyless = false;
+    private boolean bodyless = false;
 
-  /**
-   * True when this bot was spawned via {@code spawnRestored} (server restart persistence).
-   */
-  private boolean restoredSpawn = false;
+    private boolean inventoryOpen = false;
 
-  private String luckpermsGroup = null;
+    /**
+     * True when this bot was spawned via {@code spawnRestored} (server restart persistence).
+     */
+    private boolean restoredSpawn = false;
 
-  private BotType botType = BotType.AFK;
+    private String luckpermsGroup = null;
 
-  private boolean chatEnabled = true;
+    private BotType botType = BotType.AFK;
 
-  private String chatTier = null;
+    private boolean chatEnabled = true;
 
-  private String aiPersonality = null;
+    private String chatTier = null;
 
-  private String rightClickCommand = null;
+    private String aiPersonality = null;
 
-  private boolean headAiEnabled = true;
+    private String rightClickCommand = null;
 
-  private boolean pickUpItemsEnabled = Config.bodyPickUpItems();
+    private boolean headAiEnabled = true;
 
-  private boolean pickUpXpEnabled = Config.bodyPickUpXp();
+    private boolean pickUpItemsEnabled = Config.bodyPickUpItems();
 
-  private boolean navParkour = Config.pathfindingParkour();
+    private boolean pickUpXpEnabled = Config.bodyPickUpXp();
 
-  private boolean navBreakBlocks = Config.pathfindingBreakBlocks();
+    private boolean navParkour = Config.pathfindingParkour();
 
-  private boolean navPlaceBlocks = Config.pathfindingPlaceBlocks();
+    private boolean navBreakBlocks = Config.pathfindingBreakBlocks();
 
-  private boolean navAvoidWater = false;
+    private boolean navPlaceBlocks = Config.pathfindingPlaceBlocks();
 
-  private boolean navAvoidLava = false;
+    private boolean navAvoidWater = false;
 
-  private boolean defaultWaterPathAvoidanceEnabled = true;
+    private boolean navAvoidLava = false;
 
-  private boolean swimAiEnabled = Config.swimAiEnabled();
+    private boolean defaultWaterPathAvoidanceEnabled = true;
 
-  private int chunkLoadRadius = -1;
+    private boolean swimAiEnabled = Config.swimAiEnabled();
 
-  public enum PveSmartAttackMode {
-    OFF,
-    ON_NO_MOVE,
-    ON_MOVE;
+    private int chunkLoadRadius = -1;
 
-    public boolean isEnabled() {
-      return this != OFF;
+    public enum PveSmartAttackMode {
+        OFF,
+        ON_NO_MOVE,
+        ON_MOVE;
+
+        public boolean isEnabled() {
+            return this != OFF;
+        }
+
+        public boolean movesWhileAttacking() {
+            return this == ON_MOVE;
+        }
+
+        public PveSmartAttackMode next() {
+            return switch (this) {
+                case OFF -> ON_NO_MOVE;
+                case ON_NO_MOVE -> ON_MOVE;
+                case ON_MOVE -> OFF;
+            };
+        }
+
+        public static PveSmartAttackMode fromStoredValue(String raw) {
+            if (raw == null || raw.isBlank()) return OFF;
+            return switch (raw.trim().toUpperCase(Locale.ROOT)) {
+                case "ON", "ON_WITHOUT_MOVEMENT", "ON_NO_MOVE", "NO_MOVE", "WITHOUT_MOVEMENT" -> ON_NO_MOVE;
+                case "ON_MOVE", "MOVE", "ON_WITH_MOVEMENT", "WITH_MOVEMENT" -> ON_MOVE;
+                default -> OFF;
+            };
+        }
     }
 
-    public boolean movesWhileAttacking() {
-      return this == ON_MOVE;
+    private PveSmartAttackMode pveSmartAttackMode = PveSmartAttackMode.OFF;
+    private double pveRange = Config.attackMobDefaultRange();
+    private String pvePriority = Config.attackMobDefaultPriority();
+    private Set<String> pveMobTypes = new LinkedHashSet<>();
+    private final Set<UUID> sharedControllers = ConcurrentHashMap.newKeySet();
+    private boolean autoEatEnabled = Config.autoEatEnabled();
+    private boolean autoPlaceBedEnabled = Config.autoPlaceBedEnabled();
+    private boolean autoMilkEnabled = Config.autoMilkEnabled();
+    private boolean preventBadOmen = Config.preventBadOmen();
+
+    private volatile String nameTagNick = null;
+
+    private int ping = -1;
+
+    private int basePing = -1;
+
+    private boolean pingUserSet = false;
+
+    private long spawnTimeMs = 0;
+
+    private volatile boolean tabListDirty = true;
+
+    /**
+     * Addon-attached metadata — transient, cleared on despawn.
+     */
+    private final Map<String, Object> metadata = new ConcurrentHashMap<>();
+
+    // ── Sleep system ──────────────────────────────────────────────────────────
+    /**
+     * Station location used as the center for bed searching. null = not configured.
+     */
+    private Location sleepOrigin = null;
+    /**
+     * Bed-search radius in blocks. 0 = sleep disabled for this bot.
+     */
+    private double sleepRadius = 0.0;
+    /**
+     * True while the bot is currently in the sleeping state.
+     */
+    private boolean sleeping = false;
+
+    public FakePlayer(UUID uuid, String name, PlayerProfile profile) {
+        this.uuid = uuid;
+        this.name = name;
+        this.profile = profile;
     }
 
-    public PveSmartAttackMode next() {
-      return switch (this) {
-        case OFF -> ON_NO_MOVE;
-        case ON_NO_MOVE -> ON_MOVE;
-        case ON_MOVE -> OFF;
-      };
+    public UUID getUuid() {
+        return uuid;
     }
 
-    public static PveSmartAttackMode fromStoredValue(String raw) {
-      if (raw == null || raw.isBlank()) return OFF;
-      return switch (raw.trim().toUpperCase(Locale.ROOT)) {
-        case "ON", "ON_WITHOUT_MOVEMENT", "ON_NO_MOVE", "NO_MOVE", "WITHOUT_MOVEMENT" -> ON_NO_MOVE;
-        case "ON_MOVE", "MOVE", "ON_WITH_MOVEMENT", "WITH_MOVEMENT" -> ON_MOVE;
-        default -> OFF;
-      };
+    public String getName() {
+        return name;
     }
-  }
 
-  private PveSmartAttackMode pveSmartAttackMode = PveSmartAttackMode.OFF;
-  private double pveRange = Config.attackMobDefaultRange();
-  private String pvePriority = Config.attackMobDefaultPriority();
-  private Set<String> pveMobTypes = new LinkedHashSet<>();
-  private final Set<UUID> sharedControllers = ConcurrentHashMap.newKeySet();
-  private boolean autoEatEnabled = Config.autoEatEnabled();
-  private boolean autoPlaceBedEnabled = Config.autoPlaceBedEnabled();
-  private boolean autoMilkEnabled = Config.autoMilkEnabled();
-  private boolean preventBadOmen = Config.preventBadOmen();
-
-  private volatile String nameTagNick = null;
-
-  private int ping = -1;
-
-  private int basePing = -1;
-
-  private boolean pingUserSet = false;
-
-  private long spawnTimeMs = 0;
-
-  private volatile boolean tabListDirty = true;
-
-  /**
-   * Addon-attached metadata — transient, cleared on despawn.
-   */
-  private final Map<String, Object> metadata = new ConcurrentHashMap<>();
-
-  // ── Sleep system ──────────────────────────────────────────────────────────
-  /**
-   * Station location used as the center for bed searching. null = not configured.
-   */
-  private Location sleepOrigin = null;
-  /**
-   * Bed-search radius in blocks. 0 = sleep disabled for this bot.
-   */
-  private double sleepRadius = 0.0;
-  /**
-   * True while the bot is currently in the sleeping state.
-   */
-  private boolean sleeping = false;
-
-  public FakePlayer(UUID uuid, String name, PlayerProfile profile) {
-    this.uuid = uuid;
-    this.name = name;
-    this.profile = profile;
-  }
-
-  public UUID getUuid() {
-    return uuid;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public PlayerProfile getProfile() {
-    return profile;
-  }
-
-  public Location getSpawnLocation() {
-    return spawnLocation;
-  }
-
-  public Player getPhysicsEntity() {
-    return player;
-  }
-
-  public Player getPlayer() {
-    return player;
-  }
-
-  public int getEntityId() {
-    return player != null ? player.getEntityId() : -1;
-  }
-
-  public String getDisplayName() {
-    return displayName != null ? displayName : name;
-  }
-
-  public String getSkinName() {
-    return skinName != null ? skinName : name;
-  }
-
-  public Location getLiveLocation() {
-    if (player != null && player.isOnline() && !player.isDead()) return player.getLocation();
-    return spawnLocation;
-  }
-
-  public Duration getUptime() {
-    return Duration.between(spawnTime, Instant.now());
-  }
-
-  public String getUptimeFormatted() {
-    Duration d = getUptime();
-    long h = d.toHours();
-    long m = d.toMinutesPart();
-    long s = d.toSecondsPart();
-    if (h > 0) return h + "h " + m + "m " + s + "s";
-    if (m > 0) return m + "m " + s + "s";
-    return s + "s";
-  }
-
-  public double getTotalDamageTaken() {
-    return totalDamageTaken;
-  }
-
-  public int getDeathCount() {
-    return deathCount;
-  }
-
-  public boolean isAlive() {
-    return alive;
-  }
-
-  public int getTabRefreshCount() {
-    return tabRefreshCount;
-  }
-
-  public boolean isFrozen() {
-    return frozen;
-  }
-
-  public String getLastKnownWorld() {
-    return lastKnownWorld;
-  }
-
-  public void addDamageTaken(double amount) {
-    totalDamageTaken += amount;
-  }
-
-  public void incrementDeathCount() {
-    deathCount++;
-  }
-
-  public void setAlive(boolean alive) {
-    this.alive = alive;
-  }
-
-  public void incrementTabRefresh() {
-    tabRefreshCount++;
-  }
-
-  public void setFrozen(boolean frozen) {
-    this.frozen = frozen;
-  }
-
-  public Object getCachedNmsDisplayComponent() {
-    return cachedNmsDisplayComponent;
-  }
-
-  public String getCachedNmsDisplaySource() {
-    return cachedNmsDisplaySource;
-  }
-
-  public void setCachedNmsDisplay(Object comp, String source) {
-    this.cachedNmsDisplayComponent = comp;
-    this.cachedNmsDisplaySource = source;
-  }
-
-  public Object getCachedTabListGameProfile() {
-    return cachedTabListGameProfile;
-  }
-
-  public void setCachedTabListGameProfile(Object profile) {
-    this.cachedTabListGameProfile = profile;
-  }
-
-  public void clearCachedTabListGameProfile() {
-    this.cachedTabListGameProfile = null;
-  }
-
-  public int getLastChunkX() {
-    return lastChunkX;
-  }
-
-  public int getLastChunkZ() {
-    return lastChunkZ;
-  }
-
-  public void setLastChunk(int cx, int cz) {
-    lastChunkX = cx;
-    lastChunkZ = cz;
-  }
-
-  public boolean hasMovedChunk(int cx, int cz) {
-    return cx != lastChunkX || cz != lastChunkZ;
-  }
-
-  public void setSpawnLocation(Location loc) {
-    this.spawnLocation = loc;
-  }
-
-  public void setPlayer(Player p) {
-    this.player = p;
-  }
-
-  public void setPhysicsEntity(Entity e) {
-    this.player = e instanceof Player ? (Player) e : null;
-  }
-
-  public void setDisplayName(String name) {
-    this.displayName = name;
-    this.tabListDirty = true;
-    this.cachedNmsDisplayComponent = null;
-    this.cachedNmsDisplaySource = null;
-  }
-
-  public String getRawDisplayName() {
-    return rawDisplayName;
-  }
-
-  public void setRawDisplayName(String name) {
-    this.rawDisplayName = name;
-  }
-
-  public String getLuckpermsGroup() {
-    return luckpermsGroup;
-  }
-
-  public void setLuckpermsGroup(String group) {
-    this.luckpermsGroup = group;
-  }
-
-  public BotType getBotType() {
-    return botType != null ? botType : BotType.AFK;
-  }
-
-  public void setBotType(BotType type) {
-    this.botType = type;
-  }
-
-  public boolean isRespawning() {
-    return respawning;
-  }
-
-  public void setRespawning(boolean v) {
-    this.respawning = v;
-  }
-
-  public boolean isRespawnOnDeath() {
-    return respawnOnDeath;
-  }
-
-  public void setRespawnOnDeath(boolean v) {
-    this.respawnOnDeath = v;
-  }
-
-  public boolean isChatEnabled() {
-    return chatEnabled;
-  }
-
-  public void setChatEnabled(boolean v) {
-    this.chatEnabled = v;
-  }
-
-  public String getChatTier() {
-    return chatTier;
-  }
-
-  public void setChatTier(String tier) {
-    this.chatTier = tier;
-  }
-
-  public String getAiPersonality() {
-    return aiPersonality;
-  }
-
-  public void setAiPersonality(String personality) {
-    this.aiPersonality = personality;
-  }
-
-  public void setSkinName(String name) {
-    this.skinName = name;
-  }
-
-  public void setResolvedSkin(SkinProfile skin) {
-    this.resolvedSkin = skin;
-    this.cachedTabListGameProfile = null;
-  }
-
-  public String getRightClickCommand() {
-    return rightClickCommand;
-  }
-
-  public void setRightClickCommand(String cmd) {
-    this.rightClickCommand =
-        (cmd == null || cmd.isBlank()) ? null : cmd.stripLeading().replaceFirst("^/", "");
-  }
-
-  public boolean hasRightClickCommand() {
-    return rightClickCommand != null;
-  }
-
-  public boolean isHeadAiEnabled() {
-    return headAiEnabled;
-  }
-
-  public void setHeadAiEnabled(boolean v) {
-    this.headAiEnabled = v;
-  }
-
-  public boolean isPickUpItemsEnabled() {
-    return pickUpItemsEnabled;
-  }
-
-  public void setPickUpItemsEnabled(boolean v) {
-    this.pickUpItemsEnabled = v;
-  }
-
-  public boolean isPickUpXpEnabled() {
-    return pickUpXpEnabled;
-  }
-
-  public void setPickUpXpEnabled(boolean v) {
-    this.pickUpXpEnabled = v;
-  }
-
-  public boolean isNavParkour() {
-    return navParkour;
-  }
-
-  public void setNavParkour(boolean v) {
-    this.navParkour = v;
-  }
-
-  public boolean isNavBreakBlocks() {
-    return navBreakBlocks;
-  }
-
-  public void setNavBreakBlocks(boolean v) {
-    this.navBreakBlocks = v;
-  }
-
-  public boolean isNavPlaceBlocks() {
-    return navPlaceBlocks;
-  }
-
-  public void setNavPlaceBlocks(boolean v) {
-    this.navPlaceBlocks = v;
-  }
-
-  public boolean isNavAvoidWater() {
-    return navAvoidWater;
-  }
-
-  public void setNavAvoidWater(boolean v) {
-    this.navAvoidWater = v;
-  }
-
-  public boolean isNavAvoidLava() {
-    return navAvoidLava;
-  }
-
-  public void setNavAvoidLava(boolean v) {
-    this.navAvoidLava = v;
-  }
-
-  public boolean isDefaultWaterPathAvoidanceEnabled() {
-    return defaultWaterPathAvoidanceEnabled;
-  }
-
-  public void setDefaultWaterPathAvoidanceEnabled(boolean v) {
-    this.defaultWaterPathAvoidanceEnabled = v;
-  }
-
-  public boolean isSwimAiEnabled() {
-    return swimAiEnabled;
-  }
-
-  public void setSwimAiEnabled(boolean v) {
-    this.swimAiEnabled = v;
-  }
-
-  public int getChunkLoadRadius() {
-    return chunkLoadRadius;
-  }
-
-  public void setChunkLoadRadius(int r) {
-    this.chunkLoadRadius = r;
-  }
-
-  @Nullable
-  public String getNameTagNick() {
-    return nameTagNick;
-  }
-
-  public void setNameTagNick(@Nullable String nick) {
-    this.nameTagNick = nick;
-
-    this.cachedNmsDisplayComponent = null;
-    this.cachedNmsDisplaySource = null;
-  }
-
-  public int getPing() {
-    return ping;
-  }
-
-  public void setPing(int ping) {
-    int newPing = (ping < 0) ? -1 : Math.min(ping, 9999);
-    if (this.ping != newPing) {
-      this.ping = newPing;
-      this.tabListDirty = true;
+    public PlayerProfile getProfile() {
+        return profile;
     }
-  }
 
-  public int getBasePing() {
-    return basePing;
-  }
-
-  public void setBasePing(int basePing) {
-    this.basePing = basePing;
-  }
-
-  public boolean hasCustomPing() {
-    return pingUserSet;
-  }
-
-  public boolean isPingSimulated() {
-    return !pingUserSet && basePing >= 0;
-  }
-
-  public int getEffectivePing() {
-    if (ping >= 0) return ping;
-    if (basePing >= 0) return basePing;
-    return 0;
-  }
-
-  public void setUserPing(int pingMs) {
-    if (pingMs < 0) {
-      this.pingUserSet = false;
-      this.ping = -1;
-    } else {
-      this.pingUserSet = true;
-      setPing(pingMs);
+    public Location getSpawnLocation() {
+        return spawnLocation;
     }
-    this.tabListDirty = true;
-  }
 
-  public long getSpawnTick() {
-    return spawnTimeMs;
-  }
-
-  public void setSpawnTick(long ms) {
-    this.spawnTimeMs = ms;
-  }
-
-  public boolean isTabListDirty() {
-    return tabListDirty;
-  }
-
-  public void clearTabListDirty() {
-    tabListDirty = false;
-  }
-
-  public void markTabListDirty() {
-    tabListDirty = true;
-  }
-
-  public SkinProfile getResolvedSkin() {
-    return resolvedSkin;
-  }
-
-  public String getSpawnedBy() {
-    return spawnedBy;
-  }
-
-  public UUID getSpawnedByUuid() {
-    return spawnedByUuid;
-  }
-
-  public BotRecord getDbRecord() {
-    return dbRecord;
-  }
-
-  public Instant getSpawnTime() {
-    return spawnTime;
-  }
-
-  public void setSpawnedBy(String name, UUID uuid) {
-    this.spawnedBy = name;
-    this.spawnedByUuid = uuid;
-  }
-
-  public void setDbRecord(BotRecord record) {
-    this.dbRecord = record;
-  }
-
-  public void setSpawnTime(Instant t) {
-    this.spawnTime = t;
-  }
-
-  public boolean isBodyless() {
-    return bodyless;
-  }
-
-  public void setBodyless(boolean bodyless) {
-    this.bodyless = bodyless;
-  }
-
-  public boolean isRestoredSpawn() {
-    return restoredSpawn;
-  }
-
-  public void setRestoredSpawn(boolean restoredSpawn) {
-    this.restoredSpawn = restoredSpawn;
-  }
-
-  public Entity getNametagEntity() {
-    return nametagEntity;
-  }
-
-  public void setNametagEntity(Entity entity) {
-    this.nametagEntity = entity;
-  }
-
-  public String getPacketProfileName() {
-    String p = packetProfileName != null ? packetProfileName : name;
-    return (p == null || p.isBlank()) ? name : p;
-  }
-
-  public void setPacketProfileName(String n) {
-    this.packetProfileName = (n == null || n.isBlank()) ? this.name : n;
-  }
-
-  public boolean isPveEnabled() {
-    return pveSmartAttackMode.isEnabled();
-  }
-
-  public void setPveEnabled(boolean v) {
-    if (!v) {
-      this.pveSmartAttackMode = PveSmartAttackMode.OFF;
-    } else if (this.pveSmartAttackMode == PveSmartAttackMode.OFF) {
-      this.pveSmartAttackMode = PveSmartAttackMode.ON_NO_MOVE;
+    public Player getPhysicsEntity() {
+        return player;
     }
-  }
 
-  public double getPveRange() {
-    return pveRange;
-  }
-
-  public void setPveRange(double v) {
-    this.pveRange = v;
-  }
-
-  public String getPvePriority() {
-    return pvePriority;
-  }
-
-  public void setPvePriority(String v) {
-    this.pvePriority = v;
-  }
-
-  public PveSmartAttackMode getPveSmartAttackMode() {
-    return pveSmartAttackMode;
-  }
-
-  public void setPveSmartAttackMode(PveSmartAttackMode mode) {
-    this.pveSmartAttackMode = mode != null ? mode : PveSmartAttackMode.OFF;
-  }
-
-  public void setPveSmartAttackMode(String mode) {
-    this.pveSmartAttackMode = PveSmartAttackMode.fromStoredValue(mode);
-  }
-
-  public boolean isPveMoveToTarget() {
-    return pveSmartAttackMode.movesWhileAttacking();
-  }
-
-  public void setPveMoveToTarget(boolean v) {
-    this.pveSmartAttackMode = v ? PveSmartAttackMode.ON_MOVE : PveSmartAttackMode.ON_NO_MOVE;
-  }
-
-  public String getPveMobType() {
-    return pveMobTypes.isEmpty() ? null : String.join(",", pveMobTypes);
-  }
-
-  public void setPveMobType(String v) {
-    pveMobTypes.clear();
-    if (v != null && !v.isBlank()) {
-      for (String part : v.split(",")) {
-        String trimmed = part.trim();
-        if (!trimmed.isEmpty()) pveMobTypes.add(trimmed);
-      }
+    public Player getPlayer() {
+        return player;
     }
-  }
 
-  public Set<String> getPveMobTypes() {
-    return pveMobTypes;
-  }
-
-  public void setPveMobTypes(Set<String> types) {
-    this.pveMobTypes = types != null ? new LinkedHashSet<>(types) : new LinkedHashSet<>();
-  }
-
-  public boolean togglePveMobType(String type) {
-    if (pveMobTypes.contains(type)) {
-      pveMobTypes.remove(type);
-      return false;
-    } else {
-      pveMobTypes.add(type);
-      return true;
+    public int getEntityId() {
+        return player != null ? player.getEntityId() : -1;
     }
-  }
 
-  public boolean hasPveMobType(String type) {
-    return pveMobTypes.contains(type);
-  }
-
-  public Set<UUID> getSharedControllers() {
-    return Set.copyOf(sharedControllers);
-  }
-
-  public boolean hasSharedController(UUID uuid) {
-    return uuid != null && sharedControllers.contains(uuid);
-  }
-
-  public boolean addSharedController(UUID uuid) {
-    return uuid != null && !uuid.equals(spawnedByUuid) && sharedControllers.add(uuid);
-  }
-
-  public boolean removeSharedController(UUID uuid) {
-    return uuid != null && sharedControllers.remove(uuid);
-  }
-
-  public boolean isAutoEatEnabled() {
-    return autoEatEnabled;
-  }
-
-  public void setAutoEatEnabled(boolean autoEatEnabled) {
-    this.autoEatEnabled = autoEatEnabled;
-  }
-
-  public boolean isAutoPlaceBedEnabled() {
-    return autoPlaceBedEnabled;
-  }
-
-  public void setAutoPlaceBedEnabled(boolean autoPlaceBedEnabled) {
-    this.autoPlaceBedEnabled = autoPlaceBedEnabled;
-  }
-
-  public boolean isAutoMilkEnabled() {
-    return autoMilkEnabled;
-  }
-
-  public void setAutoMilkEnabled(boolean autoMilkEnabled) {
-    this.autoMilkEnabled = autoMilkEnabled;
-  }
-
-  public boolean isPreventBadOmen() {
-    return preventBadOmen;
-  }
-
-  public void setPreventBadOmen(boolean preventBadOmen) {
-    this.preventBadOmen = preventBadOmen;
-  }
-
-  // ── Sleep system accessors ────────────────────────────────────────────────
-
-  @Nullable
-  public Location getSleepOrigin() {
-    return sleepOrigin;
-  }
-
-  public void setSleepOrigin(@Nullable Location origin) {
-    this.sleepOrigin = origin != null ? origin.clone() : null;
-  }
-
-  public double getSleepRadius() {
-    return sleepRadius;
-  }
-
-  public void setSleepRadius(double radius) {
-    this.sleepRadius = radius;
-  }
-
-  public boolean isSleeping() {
-    return sleeping;
-  }
-
-  public void setSleeping(boolean sleeping) {
-    this.sleeping = sleeping;
-  }
-
-  // ── Addon metadata ────────────────────────────────────────────────────────
-
-  @Nullable
-  public Object getMetadata(String key) {
-    return key != null ? metadata.get(key) : null;
-  }
-
-  public void setMetadata(String key, Object value) {
-    if (key == null) return;
-    if (value == null) {
-      metadata.remove(key);
-    } else {
-      metadata.put(key, value);
+    public String getDisplayName() {
+        return displayName != null ? displayName : name;
     }
-  }
 
-  public boolean hasMetadata(String key) {
-    return key != null && metadata.containsKey(key);
-  }
+    public String getSkinName() {
+        return skinName != null ? skinName : name;
+    }
 
-  public void removeMetadata(String key) {
-    if (key != null) metadata.remove(key);
-  }
+    public Location getLiveLocation() {
+        if (player != null && player.isOnline() && !player.isDead()) return player.getLocation();
+        return spawnLocation;
+    }
 
-  @NotNull
-  public Map<String, Object> getMetadataMap() {
-    return Map.copyOf(metadata);
-  }
+    public Duration getUptime() {
+        return Duration.between(spawnTime, Instant.now());
+    }
 
-  public void clearMetadata() {
-    metadata.clear();
-  }
+    public String getUptimeFormatted() {
+        Duration d = getUptime();
+        long h = d.toHours();
+        long m = d.toMinutesPart();
+        long s = d.toSecondsPart();
+        if (h > 0) return h + "h " + m + "m " + s + "s";
+        if (m > 0) return m + "m " + s + "s";
+        return s + "s";
+    }
+
+    public double getTotalDamageTaken() {
+        return totalDamageTaken;
+    }
+
+    public int getDeathCount() {
+        return deathCount;
+    }
+
+    public boolean isAlive() {
+        return alive;
+    }
+
+    public int getTabRefreshCount() {
+        return tabRefreshCount;
+    }
+
+    public boolean isFrozen() {
+        return frozen;
+    }
+
+    public String getLastKnownWorld() {
+        return lastKnownWorld;
+    }
+
+    public void addDamageTaken(double amount) {
+        totalDamageTaken += amount;
+    }
+
+    public void incrementDeathCount() {
+        deathCount++;
+    }
+
+    public void setAlive(boolean alive) {
+        this.alive = alive;
+    }
+
+    public void incrementTabRefresh() {
+        tabRefreshCount++;
+    }
+
+    public void setFrozen(boolean frozen) {
+        this.frozen = frozen;
+    }
+
+    public Object getCachedNmsDisplayComponent() {
+        return cachedNmsDisplayComponent;
+    }
+
+    public String getCachedNmsDisplaySource() {
+        return cachedNmsDisplaySource;
+    }
+
+    public void setCachedNmsDisplay(Object comp, String source) {
+        this.cachedNmsDisplayComponent = comp;
+        this.cachedNmsDisplaySource = source;
+    }
+
+    public Object getCachedTabListGameProfile() {
+        return cachedTabListGameProfile;
+    }
+
+    public void setCachedTabListGameProfile(Object profile) {
+        this.cachedTabListGameProfile = profile;
+    }
+
+    public void clearCachedTabListGameProfile() {
+        this.cachedTabListGameProfile = null;
+    }
+
+    public int getLastChunkX() {
+        return lastChunkX;
+    }
+
+    public int getLastChunkZ() {
+        return lastChunkZ;
+    }
+
+    public void setLastChunk(int cx, int cz) {
+        lastChunkX = cx;
+        lastChunkZ = cz;
+    }
+
+    public boolean hasMovedChunk(int cx, int cz) {
+        return cx != lastChunkX || cz != lastChunkZ;
+    }
+
+    public void setSpawnLocation(Location loc) {
+        this.spawnLocation = loc;
+    }
+
+    public void setPlayer(Player p) {
+        this.player = p;
+    }
+
+    public void setPhysicsEntity(Entity e) {
+        this.player = e instanceof Player ? (Player) e : null;
+    }
+
+    public void setDisplayName(String name) {
+        this.displayName = name;
+        this.tabListDirty = true;
+        this.cachedNmsDisplayComponent = null;
+        this.cachedNmsDisplaySource = null;
+    }
+
+    public String getRawDisplayName() {
+        return rawDisplayName;
+    }
+
+    public void setRawDisplayName(String name) {
+        this.rawDisplayName = name;
+    }
+
+    public String getLuckpermsGroup() {
+        return luckpermsGroup;
+    }
+
+    public void setLuckpermsGroup(String group) {
+        this.luckpermsGroup = group;
+    }
+
+    public boolean isInventoryOpen() {
+        return inventoryOpen;
+    }
+
+    public void setInventoryOpen(boolean open) {
+        this.inventoryOpen = open;
+    }
+
+    public BotType getBotType() {
+        return botType != null ? botType : BotType.AFK;
+    }
+
+    public void setBotType(BotType type) {
+        this.botType = type;
+    }
+
+    public boolean isRespawning() {
+        return respawning;
+    }
+
+    public void setRespawning(boolean v) {
+        this.respawning = v;
+    }
+
+    public boolean isRespawnOnDeath() {
+        return respawnOnDeath;
+    }
+
+    public void setRespawnOnDeath(boolean v) {
+        this.respawnOnDeath = v;
+    }
+
+    public boolean isChatEnabled() {
+        return chatEnabled;
+    }
+
+    public void setChatEnabled(boolean v) {
+        this.chatEnabled = v;
+    }
+
+    public String getChatTier() {
+        return chatTier;
+    }
+
+    public void setChatTier(String tier) {
+        this.chatTier = tier;
+    }
+
+    public String getAiPersonality() {
+        return aiPersonality;
+    }
+
+    public void setAiPersonality(String personality) {
+        this.aiPersonality = personality;
+    }
+
+    public void setSkinName(String name) {
+        this.skinName = name;
+    }
+
+    public void setResolvedSkin(SkinProfile skin) {
+        this.resolvedSkin = skin;
+        this.cachedTabListGameProfile = null;
+    }
+
+    public String getRightClickCommand() {
+        return rightClickCommand;
+    }
+
+    public void setRightClickCommand(String cmd) {
+        this.rightClickCommand =
+                (cmd == null || cmd.isBlank()) ? null : cmd.stripLeading().replaceFirst("^/", "");
+    }
+
+    public boolean hasRightClickCommand() {
+        return rightClickCommand != null;
+    }
+
+    public boolean isHeadAiEnabled() {
+        return headAiEnabled;
+    }
+
+    public void setHeadAiEnabled(boolean v) {
+        this.headAiEnabled = v;
+    }
+
+    public boolean isPickUpItemsEnabled() {
+        return pickUpItemsEnabled;
+    }
+
+    public void setPickUpItemsEnabled(boolean v) {
+        this.pickUpItemsEnabled = v;
+    }
+
+    public boolean isPickUpXpEnabled() {
+        return pickUpXpEnabled;
+    }
+
+    public void setPickUpXpEnabled(boolean v) {
+        this.pickUpXpEnabled = v;
+    }
+
+    public boolean isNavParkour() {
+        return navParkour;
+    }
+
+    public void setNavParkour(boolean v) {
+        this.navParkour = v;
+    }
+
+    public boolean isNavBreakBlocks() {
+        return navBreakBlocks;
+    }
+
+    public void setNavBreakBlocks(boolean v) {
+        this.navBreakBlocks = v;
+    }
+
+    public boolean isNavPlaceBlocks() {
+        return navPlaceBlocks;
+    }
+
+    public void setNavPlaceBlocks(boolean v) {
+        this.navPlaceBlocks = v;
+    }
+
+    public boolean isNavAvoidWater() {
+        return navAvoidWater;
+    }
+
+    public void setNavAvoidWater(boolean v) {
+        this.navAvoidWater = v;
+    }
+
+    public boolean isNavAvoidLava() {
+        return navAvoidLava;
+    }
+
+    public void setNavAvoidLava(boolean v) {
+        this.navAvoidLava = v;
+    }
+
+    public boolean isDefaultWaterPathAvoidanceEnabled() {
+        return defaultWaterPathAvoidanceEnabled;
+    }
+
+    public void setDefaultWaterPathAvoidanceEnabled(boolean v) {
+        this.defaultWaterPathAvoidanceEnabled = v;
+    }
+
+    public boolean isSwimAiEnabled() {
+        return swimAiEnabled;
+    }
+
+    public void setSwimAiEnabled(boolean v) {
+        this.swimAiEnabled = v;
+    }
+
+    public int getChunkLoadRadius() {
+        return chunkLoadRadius;
+    }
+
+    public void setChunkLoadRadius(int r) {
+        this.chunkLoadRadius = r;
+    }
+
+    @Nullable
+    public String getNameTagNick() {
+        return nameTagNick;
+    }
+
+    public void setNameTagNick(@Nullable String nick) {
+        this.nameTagNick = nick;
+
+        this.cachedNmsDisplayComponent = null;
+        this.cachedNmsDisplaySource = null;
+    }
+
+    public int getPing() {
+        return ping;
+    }
+
+    public void setPing(int ping) {
+        int newPing = (ping < 0) ? -1 : Math.min(ping, 9999);
+        if (this.ping != newPing) {
+            this.ping = newPing;
+            this.tabListDirty = true;
+        }
+    }
+
+    public int getBasePing() {
+        return basePing;
+    }
+
+    public void setBasePing(int basePing) {
+        this.basePing = basePing;
+    }
+
+    public boolean hasCustomPing() {
+        return pingUserSet;
+    }
+
+    public boolean isPingSimulated() {
+        return !pingUserSet && basePing >= 0;
+    }
+
+    public int getEffectivePing() {
+        if (ping >= 0) return ping;
+        if (basePing >= 0) return basePing;
+        return 0;
+    }
+
+    public void setUserPing(int pingMs) {
+        if (pingMs < 0) {
+            this.pingUserSet = false;
+            this.ping = -1;
+        } else {
+            this.pingUserSet = true;
+            setPing(pingMs);
+        }
+        this.tabListDirty = true;
+    }
+
+    public long getSpawnTick() {
+        return spawnTimeMs;
+    }
+
+    public void setSpawnTick(long ms) {
+        this.spawnTimeMs = ms;
+    }
+
+    public boolean isTabListDirty() {
+        return tabListDirty;
+    }
+
+    public void clearTabListDirty() {
+        tabListDirty = false;
+    }
+
+    public void markTabListDirty() {
+        tabListDirty = true;
+    }
+
+    public SkinProfile getResolvedSkin() {
+        return resolvedSkin;
+    }
+
+    public String getSpawnedBy() {
+        return spawnedBy;
+    }
+
+    public UUID getSpawnedByUuid() {
+        return spawnedByUuid;
+    }
+
+    public BotRecord getDbRecord() {
+        return dbRecord;
+    }
+
+    public Instant getSpawnTime() {
+        return spawnTime;
+    }
+
+    public void setSpawnedBy(String name, UUID uuid) {
+        this.spawnedBy = name;
+        this.spawnedByUuid = uuid;
+    }
+
+    public void setDbRecord(BotRecord record) {
+        this.dbRecord = record;
+    }
+
+    public void setSpawnTime(Instant t) {
+        this.spawnTime = t;
+    }
+
+    public boolean isBodyless() {
+        return bodyless;
+    }
+
+    public void setBodyless(boolean bodyless) {
+        this.bodyless = bodyless;
+    }
+
+    public boolean isRestoredSpawn() {
+        return restoredSpawn;
+    }
+
+    public void setRestoredSpawn(boolean restoredSpawn) {
+        this.restoredSpawn = restoredSpawn;
+    }
+
+    public Entity getNametagEntity() {
+        return nametagEntity;
+    }
+
+    public void setNametagEntity(Entity entity) {
+        this.nametagEntity = entity;
+    }
+
+    public String getPacketProfileName() {
+        String p = packetProfileName != null ? packetProfileName : name;
+        return (p == null || p.isBlank()) ? name : p;
+    }
+
+    public void setPacketProfileName(String n) {
+        this.packetProfileName = (n == null || n.isBlank()) ? this.name : n;
+    }
+
+    public boolean isPveEnabled() {
+        return pveSmartAttackMode.isEnabled();
+    }
+
+    public void setPveEnabled(boolean v) {
+        if (!v) {
+            this.pveSmartAttackMode = PveSmartAttackMode.OFF;
+        } else if (this.pveSmartAttackMode == PveSmartAttackMode.OFF) {
+            this.pveSmartAttackMode = PveSmartAttackMode.ON_NO_MOVE;
+        }
+    }
+
+    public double getPveRange() {
+        return pveRange;
+    }
+
+    public void setPveRange(double v) {
+        this.pveRange = v;
+    }
+
+    public String getPvePriority() {
+        return pvePriority;
+    }
+
+    public void setPvePriority(String v) {
+        this.pvePriority = v;
+    }
+
+    public PveSmartAttackMode getPveSmartAttackMode() {
+        return pveSmartAttackMode;
+    }
+
+    public void setPveSmartAttackMode(PveSmartAttackMode mode) {
+        this.pveSmartAttackMode = mode != null ? mode : PveSmartAttackMode.OFF;
+    }
+
+    public void setPveSmartAttackMode(String mode) {
+        this.pveSmartAttackMode = PveSmartAttackMode.fromStoredValue(mode);
+    }
+
+    public boolean isPveMoveToTarget() {
+        return pveSmartAttackMode.movesWhileAttacking();
+    }
+
+    public void setPveMoveToTarget(boolean v) {
+        this.pveSmartAttackMode = v ? PveSmartAttackMode.ON_MOVE : PveSmartAttackMode.ON_NO_MOVE;
+    }
+
+    public String getPveMobType() {
+        return pveMobTypes.isEmpty() ? null : String.join(",", pveMobTypes);
+    }
+
+    public void setPveMobType(String v) {
+        pveMobTypes.clear();
+        if (v != null && !v.isBlank()) {
+            for (String part : v.split(",")) {
+                String trimmed = part.trim();
+                if (!trimmed.isEmpty()) pveMobTypes.add(trimmed);
+            }
+        }
+    }
+
+    public Set<String> getPveMobTypes() {
+        return pveMobTypes;
+    }
+
+    public void setPveMobTypes(Set<String> types) {
+        this.pveMobTypes = types != null ? new LinkedHashSet<>(types) : new LinkedHashSet<>();
+    }
+
+    public boolean togglePveMobType(String type) {
+        if (pveMobTypes.contains(type)) {
+            pveMobTypes.remove(type);
+            return false;
+        } else {
+            pveMobTypes.add(type);
+            return true;
+        }
+    }
+
+    public boolean hasPveMobType(String type) {
+        return pveMobTypes.contains(type);
+    }
+
+    public Set<UUID> getSharedControllers() {
+        return Set.copyOf(sharedControllers);
+    }
+
+    public boolean hasSharedController(UUID uuid) {
+        return uuid != null && sharedControllers.contains(uuid);
+    }
+
+    public boolean addSharedController(UUID uuid) {
+        return uuid != null && !uuid.equals(spawnedByUuid) && sharedControllers.add(uuid);
+    }
+
+    public boolean removeSharedController(UUID uuid) {
+        return uuid != null && sharedControllers.remove(uuid);
+    }
+
+    public boolean isAutoEatEnabled() {
+        return autoEatEnabled;
+    }
+
+    public void setAutoEatEnabled(boolean autoEatEnabled) {
+        this.autoEatEnabled = autoEatEnabled;
+    }
+
+    public boolean isAutoPlaceBedEnabled() {
+        return autoPlaceBedEnabled;
+    }
+
+    public void setAutoPlaceBedEnabled(boolean autoPlaceBedEnabled) {
+        this.autoPlaceBedEnabled = autoPlaceBedEnabled;
+    }
+
+    public boolean isAutoMilkEnabled() {
+        return autoMilkEnabled;
+    }
+
+    public void setAutoMilkEnabled(boolean autoMilkEnabled) {
+        this.autoMilkEnabled = autoMilkEnabled;
+    }
+
+    public boolean isPreventBadOmen() {
+        return preventBadOmen;
+    }
+
+    public void setPreventBadOmen(boolean preventBadOmen) {
+        this.preventBadOmen = preventBadOmen;
+    }
+
+    // ── Sleep system accessors ────────────────────────────────────────────────
+
+    @Nullable
+    public Location getSleepOrigin() {
+        return sleepOrigin;
+    }
+
+    public void setSleepOrigin(@Nullable Location origin) {
+        this.sleepOrigin = origin != null ? origin.clone() : null;
+    }
+
+    public double getSleepRadius() {
+        return sleepRadius;
+    }
+
+    public void setSleepRadius(double radius) {
+        this.sleepRadius = radius;
+    }
+
+    public boolean isSleeping() {
+        return sleeping;
+    }
+
+    public void setSleeping(boolean sleeping) {
+        this.sleeping = sleeping;
+    }
+
+    // ── Addon metadata ────────────────────────────────────────────────────────
+
+    @Nullable
+    public Object getMetadata(String key) {
+        return key != null ? metadata.get(key) : null;
+    }
+
+    public void setMetadata(String key, Object value) {
+        if (key == null) return;
+        if (value == null) {
+            metadata.remove(key);
+        } else {
+            metadata.put(key, value);
+        }
+    }
+
+    public boolean hasMetadata(String key) {
+        return key != null && metadata.containsKey(key);
+    }
+
+    public void removeMetadata(String key) {
+        if (key != null) metadata.remove(key);
+    }
+
+    @NotNull
+    public Map<String, Object> getMetadataMap() {
+        return Map.copyOf(metadata);
+    }
+
+    public void clearMetadata() {
+        metadata.clear();
+    }
 }

@@ -257,6 +257,7 @@ logging:
     commands: false     # Command execution flow and ray tracing (mine/place/use)
     head-ai: false      # Head AI rotation and player tracking
     right-click: false  # Right-click action debugging (block interactions, hit detection)
+    right-click-head: false  # Right-click head/body rotation debug (target/aim/bot)
 
 # ── Update Checker ────────────────────────────────────────────────────────────
 update-checker:

@@ -1,14 +1,5 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.util.FppLogger;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
-
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -26,1330 +17,1270 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.entity.Player;
+
+import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.util.FppLogger;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+
 @SuppressWarnings("unused")
 public final class PacketHelper {
 
-  private PacketHelper() {
-  }
+    private PacketHelper() {}
 
-  private static volatile boolean ready = false;
-  private static volatile boolean broken = false;
+    private static volatile boolean ready = false;
+    private static volatile boolean broken = false;
 
-  private static Class<?> craftPlayerClass;
-  private static Class<?> gameProfileClass;
-  private static Class<?> playerInfoUpdatePacketClass;
-  private static Class<?> playerInfoUpdateActionClass;
-  private static Class<?> playerInfoUpdateEntryClass;
-  private static Class<?> playerInfoRemovePacketClass;
-  private static Class<?> addEntityPacketClass;
-  private static Class<?> removeEntitiesPacketClass;
-  private static Class<?> moveEntityRotPacketClass;
-  private static Class<?> rotateHeadPacketClass;
-  private static Class<?> vec3Class;
-  private static Class<?> entityTypeClass;
-  private static Object vec3Zero;
-  private static Object gameTypeSurvival;
-  private static Object entityTypePlayer;
+    private static Class<?> craftPlayerClass;
+    private static Class<?> gameProfileClass;
+    private static Class<?> playerInfoUpdatePacketClass;
+    private static Class<?> playerInfoUpdateActionClass;
+    private static Class<?> playerInfoUpdateEntryClass;
+    private static Class<?> playerInfoRemovePacketClass;
+    private static Class<?> addEntityPacketClass;
+    private static Class<?> removeEntitiesPacketClass;
+    private static Class<?> moveEntityRotPacketClass;
+    private static Class<?> rotateHeadPacketClass;
+    private static Class<?> vec3Class;
+    private static Class<?> entityTypeClass;
+    private static Object vec3Zero;
+    private static Object gameTypeSurvival;
+    private static Object entityTypePlayer;
 
-  private static volatile Constructor<?> cachedPosSyncCtor = null;
+    private static volatile Constructor<?> cachedPosSyncCtor = null;
 
-  private static volatile boolean posSyncUsesEntityArg = false;
+    private static volatile boolean posSyncUsesEntityArg = false;
 
-  private static volatile boolean posSyncCtorLookupDone = false;
+    private static volatile boolean posSyncCtorLookupDone = false;
 
-  private static volatile Constructor<?> cachedMoveEntityRotCtor = null;
+    private static volatile Constructor<?> cachedMoveEntityRotCtor = null;
 
-  private static volatile Constructor<?> cachedRotateHeadCtorInt = null;
+    private static volatile Constructor<?> cachedRotateHeadCtorInt = null;
 
-  private static volatile Constructor<?> cachedRotateHeadCtorEntity = null;
+    private static volatile Constructor<?> cachedRotateHeadCtorEntity = null;
 
-  private static volatile boolean rotCtorLookupDone = false;
+    private static volatile boolean rotCtorLookupDone = false;
 
-  private static volatile Object cachedUpdateDisplayNameActions = null;
+    private static volatile Object cachedUpdateDisplayNameActions = null;
 
-  private static volatile Object cachedUpdateLatencyActions = null;
+    private static volatile Object cachedUpdateLatencyActions = null;
 
-  private static volatile Object cachedUpdateListedActions = null;
+    private static volatile Object cachedUpdateListedActions = null;
 
-  private static volatile Object cachedUpdateDisplayLatencyListedActions = null;
+    private static volatile Object cachedUpdateDisplayLatencyListedActions = null;
 
-  private static volatile Constructor<?> cachedEntryCtorWinner = null;
+    private static volatile Constructor<?> cachedEntryCtorWinner = null;
 
-  private static volatile Class<?>[] cachedEntryCtorParamTypes = null;
+    private static volatile Class<?>[] cachedEntryCtorParamTypes = null;
 
-  private static volatile int cachedInfoUpdateSecondArgStrategy = 0;
+    private static volatile int cachedInfoUpdateSecondArgStrategy = 0;
 
-  private static volatile Class<?> cachedInfoUpdateArrayCompType = null;
+    private static volatile Class<?> cachedInfoUpdateArrayCompType = null;
 
-  private static Constructor<?> gameProfileCtor;
-  private static Method componentLiteral;
-  private static Method craftPlayerGetHandle;
-  private static Constructor<?> playerInfoUpdateCtor;
+    private static Constructor<?> gameProfileCtor;
+    private static Method componentLiteral;
+    private static Method craftPlayerGetHandle;
+    private static Constructor<?> playerInfoUpdateCtor;
 
-  private static Method paperAdventureAsVanilla;
+    private static Method paperAdventureAsVanilla;
 
-  private static volatile Field cachedConnectionField;
+    private static volatile Field cachedConnectionField;
 
-  private static volatile Method cachedSendMethod;
+    private static volatile Method cachedSendMethod;
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  private static synchronized void init() {
-    if (ready || broken) return;
-    try {
-      craftPlayerClass = getCraftPlayerClass();
-      for (Method m : craftPlayerClass.getDeclaredMethods()) {
-        if (m.getName().equals("getHandle") && m.getParameterCount() == 0) {
-          m.setAccessible(true);
-          craftPlayerGetHandle = m;
-          break;
-        }
-      }
-
-      ClassLoader nmsLoader = findNmsClassLoader();
-      if (nmsLoader == null)
-        throw new IllegalStateException("Cannot find NMS classloader - join the server first.");
-
-      gameProfileClass = nmsLoader.loadClass("com.mojang.authlib.GameProfile");
-      for (Constructor<?> c : gameProfileClass.getDeclaredConstructors()) {
-        Class<?>[] pt = c.getParameterTypes();
-        if (pt.length == 2 && pt[0] == UUID.class && pt[1] == String.class) {
-          c.setAccessible(true);
-          gameProfileCtor = c;
-          break;
-        }
-      }
-
-      String pkg = "net.minecraft.network.protocol.game.";
-      playerInfoUpdatePacketClass = nmsLoader.loadClass(pkg + "ClientboundPlayerInfoUpdatePacket");
-      playerInfoUpdateActionClass =
-          nmsLoader.loadClass(pkg + "ClientboundPlayerInfoUpdatePacket$Action");
-      playerInfoUpdateEntryClass =
-          nmsLoader.loadClass(pkg + "ClientboundPlayerInfoUpdatePacket$Entry");
-      playerInfoRemovePacketClass = nmsLoader.loadClass(pkg + "ClientboundPlayerInfoRemovePacket");
-      addEntityPacketClass = nmsLoader.loadClass(pkg + "ClientboundAddEntityPacket");
-      removeEntitiesPacketClass = nmsLoader.loadClass(pkg + "ClientboundRemoveEntitiesPacket");
-      moveEntityRotPacketClass = nmsLoader.loadClass(pkg + "ClientboundMoveEntityPacket$Rot");
-      rotateHeadPacketClass = nmsLoader.loadClass(pkg + "ClientboundRotateHeadPacket");
-
-      Class<?> gameTypeClass = nmsLoader.loadClass("net.minecraft.world.level.GameType");
-      gameTypeSurvival = Enum.valueOf((Class<? extends Enum>) gameTypeClass, "SURVIVAL");
-
-      Class<?> componentCls = nmsLoader.loadClass("net.minecraft.network.chat.Component");
-      for (Method m : componentCls.getDeclaredMethods()) {
-        if (m.getName().equals("literal")
-            && m.getParameterCount() == 1
-            && m.getParameterTypes()[0] == String.class) {
-          m.setAccessible(true);
-          componentLiteral = m;
-          break;
-        }
-      }
-
-      vec3Class = nmsLoader.loadClass("net.minecraft.world.phys.Vec3");
-      vec3Zero = scanStaticField(vec3Class, "ZERO");
-
-      entityTypeClass = nmsLoader.loadClass("net.minecraft.world.entity.EntityType");
-      entityTypePlayer = scanStaticField(entityTypeClass, "PLAYER");
-
-      playerInfoUpdateCtor = findPlayerInfoUpdateCtor();
-      if (playerInfoUpdateCtor == null)
-        throw new IllegalStateException(
-            "Cannot find ClientboundPlayerInfoUpdatePacket constructor.");
-
-      try {
-        Class<?> paperAdventure = Class.forName("io.papermc.paper.adventure.PaperAdventure");
-        paperAdventureAsVanilla = paperAdventure.getDeclaredMethod("asVanilla", Component.class);
-        paperAdventureAsVanilla.setAccessible(true);
-        Config.debugPackets("PaperAdventure.asVanilla found - colored tablist names supported.");
-      } catch (Exception ex) {
-        Config.debugPackets(
-            "PaperAdventure.asVanilla not found, will fall back to literal: " + ex.getMessage());
-      }
-
-      Config.debugPackets("PacketHelper ready.");
-      ready = true;
-    } catch (Exception e) {
-      broken = true;
-      FppLogger.warn("PacketHelper init failed: " + e.getMessage());
-      if (Config.debugPackets()) FppLogger.warn("  → " + e);
-    }
-  }
-
-  private static ClassLoader findNmsClassLoader() {
-    return NmsHelper.findNmsClassLoader();
-  }
-
-  private static Constructor<?> findPlayerInfoUpdateCtor() {
-    Constructor<?> fallback = null;
-    for (Constructor<?> c : playerInfoUpdatePacketClass.getDeclaredConstructors()) {
-      Class<?>[] p = c.getParameterTypes();
-      if (p.length == 2 && p[0] == EnumSet.class) {
-        c.setAccessible(true);
-        if (p[1] == playerInfoUpdateEntryClass || p[1].isArray() || isEntryCollectionParameter(c)) {
-          Config.debugPackets("PlayerInfoUpdatePacket ctor: second param = " + p[1].getName());
-          return c;
-        }
-        if (fallback == null) fallback = c;
-      }
-    }
-    if (fallback != null) {
-      Config.debugPackets(
-          "PlayerInfoUpdatePacket ctor fallback: second param = "
-              + fallback.getParameterTypes()[1].getName());
-    }
-    return fallback;
-  }
-
-  private static boolean isEntryCollectionParameter(Constructor<?> ctor) {
-    Class<?> rawType = ctor.getParameterTypes()[1];
-    if (rawType != List.class && rawType != Collection.class) return false;
-    Type genericType = ctor.getGenericParameterTypes()[1];
-    if (!(genericType instanceof ParameterizedType parameterizedType)) {
-      return rawType == List.class;
-    }
-    Type[] args = parameterizedType.getActualTypeArguments();
-    if (args.length != 1) return false;
-    Type arg = args[0];
-    if (arg == playerInfoUpdateEntryClass) return true;
-    return arg.getTypeName().equals(playerInfoUpdateEntryClass.getName());
-  }
-
-  private static boolean ensureReady() {
-    if (ready) return true;
-    if (broken) return false;
-    init();
-    return ready;
-  }
-
-  private static final Pattern PKT_HEX_OPEN = Pattern.compile("<#([A-Fa-f0-9]{6})>");
-  private static final Pattern PKT_HEX_CLOSE = Pattern.compile("</#([A-Fa-f0-9]{6})>");
-  private static final Pattern PKT_3DIG_OPEN = Pattern.compile("<#([0-9A-Fa-f]{3})>");
-  private static final Pattern PKT_3DIG_CLOSE = Pattern.compile("</#([0-9A-Fa-f]{3})>");
-
-  public static String convertHexColors(String input) {
-
-    input = expand3DigitHexCodesForPacket(input);
-
-    Matcher m = PKT_HEX_OPEN.matcher(input);
-    StringBuffer sb = new StringBuffer();
-    while (m.find()) {
-      String hex = m.group(1);
-      StringBuilder color = new StringBuilder("§x");
-      for (char c : hex.toCharArray()) color.append('§').append(c);
-      m.appendReplacement(sb, color.toString());
-    }
-    m.appendTail(sb);
-    String result = sb.toString();
-
-    result = PKT_HEX_CLOSE.matcher(result).replaceAll("§r");
-    return result;
-  }
-
-  private static String expand3DigitHexCodesForPacket(String s) {
-    if (s == null || s.indexOf('#') < 0) return s;
-
-    Matcher m = PKT_3DIG_OPEN.matcher(s);
-    StringBuffer sb = new StringBuffer();
-    while (m.find()) {
-      String hex3 = m.group(1);
-      String hex6 =
-          String.format(
-              "%c%c%c%c%c%c",
-              hex3.charAt(0),
-              hex3.charAt(0),
-              hex3.charAt(1),
-              hex3.charAt(1),
-              hex3.charAt(2),
-              hex3.charAt(2));
-      m.appendReplacement(sb, "<#" + hex6 + ">");
-    }
-    m.appendTail(sb);
-    s = sb.toString();
-
-    m = PKT_3DIG_CLOSE.matcher(s);
-    sb = new StringBuffer();
-    while (m.find()) {
-      String hex3 = m.group(1);
-      String hex6 =
-          String.format(
-              "%c%c%c%c%c%c",
-              hex3.charAt(0),
-              hex3.charAt(0),
-              hex3.charAt(1),
-              hex3.charAt(1),
-              hex3.charAt(2),
-              hex3.charAt(2));
-      m.appendReplacement(sb, "</#" + hex6 + ">");
-    }
-    m.appendTail(sb);
-
-    return sb.toString();
-  }
-
-  public static void sendTabListAdd(Player receiver, FakePlayer fp) {
-    if (receiver == null || fp == null) return;
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-      if (nms == null) return;
-
-      Object profile = buildProfileWithSkin(fp);
-      if (profile == null) return;
-
-      String dispStr = fp.getDisplayName();
-      if (dispStr == null || dispStr.isBlank()) dispStr = fp.getName();
-      Object displayName = fp.getCachedNmsDisplayComponent();
-      if (displayName == null || !dispStr.equals(fp.getCachedNmsDisplaySource())) {
-        Component adv = MiniMessage.miniMessage().deserialize(dispStr);
-        displayName = adventureToNms(adv);
-        if (displayName == null) displayName = componentLiteral(dispStr);
-        if (displayName == null) return;
-        fp.setCachedNmsDisplay(displayName, dispStr);
-      }
-
-      int latency = fp.getEffectivePing();
-      Object entry = buildEntryWithLatency(fp.getUuid(), profile, displayName, latency);
-      Object actions = buildActionSet();
-
-      sendPacket(nms, playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry)));
-      Config.debugPackets("Tab ADD → " + receiver.getName() + " for " + fp.getName());
-    } catch (Exception e) {
-      FppLogger.error("sendTabListAdd failed: " + describeException(e));
-      if (Config.debugPackets()) FppLogger.warn("  → " + e);
-    }
-  }
-
-  private static Object buildProfileWithSkin(FakePlayer fp) throws Exception {
-
-    String profileName = fp.getPacketProfileName();
-    if (profileName == null || profileName.isBlank()) profileName = fp.getName();
-    SkinProfile skin = fp.getResolvedSkin();
-    if (skin != null && skin.isValid()) {
-      try {
-        return SkinProfileInjector.createGameProfile(gameProfileClass, fp.getUuid(), profileName, skin);
-      } catch (Exception e) {
-        Config.debugPackets("buildProfileWithSkin: mutable profile failed - " + e.getMessage());
-      }
-    }
-
-    return gameProfileCtor != null
-        ? gameProfileCtor.newInstance(fp.getUuid(), profileName)
-        : gameProfileClass.getDeclaredConstructors()[0].newInstance(fp.getUuid(), profileName);
-  }
-
-  private static void injectProperty(Object profile, String key, String value, String signature)
-      throws Exception {
-
-    ClassLoader cl = profile.getClass().getClassLoader();
-    Class<?> propertyClass = cl.loadClass("com.mojang.authlib.properties.Property");
-
-    Object property;
-    try {
-      Constructor<?> c3 =
-          propertyClass.getDeclaredConstructor(String.class, String.class, String.class);
-      c3.setAccessible(true);
-      property = c3.newInstance(key, value, signature != null ? signature : "");
-    } catch (NoSuchMethodException ex) {
-
-      Constructor<?> c2 = propertyClass.getDeclaredConstructor(String.class, String.class);
-      c2.setAccessible(true);
-      property = c2.newInstance(key, value);
-    }
-
-    Method getProps = null;
-    for (Method m : profile.getClass().getMethods()) {
-      if (m.getName().equals("getProperties") && m.getParameterCount() == 0) {
-        getProps = m;
-        break;
-      }
-    }
-    if (getProps == null) throw new NoSuchMethodException("GameProfile.getProperties()");
-    Object propertyMap = getProps.invoke(profile);
-
-    for (Method m : propertyMap.getClass().getMethods()) {
-      if ("put".equals(m.getName()) && m.getParameterCount() == 2) {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static synchronized void init() {
+        if (ready || broken) return;
         try {
-          m.invoke(propertyMap, key, property);
-          Config.debugPackets("injectProperty: direct put succeeded.");
-          return;
-        } catch (Exception ignored) {
-          break;
-        }
-      }
-    }
-
-    for (Field f : propertyMap.getClass().getDeclaredFields()) {
-      f.setAccessible(true);
-      Object delegate = f.get(propertyMap);
-      if (delegate == null) continue;
-      for (Method m : delegate.getClass().getMethods()) {
-        if ("put".equals(m.getName()) && m.getParameterCount() == 2) {
-          try {
-            m.invoke(delegate, key, property);
-            Config.debugPackets(
-                "injectProperty: put via delegate '" + f.getName() + "' succeeded.");
-            return;
-          } catch (Exception ignored) {
-          }
-        }
-      }
-    }
-
-    Class<?> hashMultimapClass = cl.loadClass("com.google.common.collect.HashMultimap");
-    Method create = hashMultimapClass.getMethod("create");
-    Object mutableMap = create.invoke(null);
-
-    Method valuesMethod = null;
-    for (Method m : propertyMap.getClass().getMethods()) {
-      if ("values".equals(m.getName()) && m.getParameterCount() == 0) {
-        valuesMethod = m;
-        break;
-      }
-    }
-    if (valuesMethod != null) {
-      Object existing = valuesMethod.invoke(propertyMap);
-      if (existing instanceof Iterable<?> iter) {
-        Method putMethod = null;
-        for (Method m : mutableMap.getClass().getMethods()) {
-          if ("put".equals(m.getName()) && m.getParameterCount() == 2) {
-            putMethod = m;
-            break;
-          }
-        }
-        if (putMethod != null) {
-          for (Object entry : iter) {
-
-            String entryKey = null;
-            for (String getter : new String[]{"getName", "name"}) {
-              try {
-                entryKey = (String) entry.getClass().getMethod(getter).invoke(entry);
-                break;
-              } catch (NoSuchMethodException ignored) {
-              }
+            craftPlayerClass = getCraftPlayerClass();
+            for (Method m : craftPlayerClass.getDeclaredMethods()) {
+                if (m.getName().equals("getHandle") && m.getParameterCount() == 0) {
+                    m.setAccessible(true);
+                    craftPlayerGetHandle = m;
+                    break;
+                }
             }
-            if (entryKey != null) putMethod.invoke(mutableMap, entryKey, entry);
-          }
-        }
-      }
-    }
 
-    for (Method m : mutableMap.getClass().getMethods()) {
-      if ("put".equals(m.getName()) && m.getParameterCount() == 2) {
-        m.invoke(mutableMap, key, property);
-        break;
-      }
-    }
+            ClassLoader nmsLoader = findNmsClassLoader();
+            if (nmsLoader == null)
+                throw new IllegalStateException("Cannot find NMS classloader - join the server first.");
 
-    for (Field f : propertyMap.getClass().getDeclaredFields()) {
-      f.setAccessible(true);
-      Object delegate = f.get(propertyMap);
-      if (delegate != null && delegate.getClass().getName().contains("Multimap")) {
-        f.set(propertyMap, mutableMap);
-        Config.debugPackets("injectProperty: replaced delegate multimap - succeeded.");
-        return;
-      }
-    }
-
-    FppLogger.warn("injectProperty: all strategies exhausted - skin may not appear in tab list.");
-  }
-
-  public static void sendTabListRemove(Player receiver, FakePlayer fp) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-      Constructor<?> ctor = getConstructor(playerInfoRemovePacketClass, List.class);
-      if (ctor == null) {
-        ctor = playerInfoRemovePacketClass.getDeclaredConstructors()[0];
-        ctor.setAccessible(true);
-      }
-      sendPacket(nms, ctor.newInstance(List.of(fp.getUuid())));
-      Config.debugPackets("Tab REMOVE → " + receiver.getName() + " for " + fp.getName());
-    } catch (Exception e) {
-      FppLogger.error("sendTabListRemove failed: " + e.getMessage());
-    }
-  }
-
-  public static void sendTabListRemoveByUuid(Player receiver, UUID uuid) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-      Constructor<?> ctor = getConstructor(playerInfoRemovePacketClass, List.class);
-      if (ctor == null) {
-        ctor = playerInfoRemovePacketClass.getDeclaredConstructors()[0];
-        ctor.setAccessible(true);
-      }
-      sendPacket(nms, ctor.newInstance(List.of(uuid)));
-      Config.debugPackets("Tab REMOVE raw → " + receiver.getName() + " for " + uuid);
-    } catch (Exception e) {
-      FppLogger.error("sendTabListRemoveByUuid failed: " + e.getMessage());
-    }
-  }
-
-  public static void sendTabListAddRaw(
-      Player receiver,
-      UUID uuid,
-      String packetProfileName,
-      String displayName,
-      String skinValue,
-      String skinSignature,
-      int pingMs) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-
-      String safeProfileName =
-          (packetProfileName == null || packetProfileName.isBlank())
-              ? uuid.toString().replace("-", "").substring(0, 8)
-              : packetProfileName;
-
-      Object profile =
-          gameProfileCtor != null
-              ? gameProfileCtor.newInstance(uuid, safeProfileName)
-              : gameProfileClass.getDeclaredConstructors()[0].newInstance(uuid, safeProfileName);
-
-      if (skinValue != null && !skinValue.isBlank()) {
-        try {
-          injectProperty(profile, "textures", skinValue, skinSignature);
-        } catch (Exception ex) {
-          Config.debugPackets("sendTabListAddRaw: skin inject failed - " + ex.getMessage());
-        }
-      }
-
-      Component adventureComponent = MiniMessage.miniMessage().deserialize(displayName);
-      Object nmsDisplayName = adventureToNms(adventureComponent);
-
-      Object entry = buildEntryWithLatency(uuid, profile, nmsDisplayName, pingMs);
-      Object actions = buildActionSet();
-
-      sendPacket(nms, playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry)));
-      Config.debugPackets(
-          "Tab ADD raw → "
-              + receiver.getName()
-              + " for "
-              + safeProfileName
-              + (skinValue != null && !skinValue.isBlank() ? " [skinned]" : ""));
-    } catch (Exception e) {
-      FppLogger.error("sendTabListAddRaw failed: " + e.getMessage());
-      if (Config.debugPackets()) FppLogger.warn("  → " + e);
-    }
-  }
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  public static void sendTabListDisplayNameUpdate(Player receiver, FakePlayer fp) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-
-      Object profile = fp.getCachedTabListGameProfile();
-      if (profile == null) {
-        profile =
-            gameProfileCtor != null
-                ? gameProfileCtor.newInstance(fp.getUuid(), fp.getName())
-                : gameProfileClass.getDeclaredConstructors()[0].newInstance(
-                fp.getUuid(), fp.getName());
-        fp.setCachedTabListGameProfile(profile);
-      }
-
-      String dispStr = fp.getNameTagNick() != null ? fp.getNameTagNick() : fp.getDisplayName();
-
-      Object displayName = fp.getCachedNmsDisplayComponent();
-      if (displayName == null || !dispStr.equals(fp.getCachedNmsDisplaySource())) {
-        Component adv = MiniMessage.miniMessage().deserialize(dispStr);
-        displayName = adventureToNms(adv);
-        fp.setCachedNmsDisplay(displayName, dispStr);
-      }
-
-      int latency = fp.getEffectivePing();
-      Object entry = buildEntryWithLatency(fp.getUuid(), profile, displayName, latency);
-
-      if (cachedUpdateDisplayNameActions == null) {
-        Class<? extends Enum> e = rawEnum(playerInfoUpdateActionClass);
-        cachedUpdateDisplayNameActions = EnumSet.of(Enum.valueOf(e, "UPDATE_DISPLAY_NAME"));
-      }
-      Object actions = cachedUpdateDisplayNameActions;
-
-      sendPacket(nms, playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry)));
-    } catch (Exception e) {
-
-    }
-  }
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  public static void sendTabListDisplayNameUpdate(
-      Player receiver, UUID uuid, String rawDisplayName, int pingMs) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-      Object profile =
-          gameProfileCtor != null
-              ? gameProfileCtor.newInstance(uuid, uuid.toString().substring(0, 8))
-              : gameProfileClass.getDeclaredConstructors()[0].newInstance(
-              uuid, uuid.toString().substring(0, 8));
-
-      Component adventureComponent = MiniMessage.miniMessage().deserialize(rawDisplayName);
-      Object displayName = adventureToNms(adventureComponent);
-
-      Object entry = buildEntryWithLatency(uuid, profile, displayName, pingMs);
-
-      if (cachedUpdateDisplayNameActions == null) {
-        Class<? extends Enum> e = rawEnum(playerInfoUpdateActionClass);
-        cachedUpdateDisplayNameActions = EnumSet.of(Enum.valueOf(e, "UPDATE_DISPLAY_NAME"));
-      }
-      sendPacket(
-          nms,
-          playerInfoUpdateCtor.newInstance(cachedUpdateDisplayNameActions, buildSecondArg(entry)));
-    } catch (Exception e) {
-
-    }
-  }
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  public static void sendTabListLatencyUpdate(Player receiver, FakePlayer fp) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-
-      Object profile = fp.getCachedTabListGameProfile();
-      if (profile == null) {
-        profile =
-            gameProfileCtor != null
-                ? gameProfileCtor.newInstance(fp.getUuid(), fp.getName())
-                : gameProfileClass.getDeclaredConstructors()[0].newInstance(
-                fp.getUuid(), fp.getName());
-        fp.setCachedTabListGameProfile(profile);
-      }
-
-      Object displayName = fp.getCachedNmsDisplayComponent();
-      if (displayName == null) {
-        Component adv = MiniMessage.miniMessage().deserialize(fp.getDisplayName());
-        displayName = adventureToNms(adv);
-        fp.setCachedNmsDisplay(displayName, fp.getDisplayName());
-      }
-
-      int latency = fp.getEffectivePing();
-      Object entry = buildEntryWithLatency(fp.getUuid(), profile, displayName, latency);
-
-      if (cachedUpdateLatencyActions == null) {
-        Class<? extends Enum> e = rawEnum(playerInfoUpdateActionClass);
-        cachedUpdateLatencyActions = EnumSet.of(Enum.valueOf(e, "UPDATE_LATENCY"));
-      }
-
-      sendPacket(
-          nms, playerInfoUpdateCtor.newInstance(cachedUpdateLatencyActions, buildSecondArg(entry)));
-      Config.debugPackets(
-          "Tab LATENCY → " + receiver.getName() + " for " + fp.getName() + " ping=" + latency);
-    } catch (Exception e) {
-      Config.debugPackets("sendTabListLatencyUpdate failed: " + e.getMessage());
-    }
-  }
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  public static void sendTabListUpdateListed(Player receiver, FakePlayer fp, boolean listed) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-
-      Object profile = fp.getCachedTabListGameProfile();
-      if (profile == null) {
-        profile = buildProfileWithSkin(fp);
-        fp.setCachedTabListGameProfile(profile);
-      }
-
-      Object displayName = fp.getCachedNmsDisplayComponent();
-      if (displayName == null) {
-        Component adv = MiniMessage.miniMessage().deserialize(fp.getDisplayName());
-        displayName = adventureToNms(adv);
-        fp.setCachedNmsDisplay(displayName, fp.getDisplayName());
-      }
-
-      int latency = fp.getEffectivePing();
-      Object entry = buildEntryWithListedFlag(fp.getUuid(), profile, displayName, latency, listed);
-
-      if (cachedUpdateListedActions == null) {
-        Class<? extends Enum> e = rawEnum(playerInfoUpdateActionClass);
-        cachedUpdateListedActions = EnumSet.of(Enum.valueOf(e, "UPDATE_LISTED"));
-      }
-
-      sendPacket(
-          nms, playerInfoUpdateCtor.newInstance(cachedUpdateListedActions, buildSecondArg(entry)));
-      Config.debugPackets(
-          "Tab LISTED(" + listed + ") → " + receiver.getName() + " for " + fp.getName());
-    } catch (Exception e) {
-      Config.debugPackets("sendTabListUpdateListed failed: " + e.getMessage());
-    }
-  }
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  public static void sendTabListRefreshEntry(Player receiver, FakePlayer fp) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-      if (nms == null) return;
-
-      Object profile = buildProfileWithSkin(fp);
-      if (profile == null) return;
-
-      String dispStr = fp.getDisplayName();
-      if (dispStr == null || dispStr.isBlank()) dispStr = fp.getName();
-      Object displayName = fp.getCachedNmsDisplayComponent();
-      if (displayName == null || !dispStr.equals(fp.getCachedNmsDisplaySource())) {
-        Component adv = MiniMessage.miniMessage().deserialize(dispStr);
-        displayName = adventureToNms(adv);
-        if (displayName == null) displayName = componentLiteral(dispStr);
-        if (displayName == null) return;
-        fp.setCachedNmsDisplay(displayName, dispStr);
-      }
-
-      int latency = fp.getEffectivePing();
-      boolean listed = Config.tabListEnabled();
-      Object entry = buildEntryWithListedFlag(fp.getUuid(), profile, displayName, latency, listed);
-
-      if (cachedUpdateDisplayLatencyListedActions == null) {
-        Class<? extends Enum> e = rawEnum(playerInfoUpdateActionClass);
-        cachedUpdateDisplayLatencyListedActions =
-            EnumSet.of(
-                Enum.valueOf(e, "UPDATE_DISPLAY_NAME"),
-                Enum.valueOf(e, "UPDATE_LISTED"),
-                Enum.valueOf(e, "UPDATE_LATENCY"));
-      }
-      Object actions = cachedUpdateDisplayLatencyListedActions;
-
-      sendPacket(nms, playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry)));
-      Config.debugPackets("Tab REFRESH → " + receiver.getName() + " for " + fp.getName());
-    } catch (Exception e) {
-      Config.debugPackets("sendTabListRefreshEntry failed: " + describeException(e));
-    }
-  }
-
-  public static void spawnFakePlayer(Player receiver, FakePlayer fp, Location loc) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-      Constructor<?> ctor =
-          addEntityPacketClass.getConstructor(
-              int.class,
-              UUID.class,
-              double.class,
-              double.class,
-              double.class,
-              float.class,
-              float.class,
-              entityTypeClass,
-              int.class,
-              vec3Class,
-              double.class);
-      sendPacket(
-          nms,
-          ctor.newInstance(
-              fp.getPlayer().getEntityId(),
-              fp.getUuid(),
-              loc.getX(),
-              loc.getY(),
-              loc.getZ(),
-              loc.getPitch(),
-              loc.getYaw(),
-              entityTypePlayer,
-              0,
-              vec3Zero,
-              0.0));
-      Config.debugPackets("Spawn entity → " + receiver.getName() + " for " + fp.getName());
-    } catch (Exception e) {
-      FppLogger.error("spawnFakePlayer failed: " + e.getMessage());
-      if (Config.debugPackets()) FppLogger.warn("  → " + e);
-    }
-  }
-
-  public static void despawnFakePlayer(Player receiver, FakePlayer fp) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-      Constructor<?> ctor = removeEntitiesPacketClass.getConstructor(int[].class);
-      sendPacket(nms, ctor.newInstance((Object) new int[]{fp.getPlayer().getEntityId()}));
-      Config.debugPackets("Despawn entity → " + receiver.getName() + " for " + fp.getName());
-    } catch (Exception e) {
-      FppLogger.error("despawnFakePlayer failed: " + e.getMessage());
-    }
-  }
-
-  public static void sendTeleport(Player receiver, FakePlayer fp, Location loc) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-      ClassLoader cl = nms.getClass().getClassLoader();
-      String[] candidates = {
-          "net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket",
-          "net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket"
-      };
-      for (String className : candidates) {
-        try {
-          Class<?> pktClass = cl.loadClass(className);
-          for (Constructor<?> c : pktClass.getDeclaredConstructors()) {
-            c.setAccessible(true);
-            Class<?>[] pt = c.getParameterTypes();
-            if (pt.length == 7 && pt[0] == int.class && pt[1] == double.class) {
-              sendPacket(
-                  nms,
-                  c.newInstance(
-                      fp.getEntityId(),
-                      loc.getX(),
-                      loc.getY(),
-                      loc.getZ(),
-                      loc.getYaw(),
-                      loc.getPitch(),
-                      true));
-              return;
+            gameProfileClass = nmsLoader.loadClass("com.mojang.authlib.GameProfile");
+            for (Constructor<?> c : gameProfileClass.getDeclaredConstructors()) {
+                Class<?>[] pt = c.getParameterTypes();
+                if (pt.length == 2 && pt[0] == UUID.class && pt[1] == String.class) {
+                    c.setAccessible(true);
+                    gameProfileCtor = c;
+                    break;
+                }
             }
-          }
-        } catch (ClassNotFoundException ignored) {
+
+            String pkg = "net.minecraft.network.protocol.game.";
+            playerInfoUpdatePacketClass = nmsLoader.loadClass(pkg + "ClientboundPlayerInfoUpdatePacket");
+            playerInfoUpdateActionClass = nmsLoader.loadClass(pkg + "ClientboundPlayerInfoUpdatePacket$Action");
+            playerInfoUpdateEntryClass = nmsLoader.loadClass(pkg + "ClientboundPlayerInfoUpdatePacket$Entry");
+            playerInfoRemovePacketClass = nmsLoader.loadClass(pkg + "ClientboundPlayerInfoRemovePacket");
+            addEntityPacketClass = nmsLoader.loadClass(pkg + "ClientboundAddEntityPacket");
+            removeEntitiesPacketClass = nmsLoader.loadClass(pkg + "ClientboundRemoveEntitiesPacket");
+            moveEntityRotPacketClass = nmsLoader.loadClass(pkg + "ClientboundMoveEntityPacket$Rot");
+            rotateHeadPacketClass = nmsLoader.loadClass(pkg + "ClientboundRotateHeadPacket");
+
+            Class<?> gameTypeClass = nmsLoader.loadClass("net.minecraft.world.level.GameType");
+            gameTypeSurvival = Enum.valueOf((Class<? extends Enum>) gameTypeClass, "SURVIVAL");
+
+            Class<?> componentCls = nmsLoader.loadClass("net.minecraft.network.chat.Component");
+            for (Method m : componentCls.getDeclaredMethods()) {
+                if (m.getName().equals("literal")
+                        && m.getParameterCount() == 1
+                        && m.getParameterTypes()[0] == String.class) {
+                    m.setAccessible(true);
+                    componentLiteral = m;
+                    break;
+                }
+            }
+
+            vec3Class = nmsLoader.loadClass("net.minecraft.world.phys.Vec3");
+            vec3Zero = scanStaticField(vec3Class, "ZERO");
+
+            entityTypeClass = nmsLoader.loadClass("net.minecraft.world.entity.EntityType");
+            entityTypePlayer = scanStaticField(entityTypeClass, "PLAYER");
+
+            playerInfoUpdateCtor = findPlayerInfoUpdateCtor();
+            if (playerInfoUpdateCtor == null)
+                throw new IllegalStateException("Cannot find ClientboundPlayerInfoUpdatePacket constructor.");
+
+            try {
+                Class<?> paperAdventure = Class.forName("io.papermc.paper.adventure.PaperAdventure");
+                paperAdventureAsVanilla = paperAdventure.getDeclaredMethod("asVanilla", Component.class);
+                paperAdventureAsVanilla.setAccessible(true);
+                Config.debugPackets("PaperAdventure.asVanilla found - colored tablist names supported.");
+            } catch (Exception ex) {
+                Config.debugPackets(
+                        "PaperAdventure.asVanilla not found, will fall back to literal: " + ex.getMessage());
+            }
+
+            Config.debugPackets("PacketHelper ready.");
+            ready = true;
+        } catch (Exception e) {
+            broken = true;
+            FppLogger.warn("PacketHelper init failed: " + e.getMessage());
+            if (Config.debugPackets()) FppLogger.warn("  → " + e);
         }
-      }
-    } catch (Exception ignored) {
-
     }
-  }
 
-  public static void sendHurtAnimation(Player receiver, FakePlayer fp) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-      ClassLoader cl = nms.getClass().getClassLoader();
-      Class<?> animClass =
-          cl.loadClass("net.minecraft.network.protocol.game.ClientboundAnimatePacket");
-      for (Constructor<?> c : animClass.getDeclaredConstructors()) {
-        c.setAccessible(true);
-        Class<?>[] pt = c.getParameterTypes();
-        if (pt.length == 2 && pt[0] == int.class && pt[1] == int.class) {
-          sendPacket(nms, c.newInstance(fp.getEntityId(), 1));
-          return;
-        }
-      }
-    } catch (Exception ignored) {
+    private static ClassLoader findNmsClassLoader() {
+        return NmsHelper.findNmsClassLoader();
     }
-  }
 
-  public static void sendSwingArm(Player receiver, FakePlayer fp) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-      ClassLoader cl = nms.getClass().getClassLoader();
-      Class<?> animClass =
-          cl.loadClass("net.minecraft.network.protocol.game.ClientboundAnimatePacket");
-      for (Constructor<?> c : animClass.getDeclaredConstructors()) {
-        c.setAccessible(true);
-        Class<?>[] pt = c.getParameterTypes();
-        if (pt.length == 2 && pt[0] == int.class && pt[1] == int.class) {
-          sendPacket(nms, c.newInstance(fp.getEntityId(), 0));
-          return;
-        }
-      }
-    } catch (Exception ignored) {
-    }
-  }
-
-  public static void sendEatAnimation(Player receiver, FakePlayer fp) {
-    if (!ensureReady()) return;
-    try {
-      Object nms = getHandle(receiver);
-      ClassLoader cl = nms.getClass().getClassLoader();
-
-      Class<?> entityEventClass =
-          cl.loadClass("net.minecraft.network.protocol.game.ClientboundEntityEventPacket");
-
-      Player botPlayer = fp.getPlayer();
-      if (botPlayer == null) return;
-      Object botNms = getHandle(botPlayer);
-      for (Constructor<?> c : entityEventClass.getDeclaredConstructors()) {
-        c.setAccessible(true);
-        Class<?>[] pt = c.getParameterTypes();
-        if (pt.length == 2 && pt[1] == byte.class) {
-          sendPacket(nms, c.newInstance(botNms, (byte) 9));
-          return;
-        }
-      }
-    } catch (Exception ignored) {
-    }
-  }
-
-  public static void sendRotation(
-      Player receiver, FakePlayer fp, float yaw, float pitch, float headYaw) {
-    if (!ensureReady() || moveEntityRotPacketClass == null || rotateHeadPacketClass == null) return;
-    try {
-      Object nms = getHandle(receiver);
-      int entityId = fp.getEntityId();
-      if (entityId == -1) return;
-
-      byte encYaw = angleToByte(yaw);
-      byte encPitch = angleToByte(pitch);
-      byte encHead = angleToByte(headYaw);
-
-      if (!rotCtorLookupDone) {
-        synchronized (PacketHelper.class) {
-          if (!rotCtorLookupDone) {
-            for (Constructor<?> c : moveEntityRotPacketClass.getDeclaredConstructors()) {
-              Class<?>[] p = c.getParameterTypes();
-              if (p.length == 4 && p[0] == int.class && p[1] == byte.class) {
+    private static Constructor<?> findPlayerInfoUpdateCtor() {
+        Constructor<?> fallback = null;
+        for (Constructor<?> c : playerInfoUpdatePacketClass.getDeclaredConstructors()) {
+            Class<?>[] p = c.getParameterTypes();
+            if (p.length == 2 && p[0] == EnumSet.class) {
                 c.setAccessible(true);
-                cachedMoveEntityRotCtor = c;
-                break;
-              }
+                if (p[1] == playerInfoUpdateEntryClass || p[1].isArray() || isEntryCollectionParameter(c)) {
+                    Config.debugPackets("PlayerInfoUpdatePacket ctor: second param = " + p[1].getName());
+                    return c;
+                }
+                if (fallback == null) fallback = c;
             }
-            for (Constructor<?> c : rotateHeadPacketClass.getDeclaredConstructors()) {
-              c.setAccessible(true);
-              Class<?>[] p = c.getParameterTypes();
-              if (p.length == 2 && p[0] == int.class) {
-                cachedRotateHeadCtorInt = c;
-                break;
-              } else if (p.length == 2) {
-                cachedRotateHeadCtorEntity = c;
-              }
-            }
-            rotCtorLookupDone = true;
-          }
         }
-      }
-
-      if (cachedMoveEntityRotCtor != null) {
-        sendPacket(nms, cachedMoveEntityRotCtor.newInstance(entityId, encYaw, encPitch, true));
-      }
-      if (cachedRotateHeadCtorInt != null) {
-        sendPacket(nms, cachedRotateHeadCtorInt.newInstance(entityId, encHead));
-      } else if (cachedRotateHeadCtorEntity != null && fp.getPhysicsEntity() != null) {
-
-        Object nmsEntity = craftPlayerGetHandle.invoke(fp.getPhysicsEntity());
-        sendPacket(nms, cachedRotateHeadCtorEntity.newInstance(nmsEntity, encHead));
-      }
-    } catch (Exception e) {
-      Config.debugPackets("sendRotation failed: " + e.getMessage());
+        if (fallback != null) {
+            Config.debugPackets("PlayerInfoUpdatePacket ctor fallback: second param = "
+                    + fallback.getParameterTypes()[1].getName());
+        }
+        return fallback;
     }
-  }
 
-  public static void sendPositionSync(Player receiver, Player bot) {
-    if (!ensureReady()) return;
-    try {
-      Object receiverNms = craftPlayerGetHandle.invoke(receiver);
+    private static boolean isEntryCollectionParameter(Constructor<?> ctor) {
+        Class<?> rawType = ctor.getParameterTypes()[1];
+        if (rawType != List.class && rawType != Collection.class) return false;
+        Type genericType = ctor.getGenericParameterTypes()[1];
+        if (!(genericType instanceof ParameterizedType parameterizedType)) {
+            return rawType == List.class;
+        }
+        Type[] args = parameterizedType.getActualTypeArguments();
+        if (args.length != 1) return false;
+        Type arg = args[0];
+        if (arg == playerInfoUpdateEntryClass) return true;
+        return arg.getTypeName().equals(playerInfoUpdateEntryClass.getName());
+    }
 
-      if (!posSyncCtorLookupDone) {
-        synchronized (PacketHelper.class) {
-          if (!posSyncCtorLookupDone) {
-            ClassLoader cl = receiverNms.getClass().getClassLoader();
+    private static boolean ensureReady() {
+        if (ready) return true;
+        if (broken) return false;
+        init();
+        return ready;
+    }
+
+    private static final Pattern PKT_HEX_OPEN = Pattern.compile("<#([A-Fa-f0-9]{6})>");
+    private static final Pattern PKT_HEX_CLOSE = Pattern.compile("</#([A-Fa-f0-9]{6})>");
+    private static final Pattern PKT_3DIG_OPEN = Pattern.compile("<#([0-9A-Fa-f]{3})>");
+    private static final Pattern PKT_3DIG_CLOSE = Pattern.compile("</#([0-9A-Fa-f]{3})>");
+
+    public static String convertHexColors(String input) {
+
+        input = expand3DigitHexCodesForPacket(input);
+
+        Matcher m = PKT_HEX_OPEN.matcher(input);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) {
+            String hex = m.group(1);
+            StringBuilder color = new StringBuilder("§x");
+            for (char c : hex.toCharArray()) color.append('§').append(c);
+            m.appendReplacement(sb, color.toString());
+        }
+        m.appendTail(sb);
+        String result = sb.toString();
+
+        result = PKT_HEX_CLOSE.matcher(result).replaceAll("§r");
+        return result;
+    }
+
+    private static String expand3DigitHexCodesForPacket(String s) {
+        if (s == null || s.indexOf('#') < 0) return s;
+
+        Matcher m = PKT_3DIG_OPEN.matcher(s);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) {
+            String hex3 = m.group(1);
+            String hex6 = String.format(
+                    "%c%c%c%c%c%c",
+                    hex3.charAt(0), hex3.charAt(0), hex3.charAt(1), hex3.charAt(1), hex3.charAt(2), hex3.charAt(2));
+            m.appendReplacement(sb, "<#" + hex6 + ">");
+        }
+        m.appendTail(sb);
+        s = sb.toString();
+
+        m = PKT_3DIG_CLOSE.matcher(s);
+        sb = new StringBuffer();
+        while (m.find()) {
+            String hex3 = m.group(1);
+            String hex6 = String.format(
+                    "%c%c%c%c%c%c",
+                    hex3.charAt(0), hex3.charAt(0), hex3.charAt(1), hex3.charAt(1), hex3.charAt(2), hex3.charAt(2));
+            m.appendReplacement(sb, "</#" + hex6 + ">");
+        }
+        m.appendTail(sb);
+
+        return sb.toString();
+    }
+
+    public static void sendTabListAdd(Player receiver, FakePlayer fp) {
+        if (receiver == null || fp == null) return;
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+            if (nms == null) return;
+
+            Object profile = buildProfileWithSkin(fp);
+            if (profile == null) return;
+
+            String dispStr = fp.getDisplayName();
+            if (dispStr == null || dispStr.isBlank()) dispStr = fp.getName();
+            Object displayName = fp.getCachedNmsDisplayComponent();
+            if (displayName == null || !dispStr.equals(fp.getCachedNmsDisplaySource())) {
+                Component adv = MiniMessage.miniMessage().deserialize(dispStr);
+                displayName = adventureToNms(adv);
+                if (displayName == null) displayName = componentLiteral(dispStr);
+                if (displayName == null) return;
+                fp.setCachedNmsDisplay(displayName, dispStr);
+            }
+
+            int latency = fp.getEffectivePing();
+            Object entry = buildEntryWithLatency(fp.getUuid(), profile, displayName, latency);
+            Object actions = buildActionSet();
+
+            sendPacket(nms, playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry)));
+            Config.debugPackets("Tab ADD → " + receiver.getName() + " for " + fp.getName());
+        } catch (Exception e) {
+            FppLogger.error("sendTabListAdd failed: " + describeException(e));
+            if (Config.debugPackets()) FppLogger.warn("  → " + e);
+        }
+    }
+
+    private static Object buildProfileWithSkin(FakePlayer fp) throws Exception {
+
+        String profileName = fp.getPacketProfileName();
+        if (profileName == null || profileName.isBlank()) profileName = fp.getName();
+        SkinProfile skin = fp.getResolvedSkin();
+        if (skin != null && skin.isValid()) {
+            try {
+                return SkinProfileInjector.createGameProfile(gameProfileClass, fp.getUuid(), profileName, skin);
+            } catch (Exception e) {
+                Config.debugPackets("buildProfileWithSkin: mutable profile failed - " + e.getMessage());
+            }
+        }
+
+        return gameProfileCtor != null
+                ? gameProfileCtor.newInstance(fp.getUuid(), profileName)
+                : gameProfileClass.getDeclaredConstructors()[0].newInstance(fp.getUuid(), profileName);
+    }
+
+    private static void injectProperty(Object profile, String key, String value, String signature) throws Exception {
+
+        ClassLoader cl = profile.getClass().getClassLoader();
+        Class<?> propertyClass = cl.loadClass("com.mojang.authlib.properties.Property");
+
+        Object property;
+        try {
+            Constructor<?> c3 = propertyClass.getDeclaredConstructor(String.class, String.class, String.class);
+            c3.setAccessible(true);
+            property = c3.newInstance(key, value, signature != null ? signature : "");
+        } catch (NoSuchMethodException ex) {
+
+            Constructor<?> c2 = propertyClass.getDeclaredConstructor(String.class, String.class);
+            c2.setAccessible(true);
+            property = c2.newInstance(key, value);
+        }
+
+        Method getProps = null;
+        for (Method m : profile.getClass().getMethods()) {
+            if (m.getName().equals("getProperties") && m.getParameterCount() == 0) {
+                getProps = m;
+                break;
+            }
+        }
+        if (getProps == null) throw new NoSuchMethodException("GameProfile.getProperties()");
+        Object propertyMap = getProps.invoke(profile);
+
+        for (Method m : propertyMap.getClass().getMethods()) {
+            if ("put".equals(m.getName()) && m.getParameterCount() == 2) {
+                try {
+                    m.invoke(propertyMap, key, property);
+                    Config.debugPackets("injectProperty: direct put succeeded.");
+                    return;
+                } catch (Exception ignored) {
+                    break;
+                }
+            }
+        }
+
+        for (Field f : propertyMap.getClass().getDeclaredFields()) {
+            f.setAccessible(true);
+            Object delegate = f.get(propertyMap);
+            if (delegate == null) continue;
+            for (Method m : delegate.getClass().getMethods()) {
+                if ("put".equals(m.getName()) && m.getParameterCount() == 2) {
+                    try {
+                        m.invoke(delegate, key, property);
+                        Config.debugPackets("injectProperty: put via delegate '" + f.getName() + "' succeeded.");
+                        return;
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        }
+
+        Class<?> hashMultimapClass = cl.loadClass("com.google.common.collect.HashMultimap");
+        Method create = hashMultimapClass.getMethod("create");
+        Object mutableMap = create.invoke(null);
+
+        Method valuesMethod = null;
+        for (Method m : propertyMap.getClass().getMethods()) {
+            if ("values".equals(m.getName()) && m.getParameterCount() == 0) {
+                valuesMethod = m;
+                break;
+            }
+        }
+        if (valuesMethod != null) {
+            Object existing = valuesMethod.invoke(propertyMap);
+            if (existing instanceof Iterable<?> iter) {
+                Method putMethod = null;
+                for (Method m : mutableMap.getClass().getMethods()) {
+                    if ("put".equals(m.getName()) && m.getParameterCount() == 2) {
+                        putMethod = m;
+                        break;
+                    }
+                }
+                if (putMethod != null) {
+                    for (Object entry : iter) {
+
+                        String entryKey = null;
+                        for (String getter : new String[] {"getName", "name"}) {
+                            try {
+                                entryKey = (String)
+                                        entry.getClass().getMethod(getter).invoke(entry);
+                                break;
+                            } catch (NoSuchMethodException ignored) {
+                            }
+                        }
+                        if (entryKey != null) putMethod.invoke(mutableMap, entryKey, entry);
+                    }
+                }
+            }
+        }
+
+        for (Method m : mutableMap.getClass().getMethods()) {
+            if ("put".equals(m.getName()) && m.getParameterCount() == 2) {
+                m.invoke(mutableMap, key, property);
+                break;
+            }
+        }
+
+        for (Field f : propertyMap.getClass().getDeclaredFields()) {
+            f.setAccessible(true);
+            Object delegate = f.get(propertyMap);
+            if (delegate != null && delegate.getClass().getName().contains("Multimap")) {
+                f.set(propertyMap, mutableMap);
+                Config.debugPackets("injectProperty: replaced delegate multimap - succeeded.");
+                return;
+            }
+        }
+
+        FppLogger.warn("injectProperty: all strategies exhausted - skin may not appear in tab list.");
+    }
+
+    public static void sendTabListRemove(Player receiver, FakePlayer fp) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+            Constructor<?> ctor = getConstructor(playerInfoRemovePacketClass, List.class);
+            if (ctor == null) {
+                ctor = playerInfoRemovePacketClass.getDeclaredConstructors()[0];
+                ctor.setAccessible(true);
+            }
+            sendPacket(nms, ctor.newInstance(List.of(fp.getUuid())));
+            Config.debugPackets("Tab REMOVE → " + receiver.getName() + " for " + fp.getName());
+        } catch (Exception e) {
+            FppLogger.error("sendTabListRemove failed: " + e.getMessage());
+        }
+    }
+
+    public static void sendTabListRemoveByUuid(Player receiver, UUID uuid) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+            Constructor<?> ctor = getConstructor(playerInfoRemovePacketClass, List.class);
+            if (ctor == null) {
+                ctor = playerInfoRemovePacketClass.getDeclaredConstructors()[0];
+                ctor.setAccessible(true);
+            }
+            sendPacket(nms, ctor.newInstance(List.of(uuid)));
+            Config.debugPackets("Tab REMOVE raw → " + receiver.getName() + " for " + uuid);
+        } catch (Exception e) {
+            FppLogger.error("sendTabListRemoveByUuid failed: " + e.getMessage());
+        }
+    }
+
+    public static void sendTabListAddRaw(
+            Player receiver,
+            UUID uuid,
+            String packetProfileName,
+            String displayName,
+            String skinValue,
+            String skinSignature,
+            int pingMs) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+
+            String safeProfileName = (packetProfileName == null || packetProfileName.isBlank())
+                    ? uuid.toString().replace("-", "").substring(0, 8)
+                    : packetProfileName;
+
+            Object profile = gameProfileCtor != null
+                    ? gameProfileCtor.newInstance(uuid, safeProfileName)
+                    : gameProfileClass.getDeclaredConstructors()[0].newInstance(uuid, safeProfileName);
+
+            if (skinValue != null && !skinValue.isBlank()) {
+                try {
+                    injectProperty(profile, "textures", skinValue, skinSignature);
+                } catch (Exception ex) {
+                    Config.debugPackets("sendTabListAddRaw: skin inject failed - " + ex.getMessage());
+                }
+            }
+
+            Component adventureComponent = MiniMessage.miniMessage().deserialize(displayName);
+            Object nmsDisplayName = adventureToNms(adventureComponent);
+
+            Object entry = buildEntryWithLatency(uuid, profile, nmsDisplayName, pingMs);
+            Object actions = buildActionSet();
+
+            sendPacket(nms, playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry)));
+            Config.debugPackets("Tab ADD raw → "
+                    + receiver.getName()
+                    + " for "
+                    + safeProfileName
+                    + (skinValue != null && !skinValue.isBlank() ? " [skinned]" : ""));
+        } catch (Exception e) {
+            FppLogger.error("sendTabListAddRaw failed: " + e.getMessage());
+            if (Config.debugPackets()) FppLogger.warn("  → " + e);
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static void sendTabListDisplayNameUpdate(Player receiver, FakePlayer fp) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+
+            Object profile = fp.getCachedTabListGameProfile();
+            if (profile == null) {
+                profile = gameProfileCtor != null
+                        ? gameProfileCtor.newInstance(fp.getUuid(), fp.getName())
+                        : gameProfileClass.getDeclaredConstructors()[0].newInstance(fp.getUuid(), fp.getName());
+                fp.setCachedTabListGameProfile(profile);
+            }
+
+            String dispStr = fp.getNameTagNick() != null ? fp.getNameTagNick() : fp.getDisplayName();
+
+            Object displayName = fp.getCachedNmsDisplayComponent();
+            if (displayName == null || !dispStr.equals(fp.getCachedNmsDisplaySource())) {
+                Component adv = MiniMessage.miniMessage().deserialize(dispStr);
+                displayName = adventureToNms(adv);
+                fp.setCachedNmsDisplay(displayName, dispStr);
+            }
+
+            int latency = fp.getEffectivePing();
+            Object entry = buildEntryWithLatency(fp.getUuid(), profile, displayName, latency);
+
+            if (cachedUpdateDisplayNameActions == null) {
+                Class<? extends Enum> e = rawEnum(playerInfoUpdateActionClass);
+                cachedUpdateDisplayNameActions = EnumSet.of(Enum.valueOf(e, "UPDATE_DISPLAY_NAME"));
+            }
+            Object actions = cachedUpdateDisplayNameActions;
+
+            sendPacket(nms, playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry)));
+        } catch (Exception e) {
+
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static void sendTabListDisplayNameUpdate(Player receiver, UUID uuid, String rawDisplayName, int pingMs) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+            Object profile = gameProfileCtor != null
+                    ? gameProfileCtor.newInstance(uuid, uuid.toString().substring(0, 8))
+                    : gameProfileClass.getDeclaredConstructors()[0].newInstance(
+                            uuid, uuid.toString().substring(0, 8));
+
+            Component adventureComponent = MiniMessage.miniMessage().deserialize(rawDisplayName);
+            Object displayName = adventureToNms(adventureComponent);
+
+            Object entry = buildEntryWithLatency(uuid, profile, displayName, pingMs);
+
+            if (cachedUpdateDisplayNameActions == null) {
+                Class<? extends Enum> e = rawEnum(playerInfoUpdateActionClass);
+                cachedUpdateDisplayNameActions = EnumSet.of(Enum.valueOf(e, "UPDATE_DISPLAY_NAME"));
+            }
+            sendPacket(nms, playerInfoUpdateCtor.newInstance(cachedUpdateDisplayNameActions, buildSecondArg(entry)));
+        } catch (Exception e) {
+
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static void sendTabListLatencyUpdate(Player receiver, FakePlayer fp) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+
+            Object profile = fp.getCachedTabListGameProfile();
+            if (profile == null) {
+                profile = gameProfileCtor != null
+                        ? gameProfileCtor.newInstance(fp.getUuid(), fp.getName())
+                        : gameProfileClass.getDeclaredConstructors()[0].newInstance(fp.getUuid(), fp.getName());
+                fp.setCachedTabListGameProfile(profile);
+            }
+
+            Object displayName = fp.getCachedNmsDisplayComponent();
+            if (displayName == null) {
+                Component adv = MiniMessage.miniMessage().deserialize(fp.getDisplayName());
+                displayName = adventureToNms(adv);
+                fp.setCachedNmsDisplay(displayName, fp.getDisplayName());
+            }
+
+            int latency = fp.getEffectivePing();
+            Object entry = buildEntryWithLatency(fp.getUuid(), profile, displayName, latency);
+
+            if (cachedUpdateLatencyActions == null) {
+                Class<? extends Enum> e = rawEnum(playerInfoUpdateActionClass);
+                cachedUpdateLatencyActions = EnumSet.of(Enum.valueOf(e, "UPDATE_LATENCY"));
+            }
+
+            sendPacket(nms, playerInfoUpdateCtor.newInstance(cachedUpdateLatencyActions, buildSecondArg(entry)));
+            Config.debugPackets("Tab LATENCY → " + receiver.getName() + " for " + fp.getName() + " ping=" + latency);
+        } catch (Exception e) {
+            Config.debugPackets("sendTabListLatencyUpdate failed: " + e.getMessage());
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static void sendTabListUpdateListed(Player receiver, FakePlayer fp, boolean listed) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+
+            Object profile = fp.getCachedTabListGameProfile();
+            if (profile == null) {
+                profile = buildProfileWithSkin(fp);
+                fp.setCachedTabListGameProfile(profile);
+            }
+
+            Object displayName = fp.getCachedNmsDisplayComponent();
+            if (displayName == null) {
+                Component adv = MiniMessage.miniMessage().deserialize(fp.getDisplayName());
+                displayName = adventureToNms(adv);
+                fp.setCachedNmsDisplay(displayName, fp.getDisplayName());
+            }
+
+            int latency = fp.getEffectivePing();
+            Object entry = buildEntryWithListedFlag(fp.getUuid(), profile, displayName, latency, listed);
+
+            if (cachedUpdateListedActions == null) {
+                Class<? extends Enum> e = rawEnum(playerInfoUpdateActionClass);
+                cachedUpdateListedActions = EnumSet.of(Enum.valueOf(e, "UPDATE_LISTED"));
+            }
+
+            sendPacket(nms, playerInfoUpdateCtor.newInstance(cachedUpdateListedActions, buildSecondArg(entry)));
+            Config.debugPackets("Tab LISTED(" + listed + ") → " + receiver.getName() + " for " + fp.getName());
+        } catch (Exception e) {
+            Config.debugPackets("sendTabListUpdateListed failed: " + e.getMessage());
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static void sendTabListRefreshEntry(Player receiver, FakePlayer fp) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+            if (nms == null) return;
+
+            Object profile = buildProfileWithSkin(fp);
+            if (profile == null) return;
+
+            String dispStr = fp.getDisplayName();
+            if (dispStr == null || dispStr.isBlank()) dispStr = fp.getName();
+            Object displayName = fp.getCachedNmsDisplayComponent();
+            if (displayName == null || !dispStr.equals(fp.getCachedNmsDisplaySource())) {
+                Component adv = MiniMessage.miniMessage().deserialize(dispStr);
+                displayName = adventureToNms(adv);
+                if (displayName == null) displayName = componentLiteral(dispStr);
+                if (displayName == null) return;
+                fp.setCachedNmsDisplay(displayName, dispStr);
+            }
+
+            int latency = fp.getEffectivePing();
+            boolean listed = Config.tabListEnabled();
+            Object entry = buildEntryWithListedFlag(fp.getUuid(), profile, displayName, latency, listed);
+
+            if (cachedUpdateDisplayLatencyListedActions == null) {
+                Class<? extends Enum> e = rawEnum(playerInfoUpdateActionClass);
+                cachedUpdateDisplayLatencyListedActions = EnumSet.of(
+                        Enum.valueOf(e, "UPDATE_DISPLAY_NAME"),
+                        Enum.valueOf(e, "UPDATE_LISTED"),
+                        Enum.valueOf(e, "UPDATE_LATENCY"));
+            }
+            Object actions = cachedUpdateDisplayLatencyListedActions;
+
+            sendPacket(nms, playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry)));
+            Config.debugPackets("Tab REFRESH → " + receiver.getName() + " for " + fp.getName());
+        } catch (Exception e) {
+            Config.debugPackets("sendTabListRefreshEntry failed: " + describeException(e));
+        }
+    }
+
+    public static void spawnFakePlayer(Player receiver, FakePlayer fp, Location loc) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+            Constructor<?> ctor = addEntityPacketClass.getConstructor(
+                    int.class,
+                    UUID.class,
+                    double.class,
+                    double.class,
+                    double.class,
+                    float.class,
+                    float.class,
+                    entityTypeClass,
+                    int.class,
+                    vec3Class,
+                    double.class);
+            sendPacket(
+                    nms,
+                    ctor.newInstance(
+                            fp.getPlayer().getEntityId(),
+                            fp.getUuid(),
+                            loc.getX(),
+                            loc.getY(),
+                            loc.getZ(),
+                            loc.getPitch(),
+                            loc.getYaw(),
+                            entityTypePlayer,
+                            0,
+                            vec3Zero,
+                            0.0));
+            Config.debugPackets("Spawn entity → " + receiver.getName() + " for " + fp.getName());
+        } catch (Exception e) {
+            FppLogger.error("spawnFakePlayer failed: " + e.getMessage());
+            if (Config.debugPackets()) FppLogger.warn("  → " + e);
+        }
+    }
+
+    public static void despawnFakePlayer(Player receiver, FakePlayer fp) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+            Constructor<?> ctor = removeEntitiesPacketClass.getConstructor(int[].class);
+            sendPacket(nms, ctor.newInstance((Object) new int[] {fp.getPlayer().getEntityId()}));
+            Config.debugPackets("Despawn entity → " + receiver.getName() + " for " + fp.getName());
+        } catch (Exception e) {
+            FppLogger.error("despawnFakePlayer failed: " + e.getMessage());
+        }
+    }
+
+    public static void sendTeleport(Player receiver, FakePlayer fp, Location loc) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+            ClassLoader cl = nms.getClass().getClassLoader();
             String[] candidates = {
                 "net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket",
                 "net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket"
             };
-            outer:
             for (String className : candidates) {
-              try {
-                Class<?> pktClass = cl.loadClass(className);
-
-                for (Constructor<?> c : pktClass.getDeclaredConstructors()) {
-                  c.setAccessible(true);
-                  Class<?>[] pt = c.getParameterTypes();
-                  if (pt.length == 7 && pt[0] == int.class && pt[1] == double.class) {
-                    cachedPosSyncCtor = c;
-                    posSyncUsesEntityArg = false;
-                    Config.debugPackets("sendPositionSync: using 7-param ctor from " + className);
-                    break outer;
-                  }
+                try {
+                    Class<?> pktClass = cl.loadClass(className);
+                    for (Constructor<?> c : pktClass.getDeclaredConstructors()) {
+                        c.setAccessible(true);
+                        Class<?>[] pt = c.getParameterTypes();
+                        if (pt.length == 7 && pt[0] == int.class && pt[1] == double.class) {
+                            sendPacket(
+                                    nms,
+                                    c.newInstance(
+                                            fp.getEntityId(),
+                                            loc.getX(),
+                                            loc.getY(),
+                                            loc.getZ(),
+                                            loc.getYaw(),
+                                            loc.getPitch(),
+                                            true));
+                            return;
+                        }
+                    }
+                } catch (ClassNotFoundException ignored) {
                 }
+            }
+        } catch (Exception ignored) {
 
-                for (Constructor<?> c : pktClass.getDeclaredConstructors()) {
-                  c.setAccessible(true);
-                  if (c.getParameterCount() == 1) {
-                    cachedPosSyncCtor = c;
-                    posSyncUsesEntityArg = true;
-                    Config.debugPackets(
-                        "sendPositionSync: using 1-param (Entity) ctor from" + " " + className);
-                    break outer;
-                  }
+        }
+    }
+
+    public static void sendHurtAnimation(Player receiver, FakePlayer fp) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+            ClassLoader cl = nms.getClass().getClassLoader();
+            Class<?> animClass = cl.loadClass("net.minecraft.network.protocol.game.ClientboundAnimatePacket");
+            for (Constructor<?> c : animClass.getDeclaredConstructors()) {
+                c.setAccessible(true);
+                Class<?>[] pt = c.getParameterTypes();
+                if (pt.length == 2 && pt[0] == int.class && pt[1] == int.class) {
+                    sendPacket(nms, c.newInstance(fp.getEntityId(), 1));
+                    return;
                 }
-              } catch (ClassNotFoundException ignored) {
-              }
             }
-            posSyncCtorLookupDone = true;
-            if (cachedPosSyncCtor == null) {
-              Config.debugPackets(
-                  "sendPositionSync: no suitable position-sync packet constructor"
-                      + " found - position sync disabled.");
+        } catch (Exception ignored) {
+        }
+    }
+
+    public static void sendSwingArm(Player receiver, FakePlayer fp) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+            ClassLoader cl = nms.getClass().getClassLoader();
+            Class<?> animClass = cl.loadClass("net.minecraft.network.protocol.game.ClientboundAnimatePacket");
+            for (Constructor<?> c : animClass.getDeclaredConstructors()) {
+                c.setAccessible(true);
+                Class<?>[] pt = c.getParameterTypes();
+                if (pt.length == 2 && pt[0] == int.class && pt[1] == int.class) {
+                    sendPacket(nms, c.newInstance(fp.getEntityId(), 0));
+                    return;
+                }
             }
-          }
+        } catch (Exception ignored) {
         }
-      }
-
-      if (cachedPosSyncCtor == null) return;
-
-      Object packet;
-      if (posSyncUsesEntityArg) {
-        Object nmsBot = craftPlayerGetHandle.invoke(bot);
-        packet = cachedPosSyncCtor.newInstance(nmsBot);
-      } else {
-        Location loc = bot.getLocation();
-        packet =
-            cachedPosSyncCtor.newInstance(
-                bot.getEntityId(),
-                loc.getX(),
-                loc.getY(),
-                loc.getZ(),
-                loc.getYaw(),
-                loc.getPitch(),
-                true);
-      }
-      sendPacket(receiverNms, packet);
-
-    } catch (Exception e) {
-      Config.debugPackets("sendPositionSync failed: " + e.getMessage());
     }
-  }
 
-  public static void sendPositionSync(Player receiver, Player bot, Location loc) {
-    if (!ensureReady()) return;
-    if (!posSyncCtorLookupDone) {
+    public static void sendEatAnimation(Player receiver, FakePlayer fp) {
+        if (!ensureReady()) return;
+        try {
+            Object nms = getHandle(receiver);
+            ClassLoader cl = nms.getClass().getClassLoader();
 
-      sendPositionSync(receiver, bot);
-      return;
-    }
-    if (cachedPosSyncCtor == null) return;
-    try {
-      Object receiverNms = craftPlayerGetHandle.invoke(receiver);
-      Object packet;
-      if (posSyncUsesEntityArg) {
-        Object nmsBot = craftPlayerGetHandle.invoke(bot);
-        packet = cachedPosSyncCtor.newInstance(nmsBot);
-      } else {
-        packet =
-            cachedPosSyncCtor.newInstance(
-                bot.getEntityId(),
-                loc.getX(),
-                loc.getY(),
-                loc.getZ(),
-                loc.getYaw(),
-                loc.getPitch(),
-                true);
-      }
-      sendPacket(receiverNms, packet);
-    } catch (Exception e) {
-      Config.debugPackets("sendPositionSync (pre-loc) failed: " + e.getMessage());
-    }
-  }
+            Class<?> entityEventClass =
+                    cl.loadClass("net.minecraft.network.protocol.game.ClientboundEntityEventPacket");
 
-  private static Object getHandle(Player player) throws Exception {
-    if (craftPlayerGetHandle != null)
-      return craftPlayerGetHandle.invoke(craftPlayerClass.cast(player));
-    for (Method m : craftPlayerClass.getDeclaredMethods()) {
-      if (m.getName().equals("getHandle") && m.getParameterCount() == 0) {
-        m.setAccessible(true);
-        craftPlayerGetHandle = m;
-        return m.invoke(craftPlayerClass.cast(player));
-      }
-    }
-    throw new NoSuchMethodException("CraftPlayer.getHandle()");
-  }
-
-  private static void sendPacket(Object serverPlayer, Object packet) throws Exception {
-    if (serverPlayer == null || packet == null) return;
-    if (cachedConnectionField == null) {
-      Field f = findFieldInHierarchy(serverPlayer.getClass(), "connection");
-      if (f == null) throw new IllegalStateException("ServerPlayer.connection field not found");
-      f.setAccessible(true);
-      cachedConnectionField = f;
-    }
-    Object conn = cachedConnectionField.get(serverPlayer);
-    if (conn == null) throw new IllegalStateException("ServerPlayer.connection is null");
-
-    if (cachedSendMethod == null) {
-
-      Class<?> cur = conn.getClass();
-      outer:
-      while (cur != null && cur != Object.class) {
-        if (!cur.getName().startsWith("me.bill.")) {
-          for (Method m : cur.getDeclaredMethods()) {
-            if (m.getName().equals("send") && m.getParameterCount() == 1) {
-              m.setAccessible(true);
-              cachedSendMethod = m;
-              break outer;
+            Player botPlayer = fp.getPlayer();
+            if (botPlayer == null) return;
+            Object botNms = getHandle(botPlayer);
+            for (Constructor<?> c : entityEventClass.getDeclaredConstructors()) {
+                c.setAccessible(true);
+                Class<?>[] pt = c.getParameterTypes();
+                if (pt.length == 2 && pt[1] == byte.class) {
+                    sendPacket(nms, c.newInstance(botNms, (byte) 9));
+                    return;
+                }
             }
-          }
+        } catch (Exception ignored) {
         }
-        cur = cur.getSuperclass();
-      }
-      if (cachedSendMethod == null)
-        throw new IllegalStateException("connection.send(Packet) not found");
     }
-    cachedSendMethod.invoke(conn, packet);
-  }
 
-  private static Field findFieldInHierarchy(Class<?> clazz, String name) {
-    for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
-      try {
-        return c.getDeclaredField(name);
-      } catch (NoSuchFieldException ignored) {
-      }
-    }
-    return null;
-  }
+    public static void sendRotation(Player receiver, FakePlayer fp, float yaw, float pitch, float headYaw) {
+        if (!ensureReady() || moveEntityRotPacketClass == null || rotateHeadPacketClass == null) return;
+        try {
+            Object nms = getHandle(receiver);
+            int entityId = fp.getEntityId();
+            if (entityId == -1) return;
 
-  private static Object scanStaticField(Class<?> clazz, String name) throws Exception {
-    for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
-      for (Field f : c.getDeclaredFields()) {
-        if (f.getName().equals(name)) {
-          f.setAccessible(true);
-          return f.get(null);
+            byte encYaw = angleToByte(yaw);
+            byte encPitch = angleToByte(pitch);
+            byte encHead = angleToByte(headYaw);
+
+            if (!rotCtorLookupDone) {
+                synchronized (PacketHelper.class) {
+                    if (!rotCtorLookupDone) {
+                        for (Constructor<?> c : moveEntityRotPacketClass.getDeclaredConstructors()) {
+                            Class<?>[] p = c.getParameterTypes();
+                            if (p.length == 4 && p[0] == int.class && p[1] == byte.class) {
+                                c.setAccessible(true);
+                                cachedMoveEntityRotCtor = c;
+                                break;
+                            }
+                        }
+                        for (Constructor<?> c : rotateHeadPacketClass.getDeclaredConstructors()) {
+                            c.setAccessible(true);
+                            Class<?>[] p = c.getParameterTypes();
+                            if (p.length == 2 && p[0] == int.class) {
+                                cachedRotateHeadCtorInt = c;
+                                break;
+                            } else if (p.length == 2) {
+                                cachedRotateHeadCtorEntity = c;
+                            }
+                        }
+                        rotCtorLookupDone = true;
+                    }
+                }
+            }
+
+            if (cachedMoveEntityRotCtor != null) {
+                sendPacket(nms, cachedMoveEntityRotCtor.newInstance(entityId, encYaw, encPitch, true));
+            }
+            if (cachedRotateHeadCtorInt != null) {
+                sendPacket(nms, cachedRotateHeadCtorInt.newInstance(entityId, encHead));
+            } else if (cachedRotateHeadCtorEntity != null && fp.getPhysicsEntity() != null) {
+
+                Object nmsEntity = craftPlayerGetHandle.invoke(fp.getPhysicsEntity());
+                sendPacket(nms, cachedRotateHeadCtorEntity.newInstance(nmsEntity, encHead));
+            }
+        } catch (Exception e) {
+            Config.debugPackets("sendRotation failed: " + e.getMessage());
         }
-      }
-    }
-    throw new NoSuchFieldException(name + " not found in " + clazz.getSimpleName());
-  }
-
-  private static Constructor<?> getConstructor(Class<?> clazz, Class<?>... params) {
-    try {
-      Constructor<?> c = clazz.getDeclaredConstructor(params);
-      c.setAccessible(true);
-      return c;
-    } catch (NoSuchMethodException ignored) {
-      return null;
-    }
-  }
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  private static Class<? extends Enum> rawEnum(Class<?> c) {
-    return (Class<? extends Enum>) c;
-  }
-
-  private static Class<?> getCraftPlayerClass() throws ClassNotFoundException {
-    try {
-      return Class.forName("org.bukkit.craftbukkit.entity.CraftPlayer");
-    } catch (ClassNotFoundException ignored) {
     }
 
-    String pkg = Bukkit.getServer().getClass().getPackage().getName();
-    String[] parts = pkg.split("\\.");
-    String version = parts.length >= 4 ? parts[3] + "." : "";
-    return Class.forName("org.bukkit.craftbukkit." + version + "entity.CraftPlayer");
-  }
+    public static void sendPositionSync(Player receiver, Player bot) {
+        if (!ensureReady()) return;
+        try {
+            Object receiverNms = craftPlayerGetHandle.invoke(receiver);
 
-  private static byte angleToByte(float degrees) {
-    return (byte) Math.floor(degrees * 256f / 360f);
-  }
+            if (!posSyncCtorLookupDone) {
+                synchronized (PacketHelper.class) {
+                    if (!posSyncCtorLookupDone) {
+                        ClassLoader cl = receiverNms.getClass().getClassLoader();
+                        String[] candidates = {
+                            "net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket",
+                            "net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket"
+                        };
+                        outer:
+                        for (String className : candidates) {
+                            try {
+                                Class<?> pktClass = cl.loadClass(className);
 
-  private static Object adventureToNms(Component component) {
-    if (paperAdventureAsVanilla != null) {
-      try {
-        return paperAdventureAsVanilla.invoke(null, component);
-      } catch (Exception e) {
-        Config.debugPackets("PaperAdventure.asVanilla failed: " + e.getMessage());
-      }
+                                for (Constructor<?> c : pktClass.getDeclaredConstructors()) {
+                                    c.setAccessible(true);
+                                    Class<?>[] pt = c.getParameterTypes();
+                                    if (pt.length == 7 && pt[0] == int.class && pt[1] == double.class) {
+                                        cachedPosSyncCtor = c;
+                                        posSyncUsesEntityArg = false;
+                                        Config.debugPackets("sendPositionSync: using 7-param ctor from " + className);
+                                        break outer;
+                                    }
+                                }
+
+                                for (Constructor<?> c : pktClass.getDeclaredConstructors()) {
+                                    c.setAccessible(true);
+                                    if (c.getParameterCount() == 1) {
+                                        cachedPosSyncCtor = c;
+                                        posSyncUsesEntityArg = true;
+                                        Config.debugPackets(
+                                                "sendPositionSync: using 1-param (Entity) ctor from" + " " + className);
+                                        break outer;
+                                    }
+                                }
+                            } catch (ClassNotFoundException ignored) {
+                            }
+                        }
+                        posSyncCtorLookupDone = true;
+                        if (cachedPosSyncCtor == null) {
+                            Config.debugPackets("sendPositionSync: no suitable position-sync packet constructor"
+                                    + " found - position sync disabled.");
+                        }
+                    }
+                }
+            }
+
+            if (cachedPosSyncCtor == null) return;
+
+            Object packet;
+            if (posSyncUsesEntityArg) {
+                Object nmsBot = craftPlayerGetHandle.invoke(bot);
+                packet = cachedPosSyncCtor.newInstance(nmsBot);
+            } else {
+                Location loc = bot.getLocation();
+                packet = cachedPosSyncCtor.newInstance(
+                        bot.getEntityId(), loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(), true);
+            }
+            sendPacket(receiverNms, packet);
+
+        } catch (Exception e) {
+            Config.debugPackets("sendPositionSync failed: " + e.getMessage());
+        }
     }
 
-    if (componentLiteral != null) {
-      try {
-        String plain = PlainTextComponentSerializer.plainText().serialize(component);
-        return componentLiteral.invoke(null, plain);
-      } catch (Exception e) {
-        Config.debugPackets("componentLiteral fallback failed: " + e.getMessage());
-      }
+    public static void sendPositionSync(Player receiver, Player bot, Location loc) {
+        if (!ensureReady()) return;
+        if (!posSyncCtorLookupDone) {
+
+            sendPositionSync(receiver, bot);
+            return;
+        }
+        if (cachedPosSyncCtor == null) return;
+        try {
+            Object receiverNms = craftPlayerGetHandle.invoke(receiver);
+            Object packet;
+            if (posSyncUsesEntityArg) {
+                Object nmsBot = craftPlayerGetHandle.invoke(bot);
+                packet = cachedPosSyncCtor.newInstance(nmsBot);
+            } else {
+                packet = cachedPosSyncCtor.newInstance(
+                        bot.getEntityId(), loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(), true);
+            }
+            sendPacket(receiverNms, packet);
+        } catch (Exception e) {
+            Config.debugPackets("sendPositionSync (pre-loc) failed: " + e.getMessage());
+        }
     }
-    return null;
-  }
 
-  private static Object componentLiteral(String text) {
-    if (componentLiteral == null) return null;
-    try {
-      return componentLiteral.invoke(null, text != null ? text : "");
-    } catch (Exception e) {
-      Config.debugPackets("componentLiteral failed: " + describeException(e));
-      return null;
+    private static Object getHandle(Player player) throws Exception {
+        if (craftPlayerGetHandle != null) return craftPlayerGetHandle.invoke(craftPlayerClass.cast(player));
+        for (Method m : craftPlayerClass.getDeclaredMethods()) {
+            if (m.getName().equals("getHandle") && m.getParameterCount() == 0) {
+                m.setAccessible(true);
+                craftPlayerGetHandle = m;
+                return m.invoke(craftPlayerClass.cast(player));
+            }
+        }
+        throw new NoSuchMethodException("CraftPlayer.getHandle()");
     }
-  }
 
-  private static String describeException(Throwable throwable) {
-    Throwable cause = throwable;
-    while (cause instanceof InvocationTargetException ite && ite.getCause() != null) {
-      cause = ite.getCause();
+    private static void sendPacket(Object serverPlayer, Object packet) throws Exception {
+        if (serverPlayer == null || packet == null) return;
+        if (cachedConnectionField == null) {
+            Field f = findFieldInHierarchy(serverPlayer.getClass(), "connection");
+            if (f == null) throw new IllegalStateException("ServerPlayer.connection field not found");
+            f.setAccessible(true);
+            cachedConnectionField = f;
+        }
+        Object conn = cachedConnectionField.get(serverPlayer);
+        if (conn == null) throw new IllegalStateException("ServerPlayer.connection is null");
+
+        if (cachedSendMethod == null) {
+
+            Class<?> cur = conn.getClass();
+            outer:
+            while (cur != null && cur != Object.class) {
+                if (!cur.getName().startsWith("me.bill.")) {
+                    for (Method m : cur.getDeclaredMethods()) {
+                        if (m.getName().equals("send") && m.getParameterCount() == 1) {
+                            m.setAccessible(true);
+                            cachedSendMethod = m;
+                            break outer;
+                        }
+                    }
+                }
+                cur = cur.getSuperclass();
+            }
+            if (cachedSendMethod == null) throw new IllegalStateException("connection.send(Packet) not found");
+        }
+        cachedSendMethod.invoke(conn, packet);
     }
-    String message = cause.getMessage();
-    return cause.getClass().getSimpleName() + (message == null ? "" : ": " + message);
-  }
 
-  private static volatile Object cachedFullActionSet;
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  private static Object buildActionSet() {
-    Object cached = cachedFullActionSet;
-    if (cached != null) return cached;
-
-    Class<? extends Enum> enumClass = rawEnum(playerInfoUpdateActionClass);
-
-    EnumSet actions = EnumSet.noneOf(enumClass);
-
-    actions.add(Enum.valueOf(enumClass, "ADD_PLAYER"));
-    actions.add(Enum.valueOf(enumClass, "UPDATE_LISTED"));
-    actions.add(Enum.valueOf(enumClass, "UPDATE_LATENCY"));
-    actions.add(Enum.valueOf(enumClass, "UPDATE_GAME_MODE"));
-    actions.add(Enum.valueOf(enumClass, "UPDATE_DISPLAY_NAME"));
-    tryAddAction(actions, enumClass, "UPDATE_LIST_ORDER");
-    tryAddAction(actions, enumClass, "UPDATE_HAT");
-
-    cachedFullActionSet = actions;
-    return actions;
-  }
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  private static void tryAddAction(EnumSet actions, Class<? extends Enum> enumClass, String name) {
-    try {
-      actions.add(Enum.valueOf(enumClass, name));
-    } catch (IllegalArgumentException ignored) {
+    private static Field findFieldInHierarchy(Class<?> clazz, String name) {
+        for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
+            try {
+                return c.getDeclaredField(name);
+            } catch (NoSuchFieldException ignored) {
+            }
+        }
+        return null;
     }
-  }
 
-  private static Object buildEntry(UUID uuid, Object profile, Object displayName) throws Exception {
-    return buildEntryWithLatency(uuid, profile, displayName, 0);
-  }
-
-  private static Object buildEntryWithLatency(
-      UUID uuid, Object profile, Object displayName, int latency) throws Exception {
-    if (cachedEntryCtorWinner != null) {
-      return cachedEntryCtorWinner.newInstance(
-          mapEntryArgs(cachedEntryCtorParamTypes, uuid, profile, displayName, latency));
+    private static Object scanStaticField(Class<?> clazz, String name) throws Exception {
+        for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
+            for (Field f : c.getDeclaredFields()) {
+                if (f.getName().equals(name)) {
+                    f.setAccessible(true);
+                    return f.get(null);
+                }
+            }
+        }
+        throw new NoSuchFieldException(name + " not found in " + clazz.getSimpleName());
     }
-    Constructor<?>[] ctors = playerInfoUpdateEntryClass.getDeclaredConstructors();
-    Arrays.sort(ctors, (a, b) -> b.getParameterCount() - a.getParameterCount());
-    Exception last = null;
-    for (Constructor<?> ctor : ctors) {
-      ctor.setAccessible(true);
-      try {
-        Object result =
-            ctor.newInstance(
-                mapEntryArgs(ctor.getParameterTypes(), uuid, profile, displayName, latency));
-        cachedEntryCtorParamTypes = ctor.getParameterTypes();
-        cachedEntryCtorWinner = ctor;
-        return result;
-      } catch (Exception ex) {
-        last = ex;
-      }
+
+    private static Constructor<?> getConstructor(Class<?> clazz, Class<?>... params) {
+        try {
+            Constructor<?> c = clazz.getDeclaredConstructor(params);
+            c.setAccessible(true);
+            return c;
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        }
     }
-    throw new IllegalStateException(
-        "No Entry ctor matched. Last: " + (last != null ? last.getMessage() : "?"));
-  }
 
-  private static Object buildEntryWithListedFlag(
-      UUID uuid, Object profile, Object displayName, int latency, boolean listed) throws Exception {
-    if (cachedEntryCtorWinner != null) {
-      return cachedEntryCtorWinner.newInstance(
-          mapEntryArgsWithListed(
-              cachedEntryCtorParamTypes, uuid, profile, displayName, latency, listed));
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Class<? extends Enum> rawEnum(Class<?> c) {
+        return (Class<? extends Enum>) c;
     }
-    Constructor<?>[] ctors = playerInfoUpdateEntryClass.getDeclaredConstructors();
-    Arrays.sort(ctors, (a, b) -> b.getParameterCount() - a.getParameterCount());
-    Exception last = null;
-    for (Constructor<?> ctor : ctors) {
-      ctor.setAccessible(true);
-      try {
-        Object result =
-            ctor.newInstance(
-                mapEntryArgsWithListed(
-                    ctor.getParameterTypes(), uuid, profile, displayName, latency, listed));
-        cachedEntryCtorParamTypes = ctor.getParameterTypes();
-        cachedEntryCtorWinner = ctor;
-        return result;
-      } catch (Exception ex) {
-        last = ex;
-      }
+
+    private static Class<?> getCraftPlayerClass() throws ClassNotFoundException {
+        try {
+            return Class.forName("org.bukkit.craftbukkit.entity.CraftPlayer");
+        } catch (ClassNotFoundException ignored) {
+        }
+
+        String pkg = Bukkit.getServer().getClass().getPackage().getName();
+        String[] parts = pkg.split("\\.");
+        String version = parts.length >= 4 ? parts[3] + "." : "";
+        return Class.forName("org.bukkit.craftbukkit." + version + "entity.CraftPlayer");
     }
-    throw new IllegalStateException(
-        "No Entry ctor matched. Last: " + (last != null ? last.getMessage() : "?"));
-  }
 
-  private static Object buildSecondArg(Object entry) throws Exception {
-    if (cachedInfoUpdateSecondArgStrategy == 0) {
-      Class<?> spt = playerInfoUpdateCtor.getParameterTypes()[1];
-      if (spt == playerInfoUpdateEntryClass) {
-        cachedInfoUpdateSecondArgStrategy = 1;
-      } else if (spt.isArray()) {
-        cachedInfoUpdateSecondArgStrategy = 2;
-        cachedInfoUpdateArrayCompType = spt.getComponentType();
-      } else {
-        cachedInfoUpdateSecondArgStrategy = 3;
-      }
+    private static byte angleToByte(float degrees) {
+        return (byte) Math.floor(degrees * 256f / 360f);
     }
-    return switch (cachedInfoUpdateSecondArgStrategy) {
-      case 1 -> entry;
-      case 2 -> {
-        Object arr = Array.newInstance(cachedInfoUpdateArrayCompType, 1);
-        Array.set(arr, 0, entry);
-        yield arr;
-      }
-      default -> List.of(entry);
-    };
-  }
 
-  private static Object[] mapEntryArgs(
-      Class<?>[] types, UUID uuid, Object profile, Object displayName) {
-    return mapEntryArgs(types, uuid, profile, displayName, 0);
-  }
+    private static Object adventureToNms(Component component) {
+        if (paperAdventureAsVanilla != null) {
+            try {
+                return paperAdventureAsVanilla.invoke(null, component);
+            } catch (Exception e) {
+                Config.debugPackets("PaperAdventure.asVanilla failed: " + e.getMessage());
+            }
+        }
 
-  private static Object[] mapEntryArgs(
-      Class<?>[] types, UUID uuid, Object profile, Object displayName, int latency) {
-    Object[] args = new Object[types.length];
-    for (int i = 0; i < types.length; i++) {
-      Class<?> type = types[i];
-      args[i] =
-          switch (type.getSimpleName()) {
-            case "UUID" -> uuid;
-            case "GameProfile" -> profile;
-
-            case "boolean" -> true;
-            case "Boolean" -> Boolean.TRUE;
-            case "int" -> latency;
-            case "Integer" -> Integer.valueOf(latency);
-            case "GameType" -> gameTypeSurvival;
-            case "Component" -> displayName;
-            default -> defaultEntryArg(type);
-          };
+        if (componentLiteral != null) {
+            try {
+                String plain = PlainTextComponentSerializer.plainText().serialize(component);
+                return componentLiteral.invoke(null, plain);
+            } catch (Exception e) {
+                Config.debugPackets("componentLiteral fallback failed: " + e.getMessage());
+            }
+        }
+        return null;
     }
-    return args;
-  }
 
-  private static Object[] mapEntryArgsWithListed(
-      Class<?>[] types,
-      UUID uuid,
-      Object profile,
-      Object displayName,
-      int latency,
-      boolean listed) {
-    Object[] args = new Object[types.length];
-    for (int i = 0; i < types.length; i++) {
-      Class<?> type = types[i];
-      args[i] =
-          switch (type.getSimpleName()) {
-            case "UUID" -> uuid;
-            case "GameProfile" -> profile;
-
-            case "boolean" -> listed;
-            case "Boolean" -> Boolean.valueOf(listed);
-            case "int" -> latency;
-            case "Integer" -> Integer.valueOf(latency);
-            case "GameType" -> gameTypeSurvival;
-            case "Component" -> displayName;
-            default -> defaultEntryArg(type);
-          };
+    private static Object componentLiteral(String text) {
+        if (componentLiteral == null) return null;
+        try {
+            return componentLiteral.invoke(null, text != null ? text : "");
+        } catch (Exception e) {
+            Config.debugPackets("componentLiteral failed: " + describeException(e));
+            return null;
+        }
     }
-    return args;
-  }
 
-  private static Object defaultEntryArg(Class<?> type) {
-    if (type == Optional.class) return Optional.empty();
-    if (type == String.class) return "";
-    if (type == List.class || type == Collection.class) return List.of();
-    if (type == EnumSet.class || type == Set.class) return Set.of();
-    if (type == long.class) return 0L;
-    if (type == Long.class) return Long.valueOf(0L);
-    if (type == float.class) return 0f;
-    if (type == Float.class) return Float.valueOf(0f);
-    if (type == double.class) return 0d;
-    if (type == Double.class) return Double.valueOf(0d);
-    if (type == byte.class) return (byte) 0;
-    if (type == Byte.class) return Byte.valueOf((byte) 0);
-    if (type == short.class) return (short) 0;
-    if (type == Short.class) return Short.valueOf((short) 0);
-    return null;
-  }
+    private static String describeException(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause instanceof InvocationTargetException ite && ite.getCause() != null) {
+            cause = ite.getCause();
+        }
+        String message = cause.getMessage();
+        return cause.getClass().getSimpleName() + (message == null ? "" : ": " + message);
+    }
+
+    private static volatile Object cachedFullActionSet;
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Object buildActionSet() {
+        Object cached = cachedFullActionSet;
+        if (cached != null) return cached;
+
+        Class<? extends Enum> enumClass = rawEnum(playerInfoUpdateActionClass);
+
+        EnumSet actions = EnumSet.noneOf(enumClass);
+
+        actions.add(Enum.valueOf(enumClass, "ADD_PLAYER"));
+        actions.add(Enum.valueOf(enumClass, "UPDATE_LISTED"));
+        actions.add(Enum.valueOf(enumClass, "UPDATE_LATENCY"));
+        actions.add(Enum.valueOf(enumClass, "UPDATE_GAME_MODE"));
+        actions.add(Enum.valueOf(enumClass, "UPDATE_DISPLAY_NAME"));
+        tryAddAction(actions, enumClass, "UPDATE_LIST_ORDER");
+        tryAddAction(actions, enumClass, "UPDATE_HAT");
+
+        cachedFullActionSet = actions;
+        return actions;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void tryAddAction(EnumSet actions, Class<? extends Enum> enumClass, String name) {
+        try {
+            actions.add(Enum.valueOf(enumClass, name));
+        } catch (IllegalArgumentException ignored) {
+        }
+    }
+
+    private static Object buildEntry(UUID uuid, Object profile, Object displayName) throws Exception {
+        return buildEntryWithLatency(uuid, profile, displayName, 0);
+    }
+
+    private static Object buildEntryWithLatency(UUID uuid, Object profile, Object displayName, int latency)
+            throws Exception {
+        if (cachedEntryCtorWinner != null) {
+            return cachedEntryCtorWinner.newInstance(
+                    mapEntryArgs(cachedEntryCtorParamTypes, uuid, profile, displayName, latency));
+        }
+        Constructor<?>[] ctors = playerInfoUpdateEntryClass.getDeclaredConstructors();
+        Arrays.sort(ctors, (a, b) -> b.getParameterCount() - a.getParameterCount());
+        Exception last = null;
+        for (Constructor<?> ctor : ctors) {
+            ctor.setAccessible(true);
+            try {
+                Object result =
+                        ctor.newInstance(mapEntryArgs(ctor.getParameterTypes(), uuid, profile, displayName, latency));
+                cachedEntryCtorParamTypes = ctor.getParameterTypes();
+                cachedEntryCtorWinner = ctor;
+                return result;
+            } catch (Exception ex) {
+                last = ex;
+            }
+        }
+        throw new IllegalStateException("No Entry ctor matched. Last: " + (last != null ? last.getMessage() : "?"));
+    }
+
+    private static Object buildEntryWithListedFlag(
+            UUID uuid, Object profile, Object displayName, int latency, boolean listed) throws Exception {
+        if (cachedEntryCtorWinner != null) {
+            return cachedEntryCtorWinner.newInstance(
+                    mapEntryArgsWithListed(cachedEntryCtorParamTypes, uuid, profile, displayName, latency, listed));
+        }
+        Constructor<?>[] ctors = playerInfoUpdateEntryClass.getDeclaredConstructors();
+        Arrays.sort(ctors, (a, b) -> b.getParameterCount() - a.getParameterCount());
+        Exception last = null;
+        for (Constructor<?> ctor : ctors) {
+            ctor.setAccessible(true);
+            try {
+                Object result = ctor.newInstance(
+                        mapEntryArgsWithListed(ctor.getParameterTypes(), uuid, profile, displayName, latency, listed));
+                cachedEntryCtorParamTypes = ctor.getParameterTypes();
+                cachedEntryCtorWinner = ctor;
+                return result;
+            } catch (Exception ex) {
+                last = ex;
+            }
+        }
+        throw new IllegalStateException("No Entry ctor matched. Last: " + (last != null ? last.getMessage() : "?"));
+    }
+
+    private static Object buildSecondArg(Object entry) throws Exception {
+        if (cachedInfoUpdateSecondArgStrategy == 0) {
+            Class<?> spt = playerInfoUpdateCtor.getParameterTypes()[1];
+            if (spt == playerInfoUpdateEntryClass) {
+                cachedInfoUpdateSecondArgStrategy = 1;
+            } else if (spt.isArray()) {
+                cachedInfoUpdateSecondArgStrategy = 2;
+                cachedInfoUpdateArrayCompType = spt.getComponentType();
+            } else {
+                cachedInfoUpdateSecondArgStrategy = 3;
+            }
+        }
+        return switch (cachedInfoUpdateSecondArgStrategy) {
+            case 1 -> entry;
+            case 2 -> {
+                Object arr = Array.newInstance(cachedInfoUpdateArrayCompType, 1);
+                Array.set(arr, 0, entry);
+                yield arr;
+            }
+            default -> List.of(entry);
+        };
+    }
+
+    private static Object[] mapEntryArgs(Class<?>[] types, UUID uuid, Object profile, Object displayName) {
+        return mapEntryArgs(types, uuid, profile, displayName, 0);
+    }
+
+    private static Object[] mapEntryArgs(Class<?>[] types, UUID uuid, Object profile, Object displayName, int latency) {
+        Object[] args = new Object[types.length];
+        for (int i = 0; i < types.length; i++) {
+            Class<?> type = types[i];
+            args[i] = switch (type.getSimpleName()) {
+                case "UUID" -> uuid;
+                case "GameProfile" -> profile;
+
+                case "boolean" -> true;
+                case "Boolean" -> Boolean.TRUE;
+                case "int" -> latency;
+                case "Integer" -> Integer.valueOf(latency);
+                case "GameType" -> gameTypeSurvival;
+                case "Component" -> displayName;
+                default -> defaultEntryArg(type);
+            };
+        }
+        return args;
+    }
+
+    private static Object[] mapEntryArgsWithListed(
+            Class<?>[] types, UUID uuid, Object profile, Object displayName, int latency, boolean listed) {
+        Object[] args = new Object[types.length];
+        for (int i = 0; i < types.length; i++) {
+            Class<?> type = types[i];
+            args[i] = switch (type.getSimpleName()) {
+                case "UUID" -> uuid;
+                case "GameProfile" -> profile;
+
+                case "boolean" -> listed;
+                case "Boolean" -> Boolean.valueOf(listed);
+                case "int" -> latency;
+                case "Integer" -> Integer.valueOf(latency);
+                case "GameType" -> gameTypeSurvival;
+                case "Component" -> displayName;
+                default -> defaultEntryArg(type);
+            };
+        }
+        return args;
+    }
+
+    private static Object defaultEntryArg(Class<?> type) {
+        if (type == Optional.class) return Optional.empty();
+        if (type == String.class) return "";
+        if (type == List.class || type == Collection.class) return List.of();
+        if (type == EnumSet.class || type == Set.class) return Set.of();
+        if (type == long.class) return 0L;
+        if (type == Long.class) return Long.valueOf(0L);
+        if (type == float.class) return 0f;
+        if (type == Float.class) return Float.valueOf(0f);
+        if (type == double.class) return 0d;
+        if (type == Double.class) return Double.valueOf(0d);
+        if (type == byte.class) return (byte) 0;
+        if (type == Byte.class) return Byte.valueOf((byte) 0);
+        if (type == short.class) return (short) 0;
+        if (type == Short.class) return Short.valueOf((short) 0);
+        return null;
+    }
 }

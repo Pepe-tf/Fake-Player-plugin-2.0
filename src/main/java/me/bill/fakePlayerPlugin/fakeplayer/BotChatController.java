@@ -3,17 +3,17 @@ package me.bill.fakePlayerPlugin.fakeplayer;
 import java.util.UUID;
 
 public interface BotChatController {
-  void restartLoops();
+    void restartLoops();
 
-  void cancelAll();
+    void cancelAll();
 
-  void stopAllLoopsNow();
+    void stopAllLoopsNow();
 
-  void forceSendMessage(FakePlayer bot, String message);
+    void forceSendMessage(FakePlayer bot, String message);
 
-  void forceSendMessageResolved(FakePlayer bot, String message);
+    void forceSendMessageResolved(FakePlayer bot, String message);
 
-  double getActivityMultiplier(UUID botUuid);
+    double getActivityMultiplier(UUID botUuid);
 
-  void timedMute(UUID botUuid, int seconds);
+    void timedMute(UUID botUuid, int seconds);
 }

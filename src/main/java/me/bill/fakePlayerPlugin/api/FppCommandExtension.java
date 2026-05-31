@@ -1,37 +1,38 @@
 package me.bill.fakePlayerPlugin.api;
 
+import java.util.List;
+
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-
 public interface FppCommandExtension {
-  @NotNull String getCommandName();
+    @NotNull
+    String getCommandName();
 
-  default @NotNull List<String> getAliases() {
-    return List.of();
-  }
+    default @NotNull List<String> getAliases() {
+        return List.of();
+    }
 
-  default @NotNull String getUsage() {
-    return "";
-  }
+    default @NotNull String getUsage() {
+        return "";
+    }
 
-  default @NotNull String getDescription() {
-    return "Extends /fpp " + getCommandName() + ".";
-  }
+    default @NotNull String getDescription() {
+        return "Extends /fpp " + getCommandName() + ".";
+    }
 
-  default @NotNull String getPermission() {
-    return "";
-  }
+    default @NotNull String getPermission() {
+        return "";
+    }
 
-  default boolean canUse(@NotNull CommandSender sender) {
-    String permission = getPermission();
-    return permission == null || permission.isBlank() || sender.hasPermission(permission);
-  }
+    default boolean canUse(@NotNull CommandSender sender) {
+        String permission = getPermission();
+        return permission == null || permission.isBlank() || sender.hasPermission(permission);
+    }
 
-  boolean execute(@NotNull CommandSender sender, @NotNull String[] args);
+    boolean execute(@NotNull CommandSender sender, @NotNull String[] args);
 
-  default @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
-    return List.of();
-  }
+    default @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
+        return List.of();
+    }
 }
