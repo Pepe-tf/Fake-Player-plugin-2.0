@@ -15,7 +15,7 @@ import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 
 public final class ConfigMigrator {
 
-    public static final int CURRENT_VERSION = 74;
+    public static final int CURRENT_VERSION = 75;
 
     private static boolean rawDebug = false;
 
@@ -139,6 +139,7 @@ public final class ConfigMigrator {
         if (stored < 72) anyChange |= v71to72(plugin, cfg);
         if (stored < 73) anyChange |= v72to73(cfg);
         if (stored < 74) anyChange |= v73to74(cfg);
+        if (stored < 75) anyChange |= v74to75(cfg);
 
         fillDefaults(plugin, cfg);
 
@@ -1045,6 +1046,37 @@ public final class ConfigMigrator {
             return true;
         }
         return false;
+    }
+
+    private static boolean v74to75(YamlConfiguration cfg) {
+        boolean changed = false;
+        String[] loggingKeys = {
+            "logging.debug.startup",
+            "logging.debug.nms",
+            "logging.debug.packets",
+            "logging.debug.network",
+            "logging.debug.config-sync",
+            "logging.debug.database",
+            "logging.debug.skin",
+            "logging.debug.license",
+            "logging.debug.commands",
+            "logging.debug.chat",
+            "logging.debug.swap",
+            "logging.debug.right-click",
+            "logging.debug.right-click-head",
+            "logging.debug.head-ai",
+            "logging.debug.general"
+        };
+        for (String key : loggingKeys) {
+            if (cfg.isSet(key)) {
+                cfg.set(key, null);
+                changed = true;
+            }
+        }
+        if (changed) {
+            log("v74→v75", "removed logging.debug.* keys (moved to debug.yml)");
+        }
+        return changed;
     }
 
     private static boolean pruneUnknownKeys(ConfigurationSection target, ConfigurationSection defaults, String prefix) {

@@ -539,8 +539,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
         getServer().getMessenger().unregisterOutgoingPluginChannel(this, "BungeeCord");
 
         long uptimeMs = System.currentTimeMillis() - enabledAt;
-        boolean tasksPersisted = Config.persistOnRestart() && databaseManager != null;
-        FppLogger.printShutdownBanner(botsRemoved, dbFlushed, tasksPersisted, botsRemoved, uptimeMs);
+        FppLogger.printShutdownBanner(botsRemoved, uptimeMs);
     }
 
     @SuppressWarnings("unused")

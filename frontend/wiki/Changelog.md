@@ -38,6 +38,25 @@
   - Bot despawn operations no longer spam console when debug disabled
 
 - **debug.yml Updated** — Removed `license` debug category (no longer needed)
+  - All debug settings now in separate file for better organization
+  - Master `enabled: false` switch controls all categories
+
+### Startup & Shutdown Logs
+- **Startup Banner Simplified** — Removed clutter from startup logs
+  - Removed `Backups` count (not useful for most users)
+  - Removed `Name pool` size (internal detail)
+  - Removed `Debug` section (showed authors when debug enabled)
+  - Cleaner, more focused information display
+
+- **Shutdown Banner Minimal** — Reduced from 7 lines to 4 lines
+  - Shows only session uptime and bots removed
+  - Removed: bots saved, tasks persisted, DB sessions details
+
+### Config Migration System
+- **v75 Migration** — Removes `logging.debug.*` keys from config.yml
+  - All debug settings now live in `debug.yml` only
+  - Automatic migration on first startup after update
+  - Keys removed: `logging.debug.startup`, `logging.debug.nms`, `logging.debug.packets`, `logging.debug.network`, `logging.debug.config-sync`, `logging.debug.database`, `logging.debug.skin`, `logging.debug.license`, `logging.debug.commands`, `logging.debug.chat`, `logging.debug.swap`, `logging.debug.right-click`, `logging.debug.right-click-head`, `logging.debug.head-ai`, `logging.debug.general`
 
 ### Permission System
 - **BotAccess Checks** — Added ownership validation for multi-bot operations

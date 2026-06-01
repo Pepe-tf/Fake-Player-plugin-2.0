@@ -178,7 +178,6 @@ public final class FppLogger {
         String dbDisplay = dbSchemaVersion > 0 ? dbState + "  (schema v" + dbSchemaVersion + ")" : dbState;
         stateRow(resolveDbState(dbState), "Database", dbDisplay);
         kv("Config version", configVersion);
-        kv("Backups", backupCount);
         kv("Startup time", startupMs + "ms");
 
         section("Features");
@@ -194,14 +193,8 @@ public final class FppLogger {
         stateRow(worldGuardFound ? RowState.OK : RowState.OFF, "WorldGuard", onOff(worldGuardFound));
         stateRow(metricsActive ? RowState.OK : RowState.OFF, "Metrics", onOff(metricsActive));
 
-        section("Pools & Limits");
-        kv("Name pool", namePoolSize);
+        section("Limits");
         kv("Max bots", maxBots == 0 ? "unlimited" : maxBots);
-
-        if (Config.isDebug()) {
-            section("Debug");
-            kv("Authors", authors);
-        }
 
         rule();
         success("  Ready: /fpp help");
@@ -212,18 +205,14 @@ public final class FppLogger {
         boldRule();
     }
 
-    public static void printShutdownBanner(
-            int botsRemoved, boolean dbFlushed, boolean tasksPersisted, int botsSaved, long uptimeMs) {
+    public static void printShutdownBanner(int botsRemoved, long uptimeMs) {
         boldRule();
         highlight("  ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ ᴘʟᴜɢɪɴ  -  shutting down");
         rule();
-        kv("Bots removed", botsRemoved);
-        kv("Bots saved", botsSaved > 0 ? botsSaved + " ✔" : "none");
-        kv("Tasks persisted", tasksPersisted ? "db + yaml ✔" : "yaml only");
-        kv("DB sessions", dbFlushed ? "flushed ✔" : "skipped (no DB)");
         kv("Session uptime", formatUptime(uptimeMs));
+        kv("Bots removed", botsRemoved);
         boldRule();
-        info("  Goodbye! ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ ᴘʟᴜɢɪɴ has been disabled.");
+        info("  Goodbye!");
         boldRule();
     }
 
