@@ -2,103 +2,32 @@
 
 ## v1.6.6.12.2 (Current)
 
-### Major Features
-- **Left/Right Click Commands** — Replaced legacy Mine/Use/Place commands with unified click automation
-  - `/fpp left-click <bot> [--once|--repeat|--hold|--stop]` — Bot left-clicks (breaks blocks, attacks entities)
-  - `/fpp right-click <bot> [--once|--repeat|--hold|--stop]` — Bot right-clicks (uses items, interacts)
-  - Supports walking to target before clicking if out of reach
-  - Ray-tracing for block and entity targeting
-  - Integrated with FindCommand for automated mining workflows
+### ⚡ Performance & Cleanup
+- **Silent License Verification** — No more startup spam (Team ID, challenge, JSON response removed)
+- **Debug Logging Fixed** — All NMS-BOT messages now respect `debug.yml` (17 calls fixed)
+- **Cleaner Startup Logs** — Removed backups count, name pool size, debug section from banner
+- **Minimal Shutdown Log** — Reduced from 7 lines to 4 lines
 
-- **Folia Support Restored** — Full compatibility with Folia's region-threaded architecture
-  - Automatic Folia detection at startup
-  - Bot spawning routes through region scheduler when on Folia
-  - `folia-supported: true` in plugin.yml
-  - FppScheduler guards for cross-thread operations
+### 🖱️ Click Commands
+- **Left-Click Command** — Replaced MineCommand (`/fpp left-click`)
+- **Right-Click Command** — Replaced UseCommand (`/fpp right-click`)
+- **Legacy Removed** — 2162 lines of mine/use/place code deleted
+- **Net Reduction** — ~500 lines of code removed overall
 
-- **Launcher Entrypoint** — Added standalone launcher for JAR execution
-  - Opens wiki homepage when JAR is executed directly
-  - Main-Class manifest attribute set in shadowJar
+### 🔧 Config System
+- **debug.yml** — All debug settings moved to separate file
+- **Config v75** — Auto-migrates and removes `logging.debug.*` keys from config.yml
+- **License Category Removed** — No longer needed (silent verification)
 
-### License System Updates
-- **Silent Verification** — License verification now runs silently without debug spam
-  - Removed verbose logging (Team ID, Product ID, challenge, response JSON)
-  - Only shows error message if verification fails
-  - Cleaner startup logs for production servers
+### 📦 Other Changes
+- **Folia Support** — Full compatibility with region-threaded spawning
+- **Permission Checks** — Bot ownership validation for `/fpp attack --all`, `/fpp follow --all`
+- **New Flags** — `/fpp despawn --own`, `/fpp delete --own`
+- **PlaceholderAPI** — Updated to 2.12.2
 
-- **Offline Fallback Mode** — Plugin no longer disables when credentials fetch fails
-  - Creates minimal dummy credentials to continue in limited mode
-  - Improved error messages and logging
-  - Discord support link added to warning messages
-
-### Debug Logging Cleanup
-- **Config-Fixed Debug Methods** — All debug methods now independent and respect `debug.yml`
-  - Fixed `debugNmsBot()`, `debugNms()`, `debugNmsPhysics()` to not cascade
-  - 17 debug log calls in `FakePlayerManager.java` and `NmsPlayerSpawner.java` fixed
-  - Bot despawn operations no longer spam console when debug disabled
-
-- **debug.yml Updated** — Removed `license` debug category (no longer needed)
-  - All debug settings now in separate file for better organization
-  - Master `enabled: false` switch controls all categories
-
-### Startup & Shutdown Logs
-- **Startup Banner Simplified** — Removed clutter from startup logs
-  - Removed `Backups` count (not useful for most users)
-  - Removed `Name pool` size (internal detail)
-  - Removed `Debug` section (showed authors when debug enabled)
-  - Cleaner, more focused information display
-
-- **Shutdown Banner Minimal** — Reduced from 7 lines to 4 lines
-  - Shows only session uptime and bots removed
-  - Removed: bots saved, tasks persisted, DB sessions details
-
-### Config Migration System
-- **v75 Migration** — Removes `logging.debug.*` keys from config.yml
-  - All debug settings now live in `debug.yml` only
-  - Automatic migration on first startup after update
-  - Keys removed: `logging.debug.startup`, `logging.debug.nms`, `logging.debug.packets`, `logging.debug.network`, `logging.debug.config-sync`, `logging.debug.database`, `logging.debug.skin`, `logging.debug.license`, `logging.debug.commands`, `logging.debug.chat`, `logging.debug.swap`, `logging.debug.right-click`, `logging.debug.right-click-head`, `logging.debug.head-ai`, `logging.debug.general`
-
-### Permission System
-- **BotAccess Checks** — Added ownership validation for multi-bot operations
-  - `/fpp attack --all` now respects bot ownership
-  - `/fpp follow --all` checks admin permissions
-  - `/fpp despawn --own` — New flag to despawn only your own bots
-  - Non-admin players can only administer bots they spawned
-
-### Command Changes
-- **MineCommand Removed** — Functionality moved to LeftClickCommand
-- **UseCommand Removed** — Functionality moved to RightClickCommand
-- **PlaceCommand** — Still available, integrated with click system
-- **FindCommand** — Updated to work with click commands instead of mine
-- **StopCommand** — Updated to stop left/right click tasks
-- **AttackCommand** — Added `--stop` flag (removed legacy `stop` keyword)
-- **DeleteCommand** — Added `--own` flag for user-tier bot removal
-
-### Documentation
-- **AGENTS.md Added** — Development guide for AI assistants
-  - Project overview and architecture
-  - Critical gotchas (license, Folia, command registration)
-  - Build commands and testing checklist
-  - Package structure reference
-
-### Bug Fixes
-- **Tab Complete** — Removed duplicate legacy keywords
-- **Permission Checks** — Fixed admin bypass for bulk operations
-- **Persistence Wiring** — Updated to use click commands instead of mine/use/place
-- **Debug Spam** — Fixed all NMS-BOT debug messages respecting config
-
-### Build System
-- **Version Bump** — 1.6.6.12.1 → 1.6.6.12.2
-- **Manifest Attributes** — Added Main-Class for launcher support
-- **Dependencies** — PlaceholderAPI updated to 2.12.2
-
-### Code Quality
-- Removed 1449 lines of legacy MineCommand code
-- Removed 713 lines of legacy UseCommand code
-- Added 733 lines for LeftClickCommand
-- Added 932 lines for RightClickCommand
-- Net reduction: ~500 lines of code
-- Improved separation of concerns for click automation
+### 📝 Documentation
+- Updated: Changelog, Configuration, FAQ, Getting-Started, Home
+- AGENTS.md added for development reference
 
 ---
 
