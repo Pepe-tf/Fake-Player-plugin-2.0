@@ -14,6 +14,12 @@
 ### Q: Can I use this on a server with ViaVersion?
 **A:** Yes, but the server itself must be Paper 1.21+. ViaVersion only affects client versions.
 
+### Q: Why is there so much debug spam on startup?
+**A:** In v1.6.6.12.2, license verification runs silently by default. If you see debug messages, check `plugins/FakePlayerPlugin/debug.yml` and ensure all categories are set to `false`. Run `/fpp reload` after editing.
+
+### Q: License verification fails on startup.
+**A:** The plugin requires internet access to verify the license from `app.lukittu.com`. If your server is offline, the plugin will run in limited mode. Check firewall rules and ensure outbound HTTPS (port 443) is allowed.
+
 ## Bots & Spawning
 
 ### Q: Bots are not showing in the tab list.

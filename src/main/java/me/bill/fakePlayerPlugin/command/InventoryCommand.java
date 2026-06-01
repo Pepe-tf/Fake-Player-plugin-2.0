@@ -154,7 +154,6 @@ public class InventoryCommand implements FppCommand, Listener {
             return false;
         }
         openGui(player, fp);
-        player.sendMessage(Lang.get("inv-opened", "name", fp.getDisplayName()));
         return true;
     }
 
@@ -189,7 +188,7 @@ public class InventoryCommand implements FppCommand, Listener {
                 .append(Component.text("]  ").color(DARK_GRAY))
                 .append(Component.text("\u026A\u0274\u1D20").color(DARK_GRAY).decoration(TextDecoration.BOLD, true))
                 .append(Component.text("  ·  ").color(DARK_GRAY))
-                .append(Component.text(fp.getName()).color(ACCENT));
+                .append(Component.text(fp.getDisplayName()).color(ACCENT));
         Inventory gui = Bukkit.createInventory(null, GUI_SIZE, title);
         PlayerInventory botInv = botPlayer.getInventory();
         for (int guiSlot = 0; guiSlot < GUI_SIZE; guiSlot++) {

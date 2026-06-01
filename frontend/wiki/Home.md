@@ -1,6 +1,6 @@
 # FakePlayerPlugin Wiki
 
-> Advanced NPC / Bot Plugin for Paper/Purpur 1.21+
+> Advanced NPC / Bot Plugin for Paper/Purpur/Folia 1.21+
 
 Welcome to the FakePlayerPlugin (FPP) wiki. FPP spawns server-side bot entities that behave like players — useful for **AFK farms, automated tasks, testing, and NPC simulations**. It is **not** a fake-online-count or player-spoofing tool.
 
@@ -45,3 +45,14 @@ Some advanced subsystems are implemented as extensions and are not part of the b
 - **Modrinth:** https://modrinth.com/plugin/fake-player-plugin-(fpp)
 - **Marketplace:** https://mp.fpp.wtf/resources/
 - **License:** MIT
+
+---
+
+## Latest Version: v1.6.6.12.2
+
+**Highlights:**
+- ✅ **Folia Support** — Full compatibility with Folia's region-threaded architecture
+- 🖱️ **Click Commands** — Unified left-click/right-click automation system
+- 🔇 **Silent License** — License verification runs silently without debug spam
+- 🐛 **Debug Fixed** — All debug messages now respect `debug.yml` settings
+- 📊 **80+ Placeholders** — Extensive PlaceholderAPI integration

@@ -104,39 +104,23 @@ public final class LicenseManager {
     }
 
     public void verify() throws Exception {
-        plugin.getLogger().info("Starting license verification...");
-        plugin.getLogger().info("  Team ID: " + teamId);
-        plugin.getLogger().info("  Product ID: " + productId);
-        plugin.getLogger()
-                .info("  License Key: "
-                        + (licenseKey != null
-                                ? licenseKey.substring(0, Math.min(8, licenseKey.length())) + "..."
-                                : "null"));
-
         if (isOfflineMode) {
-            plugin.getLogger().info("Running in offline/development mode (limited functionality).");
             valid = true;
             return;
         }
         hardwareIdentifier = getHardwareIdentifier();
-        plugin.getLogger().info("  Hardware ID: " + hardwareIdentifier);
         String challenge = generateRandomChallenge();
-        plugin.getLogger().info("  Generated challenge: " + challenge);
         String url = API_BASE_URL + "/" + teamId + VERIFY_ENDPOINT;
-        plugin.getLogger().info("  Verification URL: " + url);
 
         String jsonBody = String.format(
                 "{\"licenseKey\":\"%s\",\"productId\":\"%s\",\"challenge\":\"%s\",\"version\":\"%s\",\"hardwareIdentifier\":\"%s\"}",
                 licenseKey, productId, challenge, VERSION, hardwareIdentifier);
 
-        plugin.getLogger().info("Sending verification request...");
         boolean success = fetchAndHandleResponse(url, jsonBody, publicKey, challenge);
         if (!success) {
-            plugin.getLogger().severe("License verification failed - check logs for details");
             throw new Exception("License verification failed");
         }
         valid = true;
-        plugin.getLogger().info("License verification passed.");
     }
 
     public void startHeartbeat() {
@@ -197,7 +181,6 @@ public final class LicenseManager {
 
         try {
             var url = URI.create(urlString).toURL();
-            plugin.getLogger().info("Connecting to license server: " + urlString);
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
@@ -205,7 +188,6 @@ public final class LicenseManager {
             connection.setConnectTimeout(TIMEOUT_MILLIS);
             connection.setReadTimeout(TIMEOUT_MILLIS);
             connection.setDoOutput(true);
-            plugin.getLogger().info("Request body: " + jsonBody);
 
             try (var os = connection.getOutputStream()) {
                 byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
@@ -213,15 +195,12 @@ public final class LicenseManager {
             }
 
             int responseCode = connection.getResponseCode();
-            plugin.getLogger().info("License server response code: " + responseCode);
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                plugin.getLogger().info("License server responded successfully");
                 try (var inputStream = connection.getInputStream()) {
                     success = handleJsonResponse(inputStream, publicKeyBase64, challenge);
                 }
             } else {
-                plugin.getLogger().warning("License server returned error code: " + responseCode);
                 try (var errorStream = connection.getErrorStream()) {
                     if (errorStream != null) {
                         handleJsonResponse(errorStream, null, null);
@@ -234,16 +213,11 @@ public final class LicenseManager {
                 }
             }
         } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE, "Connection to license service failed", e);
-            plugin.getLogger().warning("License connection failure! Check server connectivity");
-            plugin.getLogger().warning("Exception type: " + e.getClass().getSimpleName());
-            plugin.getLogger().warning("Exception message: " + e.getMessage());
             try {
                 if (connection != null && connection.getErrorStream() != null) {
                     handleJsonResponse(connection.getErrorStream(), null, null);
                 }
             } catch (IOException e1) {
-                plugin.getLogger().log(Level.SEVERE, "Failed to parse error response", e1);
             }
             throw new IOException("Connection to license server failed", e);
         } finally {
@@ -262,16 +236,10 @@ public final class LicenseManager {
 
         try (var reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             JsonObject json = GSON.fromJson(reader, JsonObject.class);
-            String respString = GSON.toJson(json);
-            plugin.getLogger().info("License server response: " + respString);
 
             if (publicKey != null && challenge != null) {
-                plugin.getLogger().info("Validating license response and challenge...");
                 if (validateResponse(json) && validateChallenge(json, challenge, publicKey)) {
-                    plugin.getLogger().info("License response validation successful");
                     return true;
-                } else {
-                    plugin.getLogger().warning("License response validation failed");
                 }
             }
 
@@ -289,6 +257,7 @@ public final class LicenseManager {
                 }
             }
 
+            String respString = GSON.toJson(json);
             return !handleErrorCodes(respString);
         }
     }
@@ -296,33 +265,19 @@ public final class LicenseManager {
     private boolean validateChallenge(JsonObject response, String originalChallenge, String base64PublicKey) {
         try {
             if (!validateResponse(response) || originalChallenge == null || base64PublicKey == null) {
-                plugin.getLogger().warning("Challenge validation failed: response invalid or missing parameters");
                 return false;
             }
             String signedChallenge = response.getAsJsonObject(RESULT_KEY)
                     .get("challengeResponse")
                     .getAsString();
-            plugin.getLogger().info("Verifying challenge signature...");
-            boolean valid = verifySignature(originalChallenge, signedChallenge, base64PublicKey);
-            if (valid) {
-                plugin.getLogger().info("Challenge signature verified successfully");
-            } else {
-                plugin.getLogger().warning("Challenge signature verification failed");
-            }
-            return valid;
+            return verifySignature(originalChallenge, signedChallenge, base64PublicKey);
         } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE, "Challenge validation failed", e);
-            plugin.getLogger().warning("License signature verification failed! Possible tampering detected");
             return false;
         }
     }
 
     private boolean verifySignature(String challenge, String signatureHex, String base64PublicKey) {
         try {
-            plugin.getLogger().info("Starting signature verification...");
-            plugin.getLogger().info("  Challenge: " + challenge);
-            plugin.getLogger().info("  Signature (hex): " + signatureHex);
-            plugin.getLogger().info("  Public key length: " + base64PublicKey.length());
             byte[] signatureBytes = hexStringToByteArray(signatureHex);
             byte[] decodedKeyBytes = Base64.getDecoder().decode(base64PublicKey);
 
@@ -340,15 +295,8 @@ public final class LicenseManager {
             signature.initVerify(publicKey);
             signature.update(challenge.getBytes(StandardCharsets.UTF_8));
 
-            boolean verified = signature.verify(signatureBytes);
-            plugin.getLogger().info("Signature verification result: " + (verified ? "SUCCESS" : "FAILED"));
-            return verified;
-        } catch (IllegalArgumentException e) {
-            plugin.getLogger().log(Level.SEVERE, "Invalid Base64 input for public key", e);
-            plugin.getLogger().warning("License: Invalid public key format! Contact support");
-            return false;
+            return signature.verify(signatureBytes);
         } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE, "Signature verification failed", e);
             return false;
         }
     }

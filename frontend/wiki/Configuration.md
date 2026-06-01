@@ -207,16 +207,40 @@ Pathfinding tuning keys:
 
 ## 9. Debug & Logging
 
-### `debug: false`
-Master switch. `true` enables all debug categories.
+### `debug.yml` (Separate File)
+Debug logging is now controlled by `plugins/FakePlayerPlugin/debug.yml` for better organization.
 
-### `logging.debug`
-- `startup: false`
-- `nms: false`
-- `packets: false`
-- `network: false`
-- `config-sync: false`
-- `database: false`
+**Master switch:**
+- `enabled: false` — Enable all debug categories at once
+
+**NMS debug:**
+- `nms.enabled: false` — General NMS operations
+- `nms.bot: false` — Bot lifecycle (spawn, despawn, inventory)
+- `nms.connection: false` — Network connection/packet events
+- `nms.physics: false` — Physics/collision/knockback
+- `nms.skin: false` — Skin fetching and application
+
+**Database debug:**
+- `database.enabled: false` — General database operations
+- `database.connection: false` — Connection pool lifecycle
+- `database.operations: false` — SQL queries and transactions
+- `database.migration: false` — Schema migration
+- `database.persistence: false` — Bot persistence save/restore
+
+**Feature debug:**
+- `general: false` — General plugin operations
+- `commands: false` — Command execution
+- `chat: false` — Bot chat AI
+- `network: false` — Cross-server network (Velocity/BungeeCord)
+- `config-sync: false` — Config synchronization
+- `startup: false` — Plugin initialization
+- `right-click: false` — Right-click automation
+- `right-click-head: false` — Right-click head rotation
+- `head-ai: false` — Head AI tracking
+- `swap: false` — Swap system (requires fpp-spoof)
+- `packets: false` — Packet injection/manipulation
+
+> Run `/fpp reload` after editing `debug.yml` to apply changes.
 ---
 
 ## 10. Attack Mob Targeting

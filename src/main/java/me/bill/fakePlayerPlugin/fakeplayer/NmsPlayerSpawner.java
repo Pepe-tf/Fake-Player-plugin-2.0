@@ -694,12 +694,12 @@ public final class NmsPlayerSpawner {
                 final String name = player.getName();
                 final UUID uuid = player.getUniqueId();
 
-                FppLogger.debug("NMS-BOT", true, "Removing bot '" + name + "' (uuid=" + uuid + ") - reason: " + reason);
+                FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Removing bot '" + name + "' (uuid=" + uuid + ") - reason: " + reason);
 
                 if (saveData) {
                     try {
                         player.saveData();
-                        FppLogger.debug("NMS-BOT", true, "Saved playerdata for '" + name + "' (uuid=" + uuid + ")");
+                        FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Saved playerdata for '" + name + "' (uuid=" + uuid + ")");
                     } catch (Exception e) {
                         FppLogger.warn("NmsPlayerSpawner: saveData failed for '"
                                 + name
@@ -745,7 +745,7 @@ public final class NmsPlayerSpawner {
                 }
 
                 if (!removedViaPlayerList && player.isOnline()) {
-                    FppLogger.debug("NMS-BOT", true, "Kicking '" + name + "' (uuid=" + uuid + ") - reason: " + reason);
+                    FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Kicking '" + name + "' (uuid=" + uuid + ") - reason: " + reason);
                     player.kick(Component.empty());
                 }
             }

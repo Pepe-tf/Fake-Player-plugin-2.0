@@ -175,14 +175,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
             isFolia = true;
         } catch (ClassNotFoundException ignored) {
         }
-        if (isFolia) {
-            FppLogger.info("═══════════════════════════════════════════════════════════════════");
-            FppLogger.info("  ✓ FOLIA DETECTED - Folia compatibility mode enabled");
-            FppLogger.info("═══════════════════════════════════════════════════════════════════");
-            FppLogger.info("  FakePlayerPlugin v" + getPluginMeta().getVersion() + " supports Folia.");
-            FppLogger.info("  Bot spawning will use region scheduler for proper threading.");
-            FppLogger.info("═══════════════════════════════════════════════════════════════════");
-        }
 
         ConfigMigrator.migrateIfNeeded(this);
 
@@ -192,29 +184,15 @@ public final class FakePlayerPlugin extends JavaPlugin {
         // ── License Verification ─────────────────────────────────────────────────
         LicenseCredentialsApi.Credentials credentials = LicenseCredentialsApi.fetch(this);
         if (credentials == null) {
-            FppLogger.warn("═══════════════════════════════════════════════════════════════════");
-            FppLogger.warn("  ⚠  LICENSE CREDENTIALS NOT AVAILABLE - RUNNING IN LIMITED MODE  ⚠");
-            FppLogger.warn("═══════════════════════════════════════════════════════════════════");
-            FppLogger.warn("  Reason: Could not fetch valid license credentials from fpp.wtf");
-            FppLogger.warn("  The plugin will continue with limited functionality.");
-            FppLogger.warn("  For support, join: https://discord.gg/YqkgFxcm");
-            FppLogger.warn("═══════════════════════════════════════════════════════════════════");
-            // Create minimal dummy credentials to continue in limited mode
             credentials = new LicenseCredentialsApi.Credentials("offline", "offline", "offline", "offline", "unsigned");
         }
 
         licenseManager = new LicenseManager(this, credentials);
         try {
-            FppLogger.info("Verifying license...");
             licenseManager.verify();
             licenseManager.startHeartbeat();
-            FppLogger.info("License verification passed.");
         } catch (Exception e) {
-            FppLogger.warn("═══════════════════════════════════════════════════════════════════");
-            FppLogger.warn("  ⚠  LICENSE VERIFICATION FAILED - PLUGIN DISABLED ⚠");
-            FppLogger.warn("═══════════════════════════════════════════════════════════════════");
-            FppLogger.warn("  Reason: " + e.getMessage());
-            FppLogger.warn("═══════════════════════════════════════════════════════════════════");
+            FppLogger.warn("License verification failed: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }

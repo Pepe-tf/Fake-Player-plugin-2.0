@@ -1581,7 +1581,7 @@ public class FakePlayerManager {
 
     public void removeAll(String reason) {
         if (activePlayers.isEmpty()) {
-            FppLogger.debug("NMS-BOT", true, "removeAll() called but no active bots (reason: " + reason + ")");
+            FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "removeAll() called but no active bots (reason: " + reason + ")");
             return;
         }
 
@@ -1621,7 +1621,7 @@ public class FakePlayerManager {
                 snapshotCount++;
             }
         }
-        FppLogger.debug("NMS-BOT", true, "Saved " + snapshotCount + "/" + toRemove.size() + " bot inventory snapshots");
+        FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Saved " + snapshotCount + "/" + toRemove.size() + " bot inventory snapshots");
 
         for (FakePlayer fp : toRemove) {
             unregisterBotState(fp, "DELETED");
@@ -1635,19 +1635,19 @@ public class FakePlayerManager {
             Runnable doVisualRemove = () -> {
                 if (!explicitUuidSpawn && Config.dropItemsOnDespawn()) {
                     dropBotContents(target);
-                    FppLogger.debug("NMS-BOT", true, "Dropped contents for '" + target.getName() + "'");
+                    FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Dropped contents for '" + target.getName() + "'");
                 }
 
                 String despawnName = resolveDespawnDisplayName(target);
                 boolean broadcastLeave = Config.leaveMessage() && !renamingBotIds.contains(target.getUuid());
                 despawningBotIds.put(target.getUuid(), broadcastLeave ? despawnName : "");
-                FppLogger.debug("NMS-BOT", true, "Bulk removing '" + target.getName() + "' (reason: " + reason + ")");
+                FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Bulk removing '" + target.getName() + "' (reason: " + reason + ")");
 
                 if (broadcastLeave) {
                     var vc3 = plugin.getVelocityChannel();
                     if (vc3 != null) {
                         vc3.broadcastLeaveToNetwork(despawnName);
-                        FppLogger.debug("NMS-BOT", true, "Broadcasted leave for '" + target.getName() + "'");
+                        FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Broadcasted leave for '" + target.getName() + "'");
                     }
                 }
                 if (!renamingBotIds.contains(target.getUuid())) {
@@ -1674,7 +1674,7 @@ public class FakePlayerManager {
 
                 var vc2 = plugin.getVelocityChannel();
                 if (vc2 != null) vc2.broadcastBotDespawn(target.getUuid());
-                FppLogger.debug("NMS-BOT", true, "Removed bot: " + target.getName() + " (reason: " + reason + ")");
+                FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Removed bot: " + target.getName() + " (reason: " + reason + ")");
             };
 
             Player body = target.getPlayer();
@@ -1972,7 +1972,7 @@ public class FakePlayerManager {
             @Nullable Runnable onComplete) {
         FakePlayer fp = getByName(name);
         if (fp == null) {
-            FppLogger.debug("NMS-BOT", true, "Despawn failed: bot '" + name + "' not found (reason: " + reason + ")");
+            FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Despawn failed: bot '" + name + "' not found (reason: " + reason + ")");
             return false;
         }
 
@@ -2036,7 +2036,7 @@ public class FakePlayerManager {
             try {
                 if (!explicitUuidSpawn && Config.dropItemsOnDespawn()) {
                     dropBotContents(target);
-                    FppLogger.debug("NMS-BOT", true, "Dropped bot contents for '" + botName + "'");
+                    FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Dropped bot contents for '" + botName + "'");
                 }
 
                 String despawnName = resolveDespawnDisplayName(target);
@@ -2054,13 +2054,13 @@ public class FakePlayerManager {
                     var vc3 = plugin.getVelocityChannel();
                     if (vc3 != null) {
                         vc3.broadcastLeaveToNetwork(despawnName);
-                        FppLogger.debug("NMS-BOT", true, "Broadcasted leave to network for '" + botName + "'");
+                        FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Broadcasted leave to network for '" + botName + "'");
                     }
                 }
                 if (!renamingBotIds.contains(target.getUuid()) && !suppressLeaveBroadcast) {
                     broadcastSyntheticQuit(
                             target, despawnName, broadcastLeave, PlayerQuitEvent.QuitReason.DISCONNECTED);
-                    FppLogger.debug("NMS-BOT", true, "Broadcasted synthetic quit for '" + botName + "'");
+                    FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Broadcasted synthetic quit for '" + botName + "'");
                 }
 
                 try {
@@ -2078,7 +2078,7 @@ public class FakePlayerManager {
                 }
                 if (chunkLoader != null) {
                     chunkLoader.releaseForBot(target);
-                    FppLogger.debug("NMS-BOT", true, "Chunk loader released for '" + botName + "'");
+                    FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Chunk loader released for '" + botName + "'");
                 }
 
                 List<Player> snapshot = new ArrayList<>(Bukkit.getOnlinePlayers());
@@ -2090,7 +2090,7 @@ public class FakePlayerManager {
 
                 if (db != null) {
                     db.recordRemoval(target.getUuid(), "DELETED");
-                    FppLogger.debug("NMS-BOT", true, "Database removal recorded for '" + botName + "'");
+                    FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Database removal recorded for '" + botName + "'");
                 }
 
                 var vc2 = plugin.getVelocityChannel();
@@ -2134,7 +2134,7 @@ public class FakePlayerManager {
 
     private void removeAllSync(boolean fastShutdown, String reason) {
         if (activePlayers.isEmpty()) {
-            FppLogger.debug("NMS-BOT", true, "removeAllSync() called but no active bots (reason: " + reason + ")");
+            FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "removeAllSync() called but no active bots (reason: " + reason + ")");
             return;
         }
 
@@ -2180,7 +2180,7 @@ public class FakePlayerManager {
 
             despawningBotIds.remove(fp.getUuid());
             syntheticQuitBotIds.remove(fp.getUuid());
-            FppLogger.debug("NMS-BOT", true, "Shutdown removed bot: " + fp.getName() + " (reason: " + reason + ")");
+            FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Shutdown removed bot: " + fp.getName() + " (reason: " + reason + ")");
         }
 
         FppLogger.info("Shutdown: removed " + removedCount + "/" + toRemove.size() + " bot(s)."

@@ -520,7 +520,7 @@ public final class BotSettingGui implements Listener {
             player.sendMessage(Component.empty()
                     .decoration(TextDecoration.ITALIC, false)
                     .append(Component.text("✔ ").color(ON_GREEN))
-                    .append(Component.text("ʙᴏᴛ ꜱᴇᴛᴛɪɴɡꜱ ꜱᴀᴠᴇᴅ.").color(WHITE)));
+                    .append(Component.text("ʙᴏᴛ ꜱᴇᴛᴛɪɴɢꜱ ꜱᴀᴠᴇᴅ • ꜱᴇᴛᴛɪɴɢꜱ ᴀᴘᴘʟɪᴇᴅ").color(WHITE)));
         }
     }
 
@@ -1439,12 +1439,17 @@ public final class BotSettingGui implements Listener {
                 .decoration(TextDecoration.ITALIC, false)
                 .append(Component.text("│  ").color(DARK_GRAY))
                 .append(Component.text(entry.label()).color(VALUE_YELLOW).decoration(TextDecoration.BOLD, true)));
-        for (String line : entry.description().split("\\\\n|\n")) {
-            if (!line.isBlank())
-                player.sendMessage(Component.empty()
-                        .decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text("│  ").color(DARK_GRAY))
-                        .append(Component.text(line).color(GRAY)));
+        String[] descLines = entry.description().split("\\\\n|\n");
+        for (String line : descLines) {
+            String trimmed = line.trim();
+            if (!trimmed.isEmpty()) {
+                for (String wrapped : wrapText(trimmed, 42)) {
+                    player.sendMessage(Component.empty()
+                            .decoration(TextDecoration.ITALIC, false)
+                            .append(Component.text("│  ").color(DARK_GRAY))
+                            .append(Component.text(wrapped).color(GRAY)));
+                }
+            }
         }
         player.sendMessage(Component.empty()
                 .decoration(TextDecoration.ITALIC, false)
@@ -2092,6 +2097,25 @@ public final class BotSettingGui implements Listener {
 
     private record BotCategory(
             String label, Material activeMat, Material inactiveMat, Material separatorGlass, List<BotEntry> entries) {}
+
+    private static List<String> wrapText(String text, int maxLen) {
+        if (text == null || text.isEmpty()) return List.of();
+        if (text.length() <= maxLen) return List.of(text);
+        List<String> lines = new ArrayList<>();
+        String[] words = text.split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (String word : words) {
+            if (word.isEmpty()) continue;
+            if (!sb.isEmpty() && sb.length() + 1 + word.length() > maxLen) {
+                lines.add(sb.toString().trim());
+                sb.setLength(0);
+            }
+            if (!sb.isEmpty()) sb.append(' ');
+            sb.append(word);
+        }
+        if (!sb.isEmpty()) lines.add(sb.toString().trim());
+        return lines;
+    }
 
     private enum BotEntryType {
         TOGGLE,

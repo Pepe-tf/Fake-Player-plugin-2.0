@@ -180,11 +180,15 @@ public final class Config {
     }
 
     public static boolean debugNmsBot() {
-        return isDebug() || debugNms() || debugBool("nms.bot", false);
+        if (isDebug()) return true;
+        if (debugBool("nms.bot", false)) return true;
+        return false;
     }
 
     public static boolean debugNmsConn() {
-        return isDebug() || debugNms() || debugBool("nms.connection", false);
+        if (isDebug()) return true;
+        if (debugBool("nms.connection", false)) return true;
+        return false;
     }
 
     public static boolean debugLicense() {
@@ -196,7 +200,8 @@ public final class Config {
     }
 
     public static boolean debugNms() {
-        return isDebug() || debugBool("nms.enabled", false);
+        if (isDebug()) return true;
+        return debugBool("nms.enabled", false);
     }
 
     public static boolean debugPackets() {
@@ -248,7 +253,9 @@ public final class Config {
     }
 
     public static boolean debugNmsPhysics() {
-        return isDebug() || debugNms() || debugBool("nms.physics", false);
+        if (isDebug()) return true;
+        if (debugBool("nms.physics", false)) return true;
+        return false;
     }
 
     public static boolean debugDbMigration() {

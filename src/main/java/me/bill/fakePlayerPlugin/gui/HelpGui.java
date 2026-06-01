@@ -333,11 +333,11 @@ public final class HelpGui implements Listener {
 
         String desc = cmd.description();
         if (desc != null && !desc.isBlank()) {
-            for (String line : wrapText(desc, 36)) {
-                lore.add(Component.empty()
-                        .decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text(line).color(GRAY)));
-            }
+        for (String line : wrapText(desc, 38)) {
+            lore.add(Component.empty()
+                    .decoration(TextDecoration.ITALIC, false)
+                    .append(Component.text(line).color(GRAY)));
+        }
         }
 
         String usage = cmd.usage();
@@ -465,8 +465,9 @@ public final class HelpGui implements Listener {
                     "migrate",
                     "save" -> Category.CORE;
             case "tp", "tph", "freeze", "rename", "inventory", "inv", "xp", "setowner" -> Category.BOTS;
-            case "move", "mine", "place", "use", "storage", "attack", "find", "follow", "sleep", "stop" -> Category
+            case "move", "storage", "attack", "find", "follow", "sleep", "stop", "left-click", "right-click" -> Category
                     .ACTIONS;
+            case "mine", "place", "use" -> Category.ACTIONS;
             case "badword" -> Category.CORE;
             case "chat",
                     "personality",
@@ -511,6 +512,8 @@ public final class HelpGui implements Listener {
             case "mine" -> Material.DIAMOND_PICKAXE;
             case "use" -> Material.WOODEN_AXE;
             case "attack" -> Material.IRON_SWORD;
+            case "left-click" -> Material.DIAMOND_PICKAXE;
+            case "right-click" -> Material.WOODEN_AXE;
             case "peaks" -> Material.SUNFLOWER;
             case "settings" -> Material.COMPARATOR;
             case "migrate" -> Material.ANVIL;
@@ -571,7 +574,7 @@ public final class HelpGui implements Listener {
                 .append(Component.text("ᴀᴅᴠᴀɴᴄᴇᴅ ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ ꜱᴘᴏᴏꜰᴇʀ").color(GRAY)));
         lore.add(Component.empty()
                 .decoration(TextDecoration.ITALIC, false)
-                .append(Component.text("ꜰᴏʀ ᴘᴀᴘᴇʀ 1.21+").color(DARK_GRAY)));
+                .append(Component.text("ꜰᴏʀ ᴘᴀᴘᴇʀ/ᴘᴜʀᴘᴜʀ/ꜰᴏʟɪᴀ 1.21+").color(DARK_GRAY)));
 
         lore.add(Component.empty());
         lore.add(divider());
@@ -685,19 +688,21 @@ public final class HelpGui implements Listener {
     }
 
     private static List<String> wrapText(String text, int maxLen) {
+        if (text == null || text.isEmpty()) return List.of();
         if (text.length() <= maxLen) return List.of(text);
         List<String> lines = new ArrayList<>();
         String[] words = text.split(" ");
         StringBuilder sb = new StringBuilder();
         for (String word : words) {
+            if (word.isEmpty()) continue;
             if (!sb.isEmpty() && sb.length() + 1 + word.length() > maxLen) {
-                lines.add(sb.toString());
+                lines.add(sb.toString().trim());
                 sb.setLength(0);
             }
             if (!sb.isEmpty()) sb.append(' ');
             sb.append(word);
         }
-        if (!sb.isEmpty()) lines.add(sb.toString());
+        if (!sb.isEmpty()) lines.add(sb.toString().trim());
         return lines;
     }
 

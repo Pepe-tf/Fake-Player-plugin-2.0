@@ -16,6 +16,7 @@ FPP spawns server-side bot entities that behave like players — useful for **AF
 3. Restart the server.
 4. The plugin creates `plugins/FakePlayerPlugin/` with:
    - `config.yml` — main configuration
+   - `debug.yml` — debug logging control (all categories disabled by default)
    - `language/en.yml` — messages and translations
    - `bot-names.yml` — name pool
    - `bad-words.yml` — profanity filter word list

@@ -21,10 +21,23 @@
   - Main-Class manifest attribute set in shadowJar
 
 ### License System Updates
+- **Silent Verification** — License verification now runs silently without debug spam
+  - Removed verbose logging (Team ID, Product ID, challenge, response JSON)
+  - Only shows error message if verification fails
+  - Cleaner startup logs for production servers
+
 - **Offline Fallback Mode** — Plugin no longer disables when credentials fetch fails
   - Creates minimal dummy credentials to continue in limited mode
   - Improved error messages and logging
   - Discord support link added to warning messages
+
+### Debug Logging Cleanup
+- **Config-Fixed Debug Methods** — All debug methods now independent and respect `debug.yml`
+  - Fixed `debugNmsBot()`, `debugNms()`, `debugNmsPhysics()` to not cascade
+  - 17 debug log calls in `FakePlayerManager.java` and `NmsPlayerSpawner.java` fixed
+  - Bot despawn operations no longer spam console when debug disabled
+
+- **debug.yml Updated** — Removed `license` debug category (no longer needed)
 
 ### Permission System
 - **BotAccess Checks** — Added ownership validation for multi-bot operations
@@ -53,6 +66,7 @@
 - **Tab Complete** — Removed duplicate legacy keywords
 - **Permission Checks** — Fixed admin bypass for bulk operations
 - **Persistence Wiring** — Updated to use click commands instead of mine/use/place
+- **Debug Spam** — Fixed all NMS-BOT debug messages respecting config
 
 ### Build System
 - **Version Bump** — 1.6.6.12.1 → 1.6.6.12.2

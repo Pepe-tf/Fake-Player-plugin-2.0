@@ -240,7 +240,7 @@ public final class SettingGui implements Listener {
             player.sendMessage(Component.empty()
                     .decoration(TextDecoration.ITALIC, false)
                     .append(Component.text("✔ ").color(ON_GREEN))
-                    .append(Component.text("ꜱᴇᴛᴛɪɴɢꜱ ꜱᴀᴠᴇᴅ.").color(WHITE)));
+                    .append(Component.text("ꜱᴇᴛᴛɪɴɢꜱ ꜱᴀᴠᴇᴅ • ᴄᴏɴꜰɪɢ ᴜᴘᴅᴀᴛᴇᴅ").color(WHITE)));
         }
     }
 
@@ -552,11 +552,15 @@ public final class SettingGui implements Listener {
                 .append(Component.text(valStr).color(valColor).decoration(TextDecoration.BOLD, true)));
         lore.add(Component.empty());
 
-        for (String line : entry.description.split("\\\\n|\n")) {
-            if (!line.isBlank()) {
-                lore.add(Component.empty()
-                        .decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text(line).color(GRAY)));
+        String[] descLines = entry.description.split("\\\\n|\n");
+        for (String line : descLines) {
+            String trimmed = line.trim();
+            if (!trimmed.isEmpty()) {
+                for (String wrapped : wrapText(trimmed, 40)) {
+                    lore.add(Component.empty()
+                            .decoration(TextDecoration.ITALIC, false)
+                            .append(Component.text(wrapped).color(GRAY)));
+                }
             }
         }
         lore.add(Component.empty());
@@ -1215,5 +1219,24 @@ public final class SettingGui implements Listener {
                 plugin.getConfig().set(configKey, !plugin.getConfig().getBoolean(configKey, false));
             }
         }
+    }
+
+    private static List<String> wrapText(String text, int maxLen) {
+        if (text == null || text.isEmpty()) return List.of();
+        if (text.length() <= maxLen) return List.of(text);
+        List<String> lines = new ArrayList<>();
+        String[] words = text.split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (String word : words) {
+            if (word.isEmpty()) continue;
+            if (!sb.isEmpty() && sb.length() + 1 + word.length() > maxLen) {
+                lines.add(sb.toString().trim());
+                sb.setLength(0);
+            }
+            if (!sb.isEmpty()) sb.append(' ');
+            sb.append(word);
+        }
+        if (!sb.isEmpty()) lines.add(sb.toString().trim());
+        return lines;
     }
 }
