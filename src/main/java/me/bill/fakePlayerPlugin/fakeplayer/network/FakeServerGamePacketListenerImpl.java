@@ -104,14 +104,20 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
 
     @Override
     public void onDisconnect(@NotNull DisconnectionDetails details) {
+        String playerName = this.player.getScoreboardName();
+        String reasonStr = details.reason() != null ? details.reason().getString() : "null";
+        Config.debugNmsConn("onDisconnect: player='" + playerName + "' reason='" + reasonStr + "'");
         try {
             super.onDisconnect(details);
+            Config.debugNmsConn("onDisconnect completed for '" + playerName + "'");
         } catch (IllegalStateException e) {
             if ("Already retired".equals(e.getMessage())) {
                 Config.debugNms("FakeServerGamePacketListenerImpl: suppressed double-retirement for "
-                        + this.player.getScoreboardName()
+                        + playerName
                         + " (entity scheduler already retired by death path)");
             } else {
+                FppLogger.error(
+                        "onDisconnect failed for '" + playerName + "' (reason: " + reasonStr + "): " + e.getMessage());
                 throw e;
             }
         }

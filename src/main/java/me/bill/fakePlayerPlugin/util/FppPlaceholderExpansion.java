@@ -60,7 +60,16 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
     }
 
     @Override
+    public boolean canRegister() {
+        return true;
+    }
+
+    @Override
     public String onRequest(OfflinePlayer player, @NotNull String params) {
+        if (params == null || params.isEmpty()) {
+            return "";
+        }
+
         String p = params.toLowerCase();
 
         int localBots = manager.getCount();
@@ -71,9 +80,6 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
         int real = Math.max(0, Bukkit.getOnlinePlayers().size() - localBots);
 
         return switch (p) {
-                // ════════════════════════════════════════════════════════════════════════
-                //  SERVER-WIDE (13 placeholders)
-                // ════════════════════════════════════════════════════════════════════════
             case "count" -> String.valueOf(bots);
             case "local_count" -> String.valueOf(localBots);
             case "network_count" -> String.valueOf(remoteBots);
@@ -111,17 +117,14 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
                     .map(RemoteBotEntry::displayName)
                     .collect(Collectors.joining(", "));
             case "version" -> plugin.getPluginMeta().getVersion();
+            case "config_version" -> String.valueOf(Config.configVersion());
+            case "uptime" -> formatUptime(
+                    (System.currentTimeMillis() - plugin.getEnabledAt()) / 1000);
 
-                // ════════════════════════════════════════════════════════════════════════
-                //  SERVER PERFORMANCE (2 placeholders)
-                // ════════════════════════════════════════════════════════════════════════
             case "server_tps" -> getTps();
             case "server_uptime" -> formatUptime(
                     ManagementFactory.getRuntimeMXBean().getUptime() / 1000);
 
-                // ════════════════════════════════════════════════════════════════════════
-                //  EXTENSIONS (2 placeholders)
-                // ════════════════════════════════════════════════════════════════════════
             case "extensions" -> {
                 ExtensionLoader loader = plugin.getExtensionLoader();
                 yield loader == null
@@ -137,11 +140,9 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
                                 .collect(Collectors.joining(", "));
             }
 
-                // ════════════════════════════════════════════════════════════════════════
-                //  SETTINGS / TOGGLES (24 placeholders)
-                // ════════════════════════════════════════════════════════════════════════
             case "chat" -> onOff(Config.fakeChatEnabled());
             case "skin" -> Config.skinMode();
+            case "body" -> onOff(true);
             case "pushable" -> onOff(Config.bodyPushable());
             case "damageable" -> onOff(Config.bodyDamageable());
             case "tab" -> onOff(Config.tabListEnabled());
@@ -153,6 +154,7 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
             case "persistence" -> onOff(Config.persistOnRestart());
             case "spawn_cooldown" -> String.valueOf(Config.spawnCooldown());
             case "chunk_loading" -> onOff(Config.chunkLoadingEnabled());
+            case "chunk_loading_radius" -> String.valueOf(Config.chunkLoadingRadius());
             case "head_ai" -> onOff(Config.headAiEnabled());
             case "swim_ai" -> onOff(Config.swimAiEnabled());
             case "auto_eat" -> onOff(Config.autoEatEnabled());
@@ -169,10 +171,10 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
             case "swap" -> onOff(Config.swapEnabled());
             case "metrics" -> onOff(Config.metricsEnabled());
             case "update_checker" -> onOff(Config.updateCheckerEnabled());
+            case "badword_filter" -> onOff(Config.isBadwordFilterEnabled());
+            case "database" -> onOff(Config.databaseEnabled());
+            case "database_mode" -> Config.databaseMode();
 
-                // ════════════════════════════════════════════════════════════════════════
-                //  PING (3 placeholders)
-                // ════════════════════════════════════════════════════════════════════════
             case "ping_all" -> {
                 if (player == null || !player.isOnline()) yield "-1";
                 Player onlinePlayer = player.getPlayer();
@@ -190,9 +192,6 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
                 yield String.valueOf(player.getPlayer().getPing());
             }
 
-                // ════════════════════════════════════════════════════════════════════════
-                //  PLAYER-RELATIVE (10 placeholders)
-                // ════════════════════════════════════════════════════════════════════════
             case "user_count" -> player == null ? "0" : String.valueOf(countUserBots(player));
             case "user_max" -> resolveUserMax(player);
             case "user_names" -> player == null
@@ -244,14 +243,24 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
                         .sum();
                 yield formatUptime(secs);
             }
+            case "user_total_damage" -> {
+                if (player == null) yield "0";
+                double total = getUserBots(player).stream()
+                        .mapToDouble(FakePlayer::getTotalDamageTaken)
+                        .sum();
+                yield String.format("%.1f", total);
+            }
+            case "user_deaths" -> {
+                if (player == null) yield "0";
+                int total = getUserBots(player).stream()
+                        .mapToInt(FakePlayer::getDeathCount)
+                        .sum();
+                yield String.valueOf(total);
+            }
 
             default -> handleDynamic(p, player, localBots, remoteEntries);
         };
     }
-
-    // ════════════════════════════════════════════════════════════════════════════
-    //  DYNAMIC LOOKUPS (world suffixes, per-bot, user-relative)
-    // ════════════════════════════════════════════════════════════════════════════
 
     private String handleDynamic(
             String p, OfflinePlayer player, int localBots, Collection<RemoteBotEntry> remoteEntries) {
@@ -351,13 +360,29 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
             Object task = fp.getMetadata("current_task");
             return task != null ? task.toString() : "idle";
         }
+        if (p.startsWith("damage_")) {
+            fp = manager.getByName(p.substring(7));
+            return fp != null ? String.format("%.1f", fp.getTotalDamageTaken()) : "N/A";
+        }
+        if (p.startsWith("deaths_")) {
+            fp = manager.getByName(p.substring(7));
+            return fp != null ? String.valueOf(fp.getDeathCount()) : "N/A";
+        }
+        if (p.startsWith("type_")) {
+            fp = manager.getByName(p.substring(5));
+            return fp != null ? fp.getBotType().name() : "N/A";
+        }
+        if (p.startsWith("chat_")) {
+            fp = manager.getByName(p.substring(5));
+            return fp != null ? (fp.isChatEnabled() ? "yes" : "no") : "N/A";
+        }
+        if (p.startsWith("skin_")) {
+            fp = manager.getByName(p.substring(5));
+            return fp != null ? (fp.getSkinName() != null ? fp.getSkinName() : "default") : "N/A";
+        }
 
         return null;
     }
-
-    // ════════════════════════════════════════════════════════════════════════════
-    //  HELPER METHODS
-    // ════════════════════════════════════════════════════════════════════════════
 
     private int countBotsInWorld(String worldName) {
         if (worldName == null || worldName.isBlank()) return 0;

@@ -66,7 +66,7 @@ public class DeleteCommand implements FppCommand {
                 sender.sendMessage(Lang.get("delete-none"));
                 return true;
             }
-            manager.removeAll();
+            manager.removeAll("command_despawn_all");
             sender.sendMessage(Lang.get("delete-all", "count", String.valueOf(count)));
             return true;
         }
@@ -91,7 +91,7 @@ public class DeleteCommand implements FppCommand {
             }
             int deleted = 0;
             for (FakePlayer fp : owned) {
-                manager.delete(fp.getName());
+                manager.delete(fp.getName(), "command_despawn_own");
                 deleted++;
             }
             sender.sendMessage(Lang.get("delete-own-success", "count", String.valueOf(deleted)));
@@ -136,7 +136,7 @@ public class DeleteCommand implements FppCommand {
             }
             int toDelete = Math.min(count, active.size());
             for (int i = 0; i < toDelete; i++) {
-                manager.delete(active.get(i).getName());
+                manager.delete(active.get(i).getName(), "command_despawn_random");
             }
             sender.sendMessage(Lang.get(
                     random ? "delete-random-success" : "delete-num-success", "count", String.valueOf(toDelete)));
@@ -164,7 +164,7 @@ public class DeleteCommand implements FppCommand {
         }
 
         String shown = plainOf(fp.getDisplayName());
-        manager.delete(fp.getName());
+        manager.delete(fp.getName(), "command_despawn");
         sender.sendMessage(Lang.get("delete-success", "name", shown));
         return true;
     }

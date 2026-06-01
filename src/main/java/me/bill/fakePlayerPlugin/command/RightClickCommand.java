@@ -172,17 +172,27 @@ public final class RightClickCommand implements FppCommand {
         cancelAll(fp.getUuid());
 
         Object target = null;
+        BlockFace targetFace = null;
         if (sender instanceof Player player) {
             target = rayTraceTargetPlayer(player);
+            if (target instanceof Block) {
+                org.bukkit.util.RayTraceResult ray = player.rayTraceBlocks(CLICK_REACH);
+                if (ray != null) targetFace = ray.getHitBlockFace();
+            }
             if (Config.debugRightClickHead()) {
                 if (target != null
                         && target instanceof Player p
                         && p.getUniqueId().equals(bot.getUniqueId())) {
                     FppLogger.debug("RIGHTCLICK-HEAD", true, bot.getName() + " player LOOKING AT BOT — target=null");
                     target = null;
+                    targetFace = null;
                 } else if (target != null) {
                     String tStr = formatTarget(target);
-                    FppLogger.debug("RIGHTCLICK-HEAD", true, bot.getName() + " player target=" + tStr);
+                    FppLogger.debug(
+                            "RIGHTCLICK-HEAD",
+                            true,
+                            bot.getName() + " player target=" + tStr
+                                    + (targetFace != null ? " face=" + targetFace.name() : ""));
                 } else {
                     FppLogger.debug("RIGHTCLICK-HEAD", true, bot.getName() + " player raytrace=null");
                 }
@@ -190,18 +200,27 @@ public final class RightClickCommand implements FppCommand {
         }
         if (target == null) {
             target = rayTraceTarget(bot);
+            if (target instanceof Block && bot instanceof Player) {
+                org.bukkit.util.RayTraceResult ray = bot.rayTraceBlocks(CLICK_REACH);
+                if (ray != null) targetFace = ray.getHitBlockFace();
+            }
             if (Config.debugRightClickHead() && target != null) {
-                FppLogger.debug("RIGHTCLICK-HEAD", true, bot.getName() + " bot self-target=" + formatTarget(target));
+                FppLogger.debug(
+                        "RIGHTCLICK-HEAD",
+                        true,
+                        bot.getName() + " bot self-target=" + formatTarget(target)
+                                + (targetFace != null ? " face=" + targetFace.name() : ""));
             }
         }
 
         final ClickMode finalMode = mode;
+        final BlockFace finalFace = targetFace;
         if (target != null) {
             Location targetLoc = getTargetLocation(bot, target);
             if (targetLoc != null) {
                 double dist = bot.getLocation().distance(targetLoc);
                 if (dist <= CLICK_REACH) {
-                    lockAndStartClicking(fp, finalMode, target);
+                    lockAndStartClicking(fp, finalMode, target, finalFace);
                     String msgKey =
                             switch (finalMode) {
                                 case ONCE -> "right-click-started-once";
@@ -215,7 +234,8 @@ public final class RightClickCommand implements FppCommand {
                     Location standLoc = findStandLocationNearTarget(bot.getWorld(), targetLoc);
                     if (standLoc != null) {
                         final Object finalTarget = target;
-                        startNavigation(fp, standLoc, () -> lockAndStartClicking(fp, finalMode, finalTarget));
+                        startNavigation(
+                                fp, standLoc, () -> lockAndStartClicking(fp, finalMode, finalTarget, finalFace));
                         sender.sendMessage(Lang.get("right-click-walking", "name", fp.getDisplayName()));
                         return true;
                     } else {
@@ -226,7 +246,7 @@ public final class RightClickCommand implements FppCommand {
             }
         }
 
-        lockAndStartClicking(fp, finalMode, null);
+        lockAndStartClicking(fp, finalMode, null, null);
         sender.sendMessage(Lang.get("right-click-started", "name", fp.getDisplayName()));
         return true;
     }
@@ -277,7 +297,7 @@ public final class RightClickCommand implements FppCommand {
                         opts));
     }
 
-    private void lockAndStartClicking(FakePlayer fp, ClickMode mode, Object target) {
+    private void lockAndStartClicking(FakePlayer fp, ClickMode mode, Object target, BlockFace face) {
         FppApiImpl.fireTaskEvent(fp, "right-click", FppBotTaskEvent.Action.START);
         UUID uuid = fp.getUuid();
         Player bot = fp.getPlayer();
@@ -287,7 +307,8 @@ public final class RightClickCommand implements FppCommand {
         float startPitch = bot.getLocation().getPitch();
 
         if (target != null) {
-            Location faceLoc = faceTowardTarget(bot.getLocation(), target, null);
+            org.bukkit.util.Vector faceCenter = computeFaceCenter(target, face);
+            Location faceLoc = faceTowardTarget(bot.getLocation(), target, faceCenter);
             bot.setRotation(faceLoc.getYaw(), faceLoc.getPitch());
             NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
             if (Config.debugRightClickHead()) {
@@ -917,6 +938,26 @@ public final class RightClickCommand implements FppCommand {
                         true);
 
         return ray != null ? ray.getHitPosition() : null;
+    }
+
+    /**
+     * Computes the geometric center of a specific block face.
+     * E.g. for NORTH face of a block at (x,y,z), returns (x+0.5, y+0.5, z).
+     */
+    private static org.bukkit.util.Vector computeFaceCenter(Object target, BlockFace face) {
+        if (!(target instanceof Block b) || face == null) return null;
+        double cx = b.getX() + 0.5;
+        double cy = b.getY() + 0.5;
+        double cz = b.getZ() + 0.5;
+        return switch (face) {
+            case UP -> new org.bukkit.util.Vector(cx, b.getY() + 1.0, cz);
+            case DOWN -> new org.bukkit.util.Vector(cx, b.getY(), cz);
+            case NORTH -> new org.bukkit.util.Vector(cx, cy, b.getZ());
+            case SOUTH -> new org.bukkit.util.Vector(cx, cy, b.getZ() + 1.0);
+            case WEST -> new org.bukkit.util.Vector(b.getX(), cy, cz);
+            case EAST -> new org.bukkit.util.Vector(b.getX() + 1.0, cy, cz);
+            default -> new org.bukkit.util.Vector(cx, cy, cz);
+        };
     }
 
     @Nullable

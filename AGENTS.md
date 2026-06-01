@@ -123,7 +123,7 @@ See `note.md` for authoritative list. Current priorities:
 **Hard:** PaperMC 1.21.11 dev bundle, FastStats metrics
 
 **Soft (runtime reflection):**
-- PlaceholderAPI (70+ placeholders)
+- PlaceholderAPI (80+ placeholders)
 - LuckPerms (prefix/suffix, bot groups)
 - WorldGuard (bot PvP region protection)
 - WorldEdit (`--wesel` flag for area mining/placing)

@@ -23,7 +23,7 @@ Some advanced subsystems are implemented as extensions and are not part of the b
 
 | Page | Description |
 |------|-------------|
-| [Placeholders](Placeholders) | PlaceholderAPI integration reference (70+ placeholders including cross-server totals) |
+| [Placeholders](Placeholders) | PlaceholderAPI integration reference (80+ placeholders including cross-server totals) |
 | [Database](Database) | SQLite / MySQL setup, network tables, and proxy-merged architecture |
 | [Proxy Support](Proxy-Support) | Velocity / BungeeCord multi-server networks with shared MySQL |
 | [Config Sync](Config-Sync) | Synchronize configs across proxy backends |

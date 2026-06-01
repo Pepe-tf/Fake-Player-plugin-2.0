@@ -158,6 +158,10 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     private long enabledAt;
 
+    public long getEnabledAt() {
+        return enabledAt;
+    }
+
     @Override
     public void onEnable() {
         instance = this;

@@ -241,23 +241,9 @@ performance:
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  10 · DEBUG & LOGGING
-#  All flags are false by default for clean production logs.
-#  Set only the subsystem you need to inspect — or flip debug: true to enable all.
+#  Debug configuration has been moved to debug.yml for better organization.
+#  Edit plugins/FakePlayerPlugin/debug.yml to control debug output.
 # ═════════════════════════════════════════════════════════════════════════════
-debug: false   # Master switch — true enables every category below at once
-
-logging:
-  debug:
-    startup: false      # Startup flow, reloads, and compatibility checks
-    nms: false          # NMS reflection, fake connection, and entity spawning
-    packets: false      # Tab-list and entity packet construction / sending
-    network: false      # Velocity/Bungee plugin messaging and remote bot sync
-    config-sync: false  # Config push/pull activity
-    database: false     # DB init, migrations, and session writes
-    commands: false     # Command execution flow and ray tracing (mine/place/use)
-    head-ai: false      # Head AI rotation and player tracking
-    right-click: false  # Right-click action debugging (block interactions, hit detection)
-    right-click-head: false  # Right-click head/body rotation debug (target/aim/bot)
 
 # ── Update Checker ────────────────────────────────────────────────────────────
 update-checker:
@@ -276,4 +262,8 @@ attack-mob:
 # Anonymous usage statistics via FastStats. No personal data collected.
 metrics:
   enabled: true
-  debug: false    # Enable FastStats debug logging
+
+# ── Debug Configuration ───────────────────────────────────────────────────────
+# Debug logging is now controlled by debug.yml
+# Run /fpp reload after editing debug.yml to apply changes.
+# ═════════════════════════════════════════════════════════════════════════════

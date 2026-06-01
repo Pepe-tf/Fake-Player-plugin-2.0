@@ -6,9 +6,12 @@ import java.net.InetSocketAddress;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import me.bill.fakePlayerPlugin.config.Config;
+
 import io.netty.channel.ChannelFutureListener;
 import net.minecraft.network.Connection;
 import net.minecraft.network.PacketSendListener;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketFlow;
 
@@ -31,6 +34,12 @@ public final class FakeConnection extends Connection {
     @Override
     public boolean isConnected() {
         return true;
+    }
+
+    @Override
+    public void disconnect(Component reason) {
+        String reasonStr = reason != null ? reason.getString() : "null";
+        Config.debugNmsConn("FakeConnection.disconnect: reason='" + reasonStr + "' for " + this.address);
     }
 
     @Override

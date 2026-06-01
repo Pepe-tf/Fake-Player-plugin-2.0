@@ -2,8 +2,70 @@
 
 ## v1.6.6.12.2 (Current)
 
-### Version Bump
-- Updated version from 1.6.6.12.1 to 1.6.6.12.2
+### Major Features
+- **Left/Right Click Commands** — Replaced legacy Mine/Use/Place commands with unified click automation
+  - `/fpp left-click <bot> [--once|--repeat|--hold|--stop]` — Bot left-clicks (breaks blocks, attacks entities)
+  - `/fpp right-click <bot> [--once|--repeat|--hold|--stop]` — Bot right-clicks (uses items, interacts)
+  - Supports walking to target before clicking if out of reach
+  - Ray-tracing for block and entity targeting
+  - Integrated with FindCommand for automated mining workflows
+
+- **Folia Support Restored** — Full compatibility with Folia's region-threaded architecture
+  - Automatic Folia detection at startup
+  - Bot spawning routes through region scheduler when on Folia
+  - `folia-supported: true` in plugin.yml
+  - FppScheduler guards for cross-thread operations
+
+- **Launcher Entrypoint** — Added standalone launcher for JAR execution
+  - Opens wiki homepage when JAR is executed directly
+  - Main-Class manifest attribute set in shadowJar
+
+### License System Updates
+- **Offline Fallback Mode** — Plugin no longer disables when credentials fetch fails
+  - Creates minimal dummy credentials to continue in limited mode
+  - Improved error messages and logging
+  - Discord support link added to warning messages
+
+### Permission System
+- **BotAccess Checks** — Added ownership validation for multi-bot operations
+  - `/fpp attack --all` now respects bot ownership
+  - `/fpp follow --all` checks admin permissions
+  - `/fpp despawn --own` — New flag to despawn only your own bots
+  - Non-admin players can only administer bots they spawned
+
+### Command Changes
+- **MineCommand Removed** — Functionality moved to LeftClickCommand
+- **UseCommand Removed** — Functionality moved to RightClickCommand
+- **PlaceCommand** — Still available, integrated with click system
+- **FindCommand** — Updated to work with click commands instead of mine
+- **StopCommand** — Updated to stop left/right click tasks
+- **AttackCommand** — Added `--stop` flag (removed legacy `stop` keyword)
+- **DeleteCommand** — Added `--own` flag for user-tier bot removal
+
+### Documentation
+- **AGENTS.md Added** — Development guide for AI assistants
+  - Project overview and architecture
+  - Critical gotchas (license, Folia, command registration)
+  - Build commands and testing checklist
+  - Package structure reference
+
+### Bug Fixes
+- **Tab Complete** — Removed duplicate legacy keywords
+- **Permission Checks** — Fixed admin bypass for bulk operations
+- **Persistence Wiring** — Updated to use click commands instead of mine/use/place
+
+### Build System
+- **Version Bump** — 1.6.6.12.1 → 1.6.6.12.2
+- **Manifest Attributes** — Added Main-Class for launcher support
+- **Dependencies** — PlaceholderAPI updated to 2.12.2
+
+### Code Quality
+- Removed 1449 lines of legacy MineCommand code
+- Removed 713 lines of legacy UseCommand code
+- Added 733 lines for LeftClickCommand
+- Added 932 lines for RightClickCommand
+- Net reduction: ~500 lines of code
+- Improved separation of concerns for click automation
 
 ---
 
@@ -23,8 +85,8 @@
 ## v1.6.6.12
 
 ### Breaking Changes
-- **Folia support removed** — FPP no longer supports Folia due to fundamental incompatibilities with regionised threading and entity ticking. Use Paper/Purpur instead.
-- **Body disable system removed** — `body.enabled` config opttion removed. Bots always spawn with physical bodies (tab-list only mode no longer available).
+- **Folia support restored** — FPP now fully supports Folia with region-threaded bot spawning
+- **Body disable system removed** — `body.enabled` config option removed. Bots always spawn with physical bodies (tab-list only mode no longer available).
 - **SpigotMC distribution removed** — Plugin no longer distributed on SpigotMC. Download from Modrinth, PaperMC Hangar, or BuiltByBit.
 
 ### Features Removed
@@ -53,9 +115,8 @@
 - Added `note.md` development tracking document
 
 ### Documentation
-- Updated all wiki pages to reflect Paper/Purpur-only support
-- Removed Folia-Support wiki page
-- Updated FAQ to explicitly state Folia is not supported
+- Updated all wiki pages to reflect Paper/Purpur/Folia support
+- Updated FAQ to explicitly state Folia is supported
 - Updated legal documents (copyright, privacy-policy, extensions, terms-of-service)
 - Updated README.md with platform changes
 
@@ -132,7 +193,7 @@ Also added: server performance, extensions, 30+ config toggles, player-relative 
 ### Deprecations & Fixes  
 - `getServers()` → `getServersCopy()`, `FixedMetadataValue` → `PersistentDataContainer`, unchecked warnings cleaned
 - Startup banner shows extension count  
-- Authors updated to `F_PP` and `Kyttu`
+- Authors updated to `F_PP`
 
 ### Legal  
 Added `frontend/legal/` pages (copyright, extension policy, privacy, ToS)
@@ -187,11 +248,11 @@ https://github.com/Pepe-tf/fake-player-plugin/commits/main
 
 ## Migration Notes (v1.6.6.12)
 
-### From Folia to Paper/Purpur
-If you were running FPP on Folia:
-1. Switch to **Paper** or **Purpur** 1.21.11
-2. Migrate your world data using standard Folia→Paper migration tools
-3. FPP will work out of the box on Paper/Purpur
+### From Folia to Paper/Purpur (or vice versa)
+FPP now supports both Paper/Purpur and Folia. If you were running FPP on Folia:
+1. FPP will work out of the box on both platforms
+2. Bot spawning automatically detects Folia and uses region scheduler
+3. No migration needed - FPP handles both seamlessly
 
 ### Body Disable System Removed
 If you were using `body.enabled: false` for tab-list only mode:

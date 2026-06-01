@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
@@ -57,6 +58,41 @@ public final class LeftClickCommand implements FppCommand {
         HOLD,
         STOP
     }
+
+    private static final int DEFAULT_ATTACK_COOLDOWN = 5;
+    private static final Map<org.bukkit.Material, Integer> WEAPON_COOLDOWN = Map.ofEntries(
+            Map.entry(org.bukkit.Material.NETHERITE_SWORD, 12),
+            Map.entry(org.bukkit.Material.DIAMOND_SWORD, 12),
+            Map.entry(org.bukkit.Material.IRON_SWORD, 12),
+            Map.entry(org.bukkit.Material.GOLDEN_SWORD, 12),
+            Map.entry(org.bukkit.Material.STONE_SWORD, 12),
+            Map.entry(org.bukkit.Material.WOODEN_SWORD, 12),
+            Map.entry(org.bukkit.Material.NETHERITE_AXE, 20),
+            Map.entry(org.bukkit.Material.DIAMOND_AXE, 20),
+            Map.entry(org.bukkit.Material.IRON_AXE, 22),
+            Map.entry(org.bukkit.Material.GOLDEN_AXE, 20),
+            Map.entry(org.bukkit.Material.STONE_AXE, 25),
+            Map.entry(org.bukkit.Material.WOODEN_AXE, 25),
+            Map.entry(org.bukkit.Material.TRIDENT, 22),
+            Map.entry(org.bukkit.Material.NETHERITE_PICKAXE, 16),
+            Map.entry(org.bukkit.Material.DIAMOND_PICKAXE, 16),
+            Map.entry(org.bukkit.Material.IRON_PICKAXE, 16),
+            Map.entry(org.bukkit.Material.GOLDEN_PICKAXE, 16),
+            Map.entry(org.bukkit.Material.STONE_PICKAXE, 16),
+            Map.entry(org.bukkit.Material.WOODEN_PICKAXE, 16),
+            Map.entry(org.bukkit.Material.NETHERITE_SHOVEL, 20),
+            Map.entry(org.bukkit.Material.DIAMOND_SHOVEL, 20),
+            Map.entry(org.bukkit.Material.IRON_SHOVEL, 20),
+            Map.entry(org.bukkit.Material.GOLDEN_SHOVEL, 20),
+            Map.entry(org.bukkit.Material.STONE_SHOVEL, 20),
+            Map.entry(org.bukkit.Material.WOODEN_SHOVEL, 20),
+            Map.entry(org.bukkit.Material.NETHERITE_HOE, 5),
+            Map.entry(org.bukkit.Material.DIAMOND_HOE, 5),
+            Map.entry(org.bukkit.Material.IRON_HOE, 7),
+            Map.entry(org.bukkit.Material.GOLDEN_HOE, 20),
+            Map.entry(org.bukkit.Material.STONE_HOE, 10),
+            Map.entry(org.bukkit.Material.WOODEN_HOE, 20),
+            Map.entry(org.bukkit.Material.MACE, 33));
 
     public LeftClickCommand(FakePlayerPlugin plugin, FakePlayerManager manager, PathfindingService pathfinding) {
         this.plugin = plugin;
@@ -165,12 +201,15 @@ public final class LeftClickCommand implements FppCommand {
         Object target = null;
         BlockPos blockTarget = null;
         Entity entityTarget = null;
+        BlockFace targetFace = null;
 
         if (sender instanceof Player player) {
             Block playerTarget = player.getTargetBlockExact((int) Math.ceil(CLICK_REACH));
             if (playerTarget != null && !playerTarget.getType().isAir()) {
                 blockTarget = new BlockPos(playerTarget.getX(), playerTarget.getY(), playerTarget.getZ());
                 target = playerTarget;
+                org.bukkit.util.RayTraceResult ray = player.rayTraceBlocks(CLICK_REACH);
+                if (ray != null) targetFace = ray.getHitBlockFace();
             } else {
                 entityTarget = rayTraceEntity(player);
                 if (entityTarget != null) {
@@ -183,16 +222,19 @@ public final class LeftClickCommand implements FppCommand {
             target = rayTraceTarget(bot);
             if (target instanceof Block b) {
                 blockTarget = new BlockPos(b.getX(), b.getY(), b.getZ());
+                org.bukkit.util.RayTraceResult ray = bot.rayTraceBlocks(CLICK_REACH);
+                if (ray != null) targetFace = ray.getHitBlockFace();
             }
         }
 
         final ClickMode finalMode = mode;
+        final BlockFace finalFace = targetFace;
         if (target != null) {
             Location targetLoc = getTargetLocation(bot, target);
             if (targetLoc != null) {
                 double dist = bot.getLocation().distance(targetLoc);
                 if (dist <= CLICK_REACH) {
-                    lockAndStartClicking(fp, finalMode, target, blockTarget, entityTarget);
+                    lockAndStartClicking(fp, finalMode, target, blockTarget, entityTarget, finalFace);
                     String msgKey =
                             switch (finalMode) {
                                 case ONCE -> "left-click-started-once";
@@ -212,7 +254,7 @@ public final class LeftClickCommand implements FppCommand {
                                 fp,
                                 standLoc,
                                 () -> lockAndStartClicking(
-                                        fp, finalMode, finalTarget, finalBlockTarget, finalEntityTarget));
+                                        fp, finalMode, finalTarget, finalBlockTarget, finalEntityTarget, finalFace));
                         sender.sendMessage(Lang.get("left-click-walking", "name", fp.getDisplayName()));
                         return true;
                     } else {
@@ -223,7 +265,7 @@ public final class LeftClickCommand implements FppCommand {
             }
         }
 
-        lockAndStartClicking(fp, finalMode, null, null, null);
+        lockAndStartClicking(fp, finalMode, null, null, null, null);
         sender.sendMessage(Lang.get("left-click-started", "name", fp.getDisplayName()));
         return true;
     }
@@ -275,14 +317,15 @@ public final class LeftClickCommand implements FppCommand {
     }
 
     private void lockAndStartClicking(
-            FakePlayer fp, ClickMode mode, Object target, BlockPos blockTarget, Entity entityTarget) {
+            FakePlayer fp, ClickMode mode, Object target, BlockPos blockTarget, Entity entityTarget, BlockFace face) {
         FppApiImpl.fireTaskEvent(fp, "left-click", FppBotTaskEvent.Action.START);
         UUID uuid = fp.getUuid();
         Player bot = fp.getPlayer();
         if (bot == null) return;
 
         if (target != null) {
-            Location faceLoc = faceTowardTarget(bot.getLocation(), target);
+            org.bukkit.util.Vector faceCenter = computeFaceCenter(target, face);
+            Location faceLoc = faceTowardTarget(bot.getLocation(), target, faceCenter);
             bot.setRotation(faceLoc.getYaw(), faceLoc.getPitch());
             NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
         }
@@ -300,6 +343,7 @@ public final class LeftClickCommand implements FppCommand {
         state.holding = false;
         state.progress = 0;
         state.dynamicTarget = (target != null);
+        state.entityCooldown = 0;
         clickStates.put(uuid, state);
         clickModes.put(uuid, mode);
 
@@ -330,19 +374,13 @@ public final class LeftClickCommand implements FppCommand {
 
                     boolean acted = tryBreakBlock(nms, state);
 
-                    if (!acted && state.entityTarget != null) {
-                        tryAttackEntity(nms, state.entityTarget);
-                        acted = true;
-                    }
-
                     if (acted) {
                         if (mode == ClickMode.ONCE) {
                             stopClicking(uuid);
                             return;
                         }
-                        if (mode == ClickMode.REPEAT) {
-                            cooldown[0] = CLICK_COOLDOWN;
-                        }
+                        // Apply cooldown for REPEAT and HOLD modes
+                        cooldown[0] = CLICK_COOLDOWN;
                     }
 
                     if (mode == ClickMode.HOLD && !state.holding) {
@@ -359,16 +397,34 @@ public final class LeftClickCommand implements FppCommand {
     }
 
     private boolean tryBreakBlock(ServerPlayer nms, ClickState state) {
+        // Clear stale entity target (out of range, dead, or invalid)
+        if (state.entityTarget != null
+                && (!state.entityTarget.isValid()
+                        || state.entityTarget.isDead()
+                        || state.entityTarget
+                                        .getLocation()
+                                        .distance(nms.getBukkitEntity().getLocation())
+                                > CLICK_REACH)) {
+            state.entityTarget = null;
+        }
+
         BlockPos pos = state.blockTarget;
 
         if (state.dynamicTarget) {
             BlockPos currentTarget = rayTraceBlockTarget(nms);
             if (currentTarget != null) {
-                if (pos == null || !pos.equals(currentTarget)) {
-                    state.progress = 0;
-                    state.blockTarget = currentTarget;
+                // Check if an entity is blocking the way to the target block
+                Entity blockingEntity = findEntityInRange(nms);
+                if (blockingEntity != null && blockingEntity != nms.getBukkitEntity()) {
+                    state.entityTarget = blockingEntity;
+                } else {
+                    state.entityTarget = null;
+                    if (pos == null || !pos.equals(currentTarget)) {
+                        state.progress = 0;
+                        state.blockTarget = currentTarget;
+                    }
+                    pos = currentTarget;
                 }
-                pos = currentTarget;
             } else if (pos != null) {
                 BlockState blockState = nms.level().getBlockState(pos);
                 if (blockState.isAir()) {
@@ -377,7 +433,8 @@ public final class LeftClickCommand implements FppCommand {
                 }
             }
 
-            if (pos == null) {
+            if (pos == null && state.entityTarget == null) {
+                // Only look for entities when NOT already breaking a block
                 Entity nearbyEntity = findEntityInRange(nms);
                 if (nearbyEntity != null && nearbyEntity != nms.getBukkitEntity()) {
                     state.entityTarget = nearbyEntity;
@@ -386,8 +443,7 @@ public final class LeftClickCommand implements FppCommand {
         }
 
         if (state.entityTarget != null) {
-            tryAttackEntity(nms, state.entityTarget);
-            return true;
+            return tryAttackEntity(nms, state, nms.getBukkitEntity());
         }
 
         if (pos == null) return false;
@@ -451,7 +507,7 @@ public final class LeftClickCommand implements FppCommand {
                 nms.level().getMaxY(),
                 -1);
         nms.swing(InteractionHand.MAIN_HAND);
-        return true;
+        return false;
     }
 
     @Nullable
@@ -515,12 +571,32 @@ public final class LeftClickCommand implements FppCommand {
         return null;
     }
 
-    private void tryAttackEntity(ServerPlayer nms, Entity entity) {
-        if (entity instanceof CraftPlayer cp) {
-            nms.attack(cp.getHandle());
-        } else if (entity instanceof org.bukkit.craftbukkit.entity.CraftEntity ce) {
-            nms.attack(ce.getHandle());
+    private static int getWeaponCooldown(Player bot) {
+        double speed = 4.0;
+        try {
+            var attr = bot.getAttribute(org.bukkit.attribute.Attribute.ATTACK_SPEED);
+            if (attr != null) speed = attr.getValue();
+        } catch (Exception ignored) {
         }
+        if (speed <= 0) speed = 4.0;
+        return (int) (20.0 / speed);
+    }
+
+    private boolean tryAttackEntity(ServerPlayer nms, ClickState state, Player bot) {
+        if (state.entityCooldown > 0) {
+            state.entityCooldown--;
+            return false;
+        }
+
+        nms.swing(InteractionHand.MAIN_HAND);
+        if (state.entityTarget instanceof CraftPlayer cp) {
+            NmsPlayerSpawner.performAttack(bot, cp.getHandle().getBukkitEntity(), 1.0);
+        } else if (state.entityTarget instanceof org.bukkit.craftbukkit.entity.CraftEntity ce) {
+            NmsPlayerSpawner.performAttack(bot, ce.getHandle().getBukkitEntity(), 1.0);
+        }
+
+        state.entityCooldown = getWeaponCooldown(bot);
+        return true;
     }
 
     private void cancelAll(UUID botUuid) {
@@ -594,7 +670,7 @@ public final class LeftClickCommand implements FppCommand {
         if (taskId != null) return;
 
         if (target != null) {
-            Location faceLoc = faceTowardTarget(bot.getLocation(), target);
+            Location faceLoc = faceTowardTarget(bot.getLocation(), target, null);
             bot.setRotation(faceLoc.getYaw(), faceLoc.getPitch());
             NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
         }
@@ -642,8 +718,7 @@ public final class LeftClickCommand implements FppCommand {
                     boolean acted = tryBreakBlock(nms, finalState);
 
                     if (!acted && finalState.entityTarget != null) {
-                        tryAttackEntity(nms, finalState.entityTarget);
-                        acted = true;
+                        acted = tryAttackEntity(nms, finalState, b);
                     }
                     if (acted) {
                         if (finalMode == ClickMode.ONCE) {
@@ -708,9 +783,13 @@ public final class LeftClickCommand implements FppCommand {
         return null;
     }
 
-    private Location faceTowardTarget(Location botLoc, Object target) {
+    private Location faceTowardTarget(Location botLoc, Object target, org.bukkit.util.Vector faceCenter) {
         double tx, ty, tz;
-        if (target instanceof Block b) {
+        if (faceCenter != null) {
+            tx = faceCenter.getX();
+            ty = faceCenter.getY();
+            tz = faceCenter.getZ();
+        } else if (target instanceof Block b) {
             tx = b.getX() + 0.5;
             ty = b.getY() + 0.5;
             tz = b.getZ() + 0.5;
@@ -733,6 +812,25 @@ public final class LeftClickCommand implements FppCommand {
         return result;
     }
 
+    /**
+     * Computes the geometric center of a specific block face.
+     */
+    private static org.bukkit.util.Vector computeFaceCenter(Object target, BlockFace face) {
+        if (!(target instanceof Block b) || face == null) return null;
+        double cx = b.getX() + 0.5;
+        double cy = b.getY() + 0.5;
+        double cz = b.getZ() + 0.5;
+        return switch (face) {
+            case UP -> new org.bukkit.util.Vector(cx, b.getY() + 1.0, cz);
+            case DOWN -> new org.bukkit.util.Vector(cx, b.getY(), cz);
+            case NORTH -> new org.bukkit.util.Vector(cx, cy, b.getZ());
+            case SOUTH -> new org.bukkit.util.Vector(cx, cy, b.getZ() + 1.0);
+            case WEST -> new org.bukkit.util.Vector(b.getX(), cy, cz);
+            case EAST -> new org.bukkit.util.Vector(b.getX() + 1.0, cy, cz);
+            default -> new org.bukkit.util.Vector(cx, cy, cz);
+        };
+    }
+
     @Nullable
     private Location findStandLocationNearTarget(World world, Location targetLoc) {
         int tx = targetLoc.getBlockX(), ty = targetLoc.getBlockY(), tz = targetLoc.getBlockZ();
@@ -747,7 +845,7 @@ public final class LeftClickCommand implements FppCommand {
                             Location loc = new Location(world, cx + 0.5, cy, cz + 0.5);
                             double dist = loc.distance(targetLoc);
                             if (dist <= CLICK_REACH - 1.5) {
-                                return faceTowardTarget(loc, targetLoc);
+                                return faceTowardTarget(loc, targetLoc, null);
                             }
                         }
                     }
@@ -761,9 +859,11 @@ public final class LeftClickCommand implements FppCommand {
         Object target;
         BlockPos blockTarget;
         Entity entityTarget;
+        BlockFace targetFace;
         ClickMode mode;
         boolean holding;
         float progress;
         boolean dynamicTarget;
+        int entityCooldown;
     }
 }

@@ -2,7 +2,7 @@
 
 [![Version](https://img.shields.io/modrinth/v/fake-player-plugin-%28fpp%29?style=flat-square&label=version&color=0079FF&logo=modrinth)](https://modrinth.com/plugin/fake-player-plugin-(fpp))
 ![MC](https://img.shields.io/badge/Minecraft-1.21.x-0079FF?style=flat-square)
-![Platform](https://img.shields.io/badge/platform-Paper%2FPurpur-0079FF?style=flat-square)
+![Platform](https://img.shields.io/badge/platform-Paper%2FPurpur%2FFolia-0079FF?style=flat-square)
 ![Java](https://img.shields.io/badge/Java-21-0079FF?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](https://github.com/Pepe-tf/fake-player-plugin/blob/main/LICENSE)
 [![GitHub](https://img.shields.io/badge/GitHub-Open%20Source-181717?style=flat-square&logo=github)](https://github.com/Pepe-tf/fake-player-plugin)
@@ -12,7 +12,7 @@
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Sponsor-EA4AAA?style=flat-square&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Pepe-tf)
 [![Patreon](https://img.shields.io/badge/Patreon-Support%20FPP-FF424D?style=flat-square&logo=patreon&logoColor=white)](https://www.patreon.com/c/F_PP?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)
 
-> **Advanced Fake Player Spoofer for Paper/Purpur 1.21+**
+> **Advanced Fake Player Spoofer for Paper/Purpur/Folia 1.21+**
 > Create realistic fake players — full tab-list entries, physical in-world bodies, skins, combat, pathfinding, automation, and multi-server proxy support with **proxy-merged shared database**.
 
 ---
@@ -34,11 +34,11 @@
 - 🔄 **Config Sync** — Push/pull config across backend servers via shared MySQL
 - 📦 **Extension API** — Drop `.jar` files into `plugins/FakePlayerPlugin/extensions/` to load third-party addons
 - 🔤 **Random Name Generator** — `bot-name.mode: random` generates realistic Minecraft-style usernames on the fly
-- ⚙️ **Per-Bot Settings GUI** — Shift+right-click any bot for inventories, pathfinding toggles, PvE settings, and automation overrides
 - 🚫 **Badword Filter** — Leet-speak normalization, auto-rename, remote word list
-- 📊 **PlaceholderAPI** — **70+ placeholders** for scoreboards, tab headers, cross-server counts, and more
+- 📊 **PlaceholderAPI** — **80+ placeholders** for scoreboards, tab headers, cross-server counts, and more
 - 🧱 **WorldEdit & WorldGuard** — `--wesel` selection flag for mine/place; region-aware PvP protection
 - 📶 **Simulated Ping** — Tab-list latency display per bot
+- 🌀 **Folia Support** — Full compatibility with Folia's region-threaded architecture
 
 ### Extension (`fpp-spoof.jar`)
 
@@ -201,9 +201,9 @@ FPP uses a two-tier permission system.
 
 ## 📊 Placeholders
 
-Requires **PlaceholderAPI**. **76+ placeholders** — all prefixed with `%fpp_`.
+Requires **PlaceholderAPI**. **80+ placeholders** — all prefixed with `%fpp_`.
 
-### Server-Wide
+### Server-Wide (16 placeholders)
 
 | Placeholder | Description |
 |-------------|-------------|
@@ -220,38 +220,44 @@ Requires **PlaceholderAPI**. **76+ placeholders** — all prefixed with `%fpp_`.
 | `%fpp_names%` | Comma-separated bot names (includes remote in NETWORK mode) |
 | `%fpp_network_names%` | Remote bot names |
 | `%fpp_version%` | Plugin version |
+| `%fpp_config_version%` | Config version number |
+| `%fpp_uptime%` | Plugin uptime (e.g. `4h 12m`) |
 
-### Server Performance
+### Server Performance (2 placeholders)
 
 | Placeholder | Description |
 |-------------|-------------|
 | `%fpp_server_tps%` | Server TPS |
 | `%fpp_server_uptime%` | Server uptime |
 
-### Extensions
+### Extensions (2 placeholders)
 
 | Placeholder | Description |
 |-------------|-------------|
 | `%fpp_extensions%` | Number of loaded extensions |
 | `%fpp_extensions_names%` | Comma-separated extension names |
 
-### Settings / Toggles
+### Settings / Toggles (28 placeholders)
 
 | Placeholder | Returns |
 |-------------|---------|
 | `%fpp_chat%` | `on` / `off` |
 | `%fpp_skin%` | Skin mode |
+| `%fpp_body%` | Always `on` |
 | `%fpp_pushable%` / `%fpp_damageable%` / `%fpp_tab%` / `%fpp_ping%` | `on` / `off` |
 | `%fpp_max_health%` | Max HP |
 | `%fpp_network%` / `%fpp_network_mode%` | `on` / `off` (NETWORK mode) |
 | `%fpp_server_id%` | Server ID |
 | `%fpp_persistence%` | `on` / `off` |
 | `%fpp_spawn_cooldown%` | Cooldown seconds |
-| `%fpp_chunk_loading%` / `%fpp_head_ai%` / `%fpp_swim_ai%` | `on` / `off` |
+| `%fpp_chunk_loading%` / `%fpp_chunk_loading_radius%` | `on` / `off` or radius value |
+| `%fpp_head_ai%` / `%fpp_swim_ai%` | `on` / `off` |
 | `%fpp_auto_eat%` / `%fpp_auto_place_bed%` / `%fpp_auto_milk%` | `on` / `off` |
 | `%fpp_prevent_bad_omen%` / `%fpp_fall_damage%` / `%fpp_respawn_on_death%` | `on` / `off` |
 | `%fpp_hurt_sound%` / `%fpp_join_message%` / `%fpp_leave_message%` / `%fpp_death_message%` | `on` / `off` |
 | `%fpp_peak_hours%` / `%fpp_swap%` / `%fpp_metrics%` / `%fpp_update_checker%` | `on` / `off` |
+| `%fpp_badword_filter%` / `%fpp_database%` | `on` / `off` |
+| `%fpp_database_mode%` | Database mode |
 
 ### Per-World
 
@@ -261,7 +267,7 @@ Requires **PlaceholderAPI**. **76+ placeholders** — all prefixed with `%fpp_`.
 | `%fpp_real_<world>%` | Real players in world |
 | `%fpp_total_<world>%` | Total in world |
 
-### Player-Relative
+### Player-Relative (13 placeholders)
 
 | Placeholder | Description |
 |-------------|-------------|
@@ -273,9 +279,11 @@ Requires **PlaceholderAPI**. **76+ placeholders** — all prefixed with `%fpp_`.
 | `%fpp_user_frozen%` | Number of player's frozen bots |
 | `%fpp_user_oldest%` / `%fpp_user_newest%` | Name of oldest/newest bot |
 | `%fpp_user_uptime%` / `%fpp_user_total_uptime%` | Combined uptime of player's bots |
+| `%fpp_user_total_damage%` | Total damage taken by player's bots |
+| `%fpp_user_deaths%` | Total deaths of player's bots |
 | `%fpp_user_count_<world>%` | Player's bot count in specific world |
 
-### Per-Bot
+### Per-Bot (22 placeholders)
 
 | Placeholder | Description |
 |-------------|-------------|
@@ -292,6 +300,11 @@ Requires **PlaceholderAPI**. **76+ placeholders** — all prefixed with `%fpp_`.
 | `%fpp_spawn_time_<bot_name>%` | When bot was spawned (ISO format) |
 | `%fpp_task_<bot_name>%` | Current active task (mining, moving, etc.) or `idle` |
 | `%fpp_following_<bot_name>%` | Who the bot is following (if any) |
+| `%fpp_damage_<bot_name>%` | Total damage taken by bot |
+| `%fpp_deaths_<bot_name>%` | Bot's death count |
+| `%fpp_type_<bot_name>%` | Bot's type (AFK, MINER, BUILDER, etc.) |
+| `%fpp_chat_<bot_name>%` | `yes` / `no` (bot chat enabled) |
+| `%fpp_skin_<bot_name>%` | Bot's skin name |
 
 ### Ping
 

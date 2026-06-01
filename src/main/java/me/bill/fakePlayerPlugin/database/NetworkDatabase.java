@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 
 /**
@@ -36,6 +37,16 @@ public final class NetworkDatabase {
     public NetworkDatabase(Connection connection, boolean isMysql) {
         this.connection = connection;
         this.isMysql = isMysql;
+        Config.debugDbConn("NetworkDatabase initialized - connection=" + connection + ", isMysql=" + isMysql);
+        Config.debugDbConn("Connection valid? " + isValidConnection());
+    }
+
+    private boolean isValidConnection() {
+        try {
+            return connection != null && !connection.isClosed();
+        } catch (SQLException e) {
+            return false;
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════════
@@ -43,6 +54,12 @@ public final class NetworkDatabase {
     // ═════════════════════════════════════════════════════════════════════════════
 
     public void upsertNetworkBot(NetworkBotRow row) {
+        if (!isValidConnection()) {
+            FppLogger.error(
+                    "[NetworkDB] upsertNetworkBot: Connection is closed before operation - bot=" + row.botName());
+            return;
+        }
+        Config.debugDbOps("upsertNetworkBot: bot=" + row.botName() + " server=" + row.serverId());
         String sql = isMysql
                 ? "INSERT INTO fpp_network_bots (bot_uuid, bot_name, bot_display, server_id, spawned_by, world_name, pos_x, pos_y, pos_z, ping, frozen, updated_at)"
                         + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
@@ -78,22 +95,33 @@ public final class NetworkDatabase {
                 ps.setLong(23, now);
             }
             ps.executeUpdate();
+            Config.debugDbOps("upsertNetworkBot: SUCCESS - bot=" + row.botName());
         } catch (SQLException e) {
-            FppLogger.error("[NetworkDB] upsertNetworkBot: " + e.getMessage());
+            FppLogger.error("[NetworkDB] upsertNetworkBot: " + e.getMessage() + " (SQLState=" + e.getSQLState()
+                    + ", closed=" + !isValidConnection() + ")");
+            Config.debugDbOps("upsertNetworkBot: Stack trace - " + e.getStackTrace()[0]);
         }
     }
 
     public void removeNetworkBot(String botUuid) {
+        if (!isValidConnection()) {
+            FppLogger.error("[NetworkDB] removeNetworkBot: Connection is closed before operation - uuid=" + botUuid);
+            return;
+        }
+        Config.debugDbOps("removeNetworkBot: uuid=" + botUuid);
         String sql = "DELETE FROM fpp_network_bots WHERE bot_uuid=?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, botUuid);
-            ps.executeUpdate();
+            int rows = ps.executeUpdate();
+            FppLogger.debug("DB-OPS", true, "removeNetworkBot: SUCCESS - rows=" + rows);
         } catch (SQLException e) {
-            FppLogger.error("[NetworkDB] removeNetworkBot: " + e.getMessage());
+            FppLogger.error("[NetworkDB] removeNetworkBot: " + e.getMessage() + " (SQLState=" + e.getSQLState()
+                    + ", closed=" + !isValidConnection() + ")");
         }
     }
 
     public List<NetworkBotRow> getNetworkBots() {
+        Config.debugDbOps("getNetworkBots: Starting query (connection valid? " + isValidConnection() + ")");
         List<NetworkBotRow> list = new ArrayList<>();
         String sql = "SELECT * FROM fpp_network_bots ORDER BY updated_at DESC";
         try (Statement st = connection.createStatement();
@@ -101,8 +129,11 @@ public final class NetworkDatabase {
             while (rs.next()) {
                 list.add(mapNetworkBotRow(rs));
             }
+            Config.debugDbOps("getNetworkBots: SUCCESS - found " + list.size() + " bot(s)");
         } catch (SQLException e) {
-            FppLogger.error("[NetworkDB] getNetworkBots: " + e.getMessage());
+            FppLogger.error("[NetworkDB] getNetworkBots: " + e.getMessage() + " (SQLState=" + e.getSQLState()
+                    + ", closed=" + !isValidConnection() + ")");
+            Config.debugDbOps("getNetworkBots: Connection state - valid=" + isValidConnection());
         }
         return list;
     }
@@ -181,6 +212,12 @@ public final class NetworkDatabase {
     // ═════════════════════════════════════════════════════════════════════════════
 
     public void heartbeat(String serverId, int realPlayers, int botCount) {
+        if (!isValidConnection()) {
+            FppLogger.error("[NetworkDB] heartbeat: Connection is closed before operation - server=" + serverId
+                    + " players=" + realPlayers + " bots=" + botCount);
+            return;
+        }
+        Config.debugDbOps("heartbeat: server=" + serverId + " players=" + realPlayers + " bots=" + botCount);
         String sql = isMysql
                 ? "INSERT INTO fpp_server_heartbeat (server_id, real_players, bot_count, last_seen) VALUES (?, ?, ?, ?)"
                         + " ON DUPLICATE KEY UPDATE real_players=?, bot_count=?, last_seen=?"
@@ -198,8 +235,11 @@ public final class NetworkDatabase {
                 ps.setLong(7, now);
             }
             ps.executeUpdate();
+            Config.debugDbOps("heartbeat: SUCCESS - server=" + serverId);
         } catch (SQLException e) {
-            FppLogger.error("[NetworkDB] heartbeat: " + e.getMessage());
+            FppLogger.error("[NetworkDB] heartbeat: " + e.getMessage() + " (SQLState=" + e.getSQLState() + ", closed="
+                    + !isValidConnection() + ", server=" + serverId + ")");
+            Config.debugDbOps("heartbeat: Connection closed during operation - checking state");
         }
     }
 
@@ -222,24 +262,38 @@ public final class NetworkDatabase {
     }
 
     public int getTotalNetworkPlayers() {
+        Config.debugDbOps("getTotalNetworkPlayers: Starting query (connection valid? " + isValidConnection() + ")");
         String sql = "SELECT SUM(real_players + bot_count) FROM fpp_server_heartbeat";
         try (Statement st = connection.createStatement();
                 ResultSet rs = st.executeQuery(sql)) {
-            if (rs.next()) return rs.getInt(1);
+            if (rs.next()) {
+                int total = rs.getInt(1);
+                Config.debugDbOps("getTotalNetworkPlayers: SUCCESS - total=" + total);
+                return total;
+            }
         } catch (SQLException e) {
-            FppLogger.error("[NetworkDB] getTotalNetworkPlayers: " + e.getMessage());
+            FppLogger.error("[NetworkDB] getTotalNetworkPlayers: " + e.getMessage() + " (SQLState=" + e.getSQLState()
+                    + ", closed=" + !isValidConnection() + ")");
         }
+        Config.debugDbOps("getTotalNetworkPlayers: Returning 0 (no data or error)");
         return 0;
     }
 
     public int getTotalNetworkBots() {
+        Config.debugDbOps("getTotalNetworkBots: Starting query (connection valid? " + isValidConnection() + ")");
         String sql = "SELECT SUM(bot_count) FROM fpp_server_heartbeat";
         try (Statement st = connection.createStatement();
                 ResultSet rs = st.executeQuery(sql)) {
-            if (rs.next()) return rs.getInt(1);
+            if (rs.next()) {
+                int total = rs.getInt(1);
+                Config.debugDbOps("getTotalNetworkBots: SUCCESS - total=" + total);
+                return total;
+            }
         } catch (SQLException e) {
-            FppLogger.error("[NetworkDB] getTotalNetworkBots: " + e.getMessage());
+            FppLogger.error("[NetworkDB] getTotalNetworkBots: " + e.getMessage() + " (SQLState=" + e.getSQLState()
+                    + ", closed=" + !isValidConnection() + ")");
         }
+        Config.debugDbOps("getTotalNetworkBots: Returning 0 (no data or error)");
         return 0;
     }
 

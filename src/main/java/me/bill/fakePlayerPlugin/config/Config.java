@@ -17,6 +17,7 @@ public final class Config {
 
     private static FakePlayerPlugin plugin;
     private static FileConfiguration cfg;
+    private static FileConfiguration debugCfg;
     private static ChatMessageProvider chatMessageProvider = null;
     private static BooleanSupplier tabListEnabledProvider = null;
     private static final Map<String, FileConfiguration> externalConfigs = new ConcurrentHashMap<>();
@@ -90,6 +91,11 @@ public final class Config {
         return external != null ? external : cfg;
     }
 
+    private static boolean debugBool(String path, boolean def) {
+        if (debugCfg == null) return def;
+        return debugCfg.getBoolean(path, def);
+    }
+
     private static boolean bool(String path, boolean def) {
         return configFor(path).getBoolean(path, def);
     }
@@ -130,6 +136,26 @@ public final class Config {
         cfg.options().copyDefaults(true);
 
         plugin.saveConfig();
+
+        loadDebugConfig();
+    }
+
+    private static void loadDebugConfig() {
+        try {
+            java.io.File debugFile = new java.io.File(plugin.getDataFolder(), "debug.yml");
+            if (!debugFile.exists()) {
+                plugin.saveResource("debug.yml", false);
+                Config.debugStartup("debug.yml created from template.");
+            }
+
+            org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(debugFile);
+            debugCfg = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(debugFile);
+            debugCfg.options().copyDefaults(true);
+            Config.debugStartup("debug.yml loaded.");
+        } catch (Exception e) {
+            FppLogger.warn("Failed to load debug.yml: " + e.getMessage());
+            debugCfg = null;
+        }
     }
 
     public static int configVersion() {
@@ -141,63 +167,96 @@ public final class Config {
     }
 
     public static boolean isDebug() {
-        return cfg != null && cfg.getBoolean("debug", false);
+        if (cfg.getBoolean("debug", false)) return true;
+        return debugCfg != null && debugCfg.getBoolean("enabled", false);
     }
 
-    private static boolean debugFlag(String path) {
-        return cfg != null && cfg.getBoolean(path, false);
+    public static boolean debugDbConn() {
+        return isDebug() || debugDatabase() || debugBool("database.connection", false);
+    }
+
+    public static boolean debugDbOps() {
+        return isDebug() || debugDatabase() || debugBool("database.operations", false);
+    }
+
+    public static boolean debugNmsBot() {
+        return isDebug() || debugNms() || debugBool("nms.bot", false);
+    }
+
+    public static boolean debugNmsConn() {
+        return isDebug() || debugNms() || debugBool("nms.connection", false);
+    }
+
+    public static boolean debugLicense() {
+        return isDebug() || debugBool("license", false);
     }
 
     public static boolean debugStartup() {
-        return isDebug() || debugFlag("logging.debug.startup");
+        return isDebug() || debugBool("startup", false);
     }
 
     public static boolean debugNms() {
-        return isDebug() || debugFlag("logging.debug.nms");
+        return isDebug() || debugBool("nms.enabled", false);
     }
 
     public static boolean debugPackets() {
-        return isDebug() || debugFlag("logging.debug.packets");
+        return isDebug() || debugBool("packets", false);
     }
 
     public static boolean debugNetwork() {
-        return isDebug() || debugFlag("logging.debug.network");
+        return isDebug() || debugBool("network", false);
     }
 
     public static boolean debugConfigSync() {
-        return isDebug() || debugFlag("logging.debug.config-sync");
+        return isDebug() || debugBool("config-sync", false);
     }
 
     public static boolean debugSkin() {
-        return isDebug() || debugFlag("logging.debug.skin");
+        return isDebug() || debugBool("nms.skin", false);
     }
 
     public static boolean debugDatabase() {
-        return isDebug() || debugFlag("logging.debug.database");
+        return isDebug() || debugBool("database.enabled", false);
     }
 
     public static boolean debugChat() {
-        return isDebug() || bool("fake-chat.debug", false);
+        return isDebug() || debugBool("chat", false);
     }
 
     public static boolean debugSwap() {
-        return isDebug() || bool("swap.debug", false);
+        return isDebug() || debugBool("swap", false);
     }
 
     public static boolean debugCommands() {
-        return isDebug() || debugFlag("logging.debug.commands");
+        return isDebug() || debugBool("commands", false);
     }
 
     public static boolean debugHeadAi() {
-        return isDebug() || debugFlag("logging.debug.head-ai");
+        return isDebug() || debugBool("head-ai", false);
     }
 
     public static boolean debugRightClick() {
-        return isDebug() || debugFlag("logging.debug.right-click");
+        return isDebug() || debugBool("right-click", false);
     }
 
     public static boolean debugRightClickHead() {
-        return isDebug() || debugFlag("logging.debug.right-click-head");
+        return isDebug() || debugBool("right-click-head", false);
+    }
+
+    public static boolean debugGeneral() {
+        return isDebug() || debugBool("general", false);
+    }
+
+    public static boolean debugNmsPhysics() {
+        return isDebug() || debugNms() || debugBool("nms.physics", false);
+    }
+
+    public static boolean debugDbMigration() {
+        return isDebug() || debugDatabase() || debugBool("database.migration", false);
+    }
+
+    public static boolean debugDbPersistence() {
+        return isDebug() || debugDatabase() || debugBool("database.persistence", false);
     }
 
     public static boolean updateCheckerEnabled() {
@@ -1191,6 +1250,26 @@ public final class Config {
 
     public static void debugDatabase(String message) {
         FppLogger.debug("DATABASE", debugDatabase(), message);
+    }
+
+    public static void debugDbConn(String message) {
+        FppLogger.debug("DB-CONN", debugDbConn(), message);
+    }
+
+    public static void debugDbOps(String message) {
+        FppLogger.debug("DB-OPS", debugDbOps(), message);
+    }
+
+    public static void debugNmsBot(String message) {
+        FppLogger.debug("NMS-BOT", debugNmsBot(), message);
+    }
+
+    public static void debugNmsConn(String message) {
+        FppLogger.debug("NMS-CONN", debugNmsConn(), message);
+    }
+
+    public static void debugLicense(String message) {
+        FppLogger.debug("LICENSE", debugLicense(), message);
     }
 
     public static void debugChat(String message) {

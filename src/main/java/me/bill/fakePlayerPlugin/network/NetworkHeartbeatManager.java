@@ -38,7 +38,16 @@ public final class NetworkHeartbeatManager {
         this.plugin = plugin;
         this.manager = manager;
         DatabaseManager db = plugin.getDatabaseManager();
-        this.netDb = (db != null && db.isMysql()) ? new NetworkDatabase(db.getConnection(), true) : null;
+        if (db != null && db.isMysql()) {
+            var conn = db.getConnection();
+            Config.debugDbConn("NetworkHeartbeatManager: creating NetworkDatabase with connection=" + conn + " (valid="
+                    + db.isConnectionValid() + ")");
+            this.netDb = new NetworkDatabase(conn, true);
+        } else {
+            Config.debugDbConn("NetworkHeartbeatManager: skipping NetworkDatabase (db=" + db + ", mysql="
+                    + (db != null && db.isMysql()) + ")");
+            this.netDb = null;
+        }
     }
 
     public void start() {
@@ -75,11 +84,20 @@ public final class NetworkHeartbeatManager {
 
     private void tick() {
         try {
+            DatabaseManager db = plugin.getDatabaseManager();
+            if (db == null || !db.isConnectionValid()) {
+                FppLogger.error("[NetworkHeartbeat] tick: Database connection is invalid/closed - skipping heartbeat");
+                return;
+            }
+
             int botCount = manager.getCount();
             int realPlayers = Math.max(0, Bukkit.getOnlinePlayers().size() - botCount);
+            Config.debugDbOps("NetworkHeartbeat tick: server=" + Config.serverId() + " players=" + realPlayers
+                    + " bots=" + botCount);
             netDb.heartbeat(Config.serverId(), realPlayers, botCount);
 
             // Publish local bots into network registry
+            int botPublishCount = 0;
             for (var fp : manager.getActivePlayers()) {
                 var loc = fp.getLiveLocation();
                 netDb.upsertNetworkBot(new NetworkDatabase.NetworkBotRow(
@@ -95,42 +113,58 @@ public final class NetworkHeartbeatManager {
                         fp.getEffectivePing(),
                         fp.isFrozen(),
                         System.currentTimeMillis()));
+                botPublishCount++;
             }
+            Config.debugDbOps("NetworkHeartbeat: published " + botPublishCount + " bot(s)");
 
             // Refresh from DB into local RemoteBotCache
             refreshRemoteCache();
 
         } catch (Exception e) {
-            FppLogger.warn("[NetworkHeartbeat] tick error: " + e.getMessage());
+            FppLogger.error("[NetworkHeartbeat] tick error: " + e.getMessage() + " (connection valid? "
+                    + (plugin.getDatabaseManager() != null
+                            && plugin.getDatabaseManager().isConnectionValid()) + ")");
+            Config.debugDbOps("NetworkHeartbeat tick stack: " + e.getStackTrace()[0]);
         }
     }
 
     private void refreshRemoteCache() {
         try {
             var cache = plugin.getRemoteBotCache();
-            if (cache == null) return;
+            if (cache == null) {
+                Config.debugDbOps("refreshRemoteCache: RemoteBotCache is null");
+                return;
+            }
 
             // Load all network bots except those on THIS server (local bots are already in FakePlayerManager)
+            Config.debugDbOps("refreshRemoteCache: fetching network bots");
             var netBots = netDb.getNetworkBots();
             String myId = Config.serverId();
+            int addedCount = 0;
             for (var row : netBots) {
                 if (row.serverId().equals(myId)) continue;
                 try {
                     UUID uuid = UUID.fromString(row.botUuid());
                     cache.add(new RemoteBotEntry(
                             row.serverId(), uuid, row.botName(), row.botDisplay(), row.botName(), "", "", row.ping()));
+                    addedCount++;
                 } catch (IllegalArgumentException ignored) {
+                    Config.debugDbOps("refreshRemoteCache: invalid UUID format - " + row.botUuid());
                 }
             }
+            Config.debugDbOps("refreshRemoteCache: added " + addedCount + "/" + netBots.size() + " remote bot(s)");
 
             // Update stats
             int totalPlayers = netDb.getTotalNetworkPlayers();
             int totalBots = netDb.getTotalNetworkBots();
+            Config.debugDbOps("refreshRemoteCache: network stats - players=" + totalPlayers + ", bots=" + totalBots);
             cache.setNetworkTotalPlayers(totalPlayers);
             cache.setNetworkTotalBots(totalBots);
 
         } catch (Exception e) {
-            FppLogger.warn("[NetworkHeartbeat] refreshRemoteCache: " + e.getMessage());
+            FppLogger.error("[NetworkHeartbeat] refreshRemoteCache: " + e.getMessage() + " (connection valid? "
+                    + (plugin.getDatabaseManager() != null
+                            && plugin.getDatabaseManager().isConnectionValid()) + ")");
         }
     }
 

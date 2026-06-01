@@ -88,6 +88,7 @@ public final class NmsPlayerSpawner {
     private static Field connectionFieldInPlayer;
 
     private static Method attackMethod;
+    private static Field attackStrengthTickerField;
 
     private static Method playerListRemoveMethod;
 
@@ -274,6 +275,14 @@ public final class NmsPlayerSpawner {
                 }
             } catch (Exception e) {
                 FppLogger.warn("NmsPlayerSpawner: Failed to cache attack method: " + e.getMessage());
+            }
+
+            try {
+                attackStrengthTickerField = findFieldByName(serverPlayerClass, "attackStrengthTicker");
+                FppLogger.debug("NmsPlayerSpawner: attackStrengthTicker field "
+                        + (attackStrengthTickerField != null ? "cached" : "not found"));
+            } catch (Exception e) {
+                FppLogger.warn("NmsPlayerSpawner: Failed to cache attackStrengthTicker field: " + e.getMessage());
             }
 
             try {
@@ -586,7 +595,9 @@ public final class NmsPlayerSpawner {
             Object nmsTarget = target.getClass().getMethod("getHandle").invoke(target);
 
             if (attackMethod != null && nmsTarget != null) {
-
+                if (attackStrengthTickerField != null) {
+                    attackStrengthTickerField.set(nmsBot, 999);
+                }
                 attackMethod.invoke(nmsBot, nmsTarget);
             } else {
 
@@ -656,14 +667,26 @@ public final class NmsPlayerSpawner {
     }
 
     public static void removeFakePlayer(Player player) {
-        removeFakePlayer(player, true);
+        removeFakePlayer(player, true, "unspecified");
+    }
+
+    public static void removeFakePlayer(Player player, String reason) {
+        removeFakePlayer(player, true, reason);
     }
 
     public static void removeFakePlayerFast(Player player) {
-        removeFakePlayer(player, false);
+        removeFakePlayer(player, false, "unspecified");
+    }
+
+    public static void removeFakePlayerFast(Player player, String reason) {
+        removeFakePlayer(player, false, reason);
     }
 
     private static void removeFakePlayer(Player player, boolean saveData) {
+        removeFakePlayer(player, saveData, "unspecified");
+    }
+
+    private static void removeFakePlayer(Player player, boolean saveData, String reason) {
         if (player == null) return;
         try {
             firstTickSet.remove(player.getUniqueId());
@@ -671,12 +694,12 @@ public final class NmsPlayerSpawner {
                 final String name = player.getName();
                 final UUID uuid = player.getUniqueId();
 
-                FppLogger.debug("NmsPlayerSpawner: removing '" + name + "' uuid=" + uuid);
+                FppLogger.debug("NMS-BOT", true, "Removing bot '" + name + "' (uuid=" + uuid + ") - reason: " + reason);
 
                 if (saveData) {
                     try {
                         player.saveData();
-                        FppLogger.debug("NmsPlayerSpawner: saved playerdata for '" + name + "' uuid=" + uuid);
+                        FppLogger.debug("NMS-BOT", true, "Saved playerdata for '" + name + "' (uuid=" + uuid + ")");
                     } catch (Exception e) {
                         FppLogger.warn("NmsPlayerSpawner: saveData failed for '"
                                 + name
@@ -685,6 +708,11 @@ public final class NmsPlayerSpawner {
                                 + ": "
                                 + e.getMessage());
                     }
+                } else {
+                    FppLogger.debug(
+                            "NMS-BOT",
+                            true,
+                            "Skipping playerdata save for '" + name + "' (uuid=" + uuid + ") - fast remove");
                 }
 
                 boolean removedViaPlayerList = false;
@@ -700,24 +728,31 @@ public final class NmsPlayerSpawner {
                         playerListRemoveMethod.invoke(playerList, nmsPlayer);
                         removedViaPlayerList = true;
                         FppLogger.debug(
-                                "NmsPlayerSpawner: removed '" + name + "' via PlayerList.remove() uuid=" + uuid);
+                                "NMS-BOT", true, "Removed '" + name + "' via PlayerList.remove() - reason: " + reason);
                     } catch (Exception e) {
-                        FppLogger.debug("NmsPlayerSpawner: PlayerList.remove failed for '"
-                                + name
-                                + "' uuid="
-                                + uuid
-                                + ": "
-                                + e.getMessage()
-                                + " - falling back to kick");
+                        FppLogger.debug(
+                                "NMS-BOT",
+                                true,
+                                "PlayerList.remove failed for '"
+                                        + name
+                                        + "': "
+                                        + e.getMessage()
+                                        + " - falling back to kick");
                     }
+                } else {
+                    FppLogger.debug(
+                            "NMS-BOT", true, "NMS methods not initialized for '" + name + "' - using kick fallback");
                 }
 
                 if (!removedViaPlayerList && player.isOnline()) {
+                    FppLogger.debug("NMS-BOT", true, "Kicking '" + name + "' (uuid=" + uuid + ") - reason: " + reason);
                     player.kick(Component.empty());
                 }
             }
         } catch (Exception e) {
-            FppLogger.debug("NmsPlayerSpawner.removeFakePlayer failed for " + player.getName() + ": " + e.getMessage());
+            FppLogger.error("NmsPlayerSpawner.removeFakePlayer failed for " + player.getName() + " (reason: " + reason
+                    + "): " + e.getMessage());
+            FppLogger.debug(Arrays.toString(e.getStackTrace()));
         }
     }
 

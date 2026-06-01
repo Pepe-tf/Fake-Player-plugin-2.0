@@ -1,6 +1,6 @@
 # Proxy Support
 
-FPP supports **Velocity** and **BungeeCord** proxy networks via companion plugins.
+FPP supports **Velocity** and **BungeeCord** proxy networks via companion plugins. Works with both Paper/Purpur and Folia backends.
 
 ## Overview
 

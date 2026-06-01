@@ -570,13 +570,14 @@ public class DatabaseManager {
                     + (connTimeout * 2);
             connection = DriverManager.getConnection(url, Config.mysqlUsername(), Config.mysqlPassword());
             Config.debug("MySQL pool-size advisory: " + Config.mysqlPoolSize());
-            FppLogger.debug("Database connected via MySQL ("
+            FppLogger.info("Database connected via MySQL ("
                     + Config.mysqlHost()
                     + ":"
                     + Config.mysqlPort()
                     + "/"
                     + Config.mysqlDatabase()
-                    + ").");
+                    + "). Connection object: " + connection);
+            Config.debugDbConn("MySQL connection established - valid=" + isConnectionValid());
             return true;
         } catch (Exception e) {
             FppLogger.warn("MySQL init error: " + e.getMessage());
@@ -591,6 +592,7 @@ public class DatabaseManager {
             dbDir.mkdirs();
             File dbFile = new File(dbDir, "fpp.db");
             connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+            Config.debugDbConn("SQLite connection created - object=" + connection + ", path=" + dbFile.getPath());
             try (Statement st = connection.createStatement()) {
                 st.execute("PRAGMA journal_mode=WAL");
                 st.execute("PRAGMA synchronous=NORMAL");
@@ -600,7 +602,8 @@ public class DatabaseManager {
                 st.execute("PRAGMA temp_store=MEMORY");
             }
             isMysql = false;
-            FppLogger.debug("Database connected via SQLite (" + dbFile.getPath() + ").");
+            FppLogger.info("Database connected via SQLite (" + dbFile.getPath() + ").");
+            Config.debugDbConn("SQLite connection established - valid=" + isConnectionValid());
             return true;
         } catch (Exception e) {
             FppLogger.error("SQLite init error: " + e.getMessage());
@@ -907,10 +910,22 @@ public class DatabaseManager {
     }
 
     public void close() {
+        boolean isClosed = false;
+        try {
+            isClosed = (connection != null && connection.isClosed());
+        } catch (SQLException e) {
+            isClosed = true;
+        }
+        Config.debugDbConn("Database close() called - connection=" + connection + ", closed=" + isClosed);
         flushPendingLocations();
         try {
-            if (connection != null && !connection.isClosed()) connection.close();
-            FppLogger.info("Database connection closed.");
+            if (connection != null && !isClosed) {
+                Config.debugDbConn("Closing active database connection");
+                connection.close();
+                FppLogger.info("Database connection closed.");
+            } else {
+                Config.debugDbConn("Database connection already closed or null");
+            }
         } catch (SQLException e) {
             FppLogger.error("Error closing DB: " + e.getMessage());
         }
@@ -922,13 +937,33 @@ public class DatabaseManager {
 
     private boolean isAlive() {
         try {
-            if (connection == null || connection.isClosed()) return false;
+            if (connection == null) {
+                Config.debugDbConn("isAlive: connection is null");
+                return false;
+            }
+            if (connection.isClosed()) {
+                Config.debugDbConn("isAlive: connection is closed");
+                return false;
+            }
             if (isMysql) {
                 try (Statement st = connection.createStatement()) {
                     st.execute("SELECT 1");
+                } catch (SQLException e) {
+                    Config.debugDbConn("isAlive: MySQL ping failed - " + e.getMessage());
+                    return false;
                 }
             }
+            Config.debugDbConn("isAlive: connection is valid");
             return true;
+        } catch (SQLException e) {
+            Config.debugDbConn("isAlive: exception - " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean isConnectionValid() {
+        try {
+            return connection != null && !connection.isClosed();
         } catch (SQLException e) {
             return false;
         }

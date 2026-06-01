@@ -106,7 +106,7 @@ public final class CheckCommand implements FppCommand {
             issues++;
         }
 
-        String version = plugin.getDescription().getVersion();
+        String version = plugin.getPluginMeta().getVersion();
         info(sender, "  Version: " + version);
 
         /* ================================================================ */

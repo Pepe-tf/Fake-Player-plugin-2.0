@@ -253,6 +253,7 @@ public class FakePlayerEntityListener implements Listener {
             if (chunkLoader != null) chunkLoader.releaseForBot(fp);
             String deathDespawnName = BotBroadcast.resolveDisplayName(fp);
             final UUID deathDespawnUuid = fp.getUuid();
+            Config.debugNmsBot("Bot '" + name + "' died - scheduling despawn (respawnOnDeath=false)");
             if (deadPlayer != null) {
                 manager.markDespawning(deadPlayer.getUniqueId(), deathDespawnName);
             }
@@ -261,24 +262,34 @@ public class FakePlayerEntityListener implements Listener {
                     () -> {
                         manager.broadcastSyntheticQuit(
                                 fp, deathDespawnName, Config.leaveMessage(), PlayerQuitEvent.QuitReason.DISCONNECTED);
+                        Config.debugNmsBot("Broadcasted death quit for '" + name + "'");
 
                         if (Config.leaveMessage()) {
                             var vc = plugin.getVelocityChannel();
-                            if (vc != null) vc.broadcastLeaveToNetwork(deathDespawnName);
+                            if (vc != null) {
+                                vc.broadcastLeaveToNetwork(deathDespawnName);
+                                Config.debugNmsBot("Broadcasted death to network for '" + name + "'");
+                            }
                         }
 
                         for (Player p : Bukkit.getOnlinePlayers()) PacketHelper.sendTabListRemove(p, fp);
+                        Config.debugNmsBot("Sent tab-list remove for '" + name + "'");
 
                         var vc2 = plugin.getVelocityChannel();
-                        if (vc2 != null) vc2.broadcastBotDespawn(fp.getUuid());
+                        if (vc2 != null) {
+                            vc2.broadcastBotDespawn(fp.getUuid());
+                            Config.debugNmsBot("Broadcasted bot despawn for '" + name + "'");
+                        }
                         Location loc = deadPlayer.getLocation();
                         FppScheduler.runAtLocation(plugin, loc, () -> {
                             if (deadPlayer != null) {
                                 try {
                                     if (manager.isExplicitUuidBot(fp)) {
-                                        NmsPlayerSpawner.removeFakePlayerFast(deadPlayer);
+                                        NmsPlayerSpawner.removeFakePlayerFast(deadPlayer, "death");
+                                        Config.debugNmsBot("Removed dead bot '" + name + "' (fast, explicit uuid)");
                                     } else {
-                                        NmsPlayerSpawner.removeFakePlayer(deadPlayer);
+                                        NmsPlayerSpawner.removeFakePlayer(deadPlayer, "death");
+                                        Config.debugNmsBot("Removed dead bot '" + name + "' (normal)");
                                     }
                                 } finally {
                                     fp.setPlayer(null);
@@ -287,6 +298,7 @@ public class FakePlayerEntityListener implements Listener {
                                 }
                             }
                             manager.removeByName(name);
+                            Config.debugNmsBot("Removed bot '" + name + "' from manager after death");
                         });
                     },
                     20L);

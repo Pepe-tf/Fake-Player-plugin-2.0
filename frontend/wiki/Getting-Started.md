@@ -1,10 +1,10 @@
 # Getting Started
 
-FPP spawns server-side bot entities that behave like players — useful for **AFK farms, automated tasks, testing, and NPC simulations**. It is **not** a fake-online-count or player-spoofing tool.
+FPP spawns server-side bot entities that behave like players — useful for **AFK farms, automated tasks, testing, and NPC simulations**. It is **not** a fake-online-count or player-spoofing tool. Supports both Paper/Purpur and Folia.
 
 ## Requirements
 
-- **Server:** Paper/Purpur 1.21+ (up to `1.21.11`)
+- **Server:** Paper/Purpur 1.21+ (up to `1.21.11`) or Folia 1.21+
 - **Java:** JDK 21+
 - **RAM:** 2GB+ recommended for optimal performance
 - **Optional:** PlaceholderAPI, LuckPerms, WorldGuard, WorldEdit

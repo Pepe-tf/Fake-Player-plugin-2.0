@@ -170,29 +170,49 @@ public final class FakePlayerBody {
     }
 
     public static void removeAll(FakePlayer fp) {
-        removeAll(fp, false);
+        removeAll(fp, false, "unspecified");
+    }
+
+    public static void removeAll(FakePlayer fp, String reason) {
+        removeAll(fp, false, reason);
     }
 
     public static void removeAllFast(FakePlayer fp) {
-        removeAll(fp, true);
+        removeAll(fp, true, "unspecified");
+    }
+
+    public static void removeAllFast(FakePlayer fp, String reason) {
+        removeAll(fp, true, reason);
     }
 
     public static void removeAllWithoutSaving(FakePlayer fp) {
-        removeAll(fp, true);
+        removeAll(fp, true, "unspecified");
     }
 
-    private static void removeAll(FakePlayer fp, boolean fast) {
+    public static void removeAllWithoutSaving(FakePlayer fp, String reason) {
+        removeAll(fp, true, reason);
+    }
+
+    private static void removeAll(FakePlayer fp, boolean fast, String reason) {
         if (fp == null) return;
         try {
             Player player = fp.getPlayer();
             if (player != null && player.isOnline()) {
-                if (fast) NmsPlayerSpawner.removeFakePlayerFast(player);
-                else NmsPlayerSpawner.removeFakePlayer(player);
+                if (fast) {
+                    Config.debugNmsBot("FakePlayerBody.removeAllFast: '" + fp.getName() + "' - reason: " + reason);
+                    NmsPlayerSpawner.removeFakePlayerFast(player, reason);
+                } else {
+                    Config.debugNmsBot("FakePlayerBody.removeAll: '" + fp.getName() + "' - reason: " + reason);
+                    NmsPlayerSpawner.removeFakePlayer(player, reason);
+                }
+            } else {
+                Config.debugNmsBot(
+                        "FakePlayerBody.removeAll skipped: player is null or offline for '" + fp.getName() + "'");
             }
         } catch (Exception e) {
             FppLogger.error("FakePlayerBody.removeAll failed for "
                     + (fp.getName() != null ? fp.getName() : "?")
-                    + ": "
+                    + " (reason: " + reason + "): "
                     + e.getMessage());
         }
     }

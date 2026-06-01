@@ -1,0 +1,137 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#  FakePlayerPlugin - Debug Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+# 
+# This file controls all debug logging output for the plugin.
+# Each section can be enabled independently, or use the master switch above.
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MASTER DEBUG SWITCH
+# ═══════════════════════════════════════════════════════════════════════════════
+# Enable this to turn on ALL debug categories at once.
+# Individual settings below will be overridden if this is true.
+# ═══════════════════════════════════════════════════════════════════════════════
+enabled: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GENERAL DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Basic debug information for general plugin operations.
+# ═══════════════════════════════════════════════════════════════════════════════
+general: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STARTUP DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Detailed logging during plugin initialization and startup.
+# Includes: reflection caching, NMS method resolution, service initialization
+# ═══════════════════════════════════════════════════════════════════════════════
+startup: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NMS (Net Minecraft Server) DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Low-level Minecraft server interaction debugging.
+# ═══════════════════════════════════════════════════════════════════════════════
+nms:
+  # Master switch for all NMS debugging
+  enabled: false
+  
+  # Bot lifecycle events (spawn, despawn, death, removal)
+  bot: false
+  
+  # NMS connection/packet listener events
+  connection: false
+  
+  # Physics and movement tick operations
+  physics: false
+  
+  # Skin application and resolution
+  skin: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DATABASE DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Database operations for SQLite and MySQL.
+# ═══════════════════════════════════════════════════════════════════════════════
+database:
+  # Master switch for all database debugging
+  enabled: false
+  
+  # Connection lifecycle (connect, disconnect, validation, health checks)
+  connection: false
+  
+  # Query operations (INSERT, UPDATE, DELETE, SELECT)
+  operations: false
+  
+  # Migration and schema operations
+  migration: false
+  
+  # Persistence save/load operations
+  persistence: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NETWORK DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Multi-server network operations (Velocity/BungeeCord).
+# ═══════════════════════════════════════════════════════════════════════════════
+network: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PACKET DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Packet injection and manipulation debugging.
+# ═══════════════════════════════════════════════════════════════════════════════
+packets: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFIG SYNC DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Configuration synchronization across network servers.
+# ═══════════════════════════════════════════════════════════════════════════════
+config-sync: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CHAT DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Bot chat system debugging.
+# ═══════════════════════════════════════════════════════════════════════════════
+chat: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SWAP DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Bot swap AI and behavior debugging.
+# ═══════════════════════════════════════════════════════════════════════════════
+swap: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMMAND DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Command execution and argument parsing debugging.
+# ═══════════════════════════════════════════════════════════════════════════════
+commands: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HEAD AI DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Bot head rotation and AI targeting debugging.
+# ═══════════════════════════════════════════════════════════════════════════════
+head-ai: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INTERACTION DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Player-bot interaction debugging (right-click, left-click).
+# ═══════════════════════════════════════════════════════════════════════════════
+right-click: false
+right-click-head: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LICENSE DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# License verification and authentication debugging.
+# ═══════════════════════════════════════════════════════════════════════════════
+license: false
