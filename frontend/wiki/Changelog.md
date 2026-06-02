@@ -1,6 +1,13 @@
 # Changelog
 
-## v1.6.6.12.2 (Current)
+## v1.6.6.12.3 (Current)
+
+### 🔧 Folia Config Patch
+- **Folia config issue patched** — formatting normalization across `build.gradle.kts`, `Config.java`, and `plugin.yml` to resolve Folia-related configuration loading problems
+
+---
+
+## v1.6.6.12.2
 
 ### ⚡ Performance & Cleanup
 - **Silent License Verification** — No more startup spam (Team ID, challenge, JSON response removed)

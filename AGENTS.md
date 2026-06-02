@@ -3,7 +3,7 @@
 ## Project Overview
 Minecraft Paper/Purpur 1.21+ plugin for spawning fake players with tab-list, physical bodies, pathfinding, automation, and multi-server proxy support.
 
-**Current version:** 1.6.6.12.2 | **Config version:** 73 | **Java:** Toolchain 25, targets 21
+**Current version:** 1.6.6.12.3 | **Config version:** 73 | **Java:** Toolchain 25, targets 21
 
 ---
 
