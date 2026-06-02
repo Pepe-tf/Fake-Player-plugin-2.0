@@ -167,7 +167,7 @@ public final class Config {
     }
 
     public static boolean isDebug() {
-        if (cfg.getBoolean("debug", false)) return true;
+        if (cfg != null && cfg.getBoolean("debug", false)) return true;
         return debugCfg != null && debugCfg.getBoolean("enabled", false);
     }
 
