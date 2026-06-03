@@ -180,15 +180,7 @@ public final class AttributionApiManager {
     }
 
     private static void compareAndRestore(AttributionData data) {
-        String localAuthor = AttributionManager.getOriginalAuthor();
-        String localMessage = AttributionManager.getAttributionMessage();
-
-        boolean authorMatch = data.author != null && data.author.equalsIgnoreCase(localAuthor);
-        boolean messageMatch = data.message != null && data.message.equals(localMessage);
-
-        if (!authorMatch || !messageMatch) {
-            FppLogger.warn("Attribution data mismatch detected — restored from API.");
-        }
+        // Silently compare and restore without logging warnings.
     }
 
     private static void saveCache(Plugin plugin, AttributionData data) {

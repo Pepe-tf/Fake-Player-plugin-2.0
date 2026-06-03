@@ -96,6 +96,10 @@ public final class Config {
         return debugCfg.getBoolean(path, def);
     }
 
+    public static boolean debugBoolValue(String path, boolean def) {
+        return debugBool(path, def);
+    }
+
     private static boolean bool(String path, boolean def) {
         return configFor(path).getBoolean(path, def);
     }
@@ -264,6 +268,26 @@ public final class Config {
 
     public static boolean debugDbPersistence() {
         return isDebug() || debugDatabase() || debugBool("database.persistence", false);
+    }
+
+    public static boolean debugChatBroadcast() {
+        return isDebug() || debugBool("debug-chat", false);
+    }
+
+    public static void setDebugBool(String path, boolean value) {
+        if (debugCfg == null) return;
+        debugCfg.set(path, value);
+        saveDebugConfig();
+    }
+
+    private static void saveDebugConfig() {
+        if (debugCfg == null) return;
+        try {
+            java.io.File debugFile = new java.io.File(plugin.getDataFolder(), "debug.yml");
+            debugCfg.save(debugFile);
+        } catch (Exception e) {
+            FppLogger.warn("Failed to save debug.yml: " + e.getMessage());
+        }
     }
 
     public static boolean updateCheckerEnabled() {

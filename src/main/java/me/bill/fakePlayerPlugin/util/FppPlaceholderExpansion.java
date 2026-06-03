@@ -118,8 +118,7 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
                     .collect(Collectors.joining(", "));
             case "version" -> plugin.getPluginMeta().getVersion();
             case "config_version" -> String.valueOf(Config.configVersion());
-            case "uptime" -> formatUptime(
-                    (System.currentTimeMillis() - plugin.getEnabledAt()) / 1000);
+            case "uptime" -> formatUptime((System.currentTimeMillis() - plugin.getEnabledAt()) / 1000);
 
             case "server_tps" -> getTps();
             case "server_uptime" -> formatUptime(

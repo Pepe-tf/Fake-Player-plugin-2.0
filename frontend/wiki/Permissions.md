@@ -87,7 +87,7 @@ FPP uses a two-tier permission system with granular sub-nodes.
 - `fpp.bypass.cooldown` — skip spawn cooldown
 
 ### Notify
-- `fpp.notify` — receive update notifications on join
+- `fpp.notify` — receive update notifications on join **and debug chat broadcasts** (when `debug-chat` is enabled)
 
 ## Quick Setup Examples
 

@@ -79,8 +79,12 @@ public class BotSpawnProtectionListener implements Listener {
 
         PlayerTeleportEvent.TeleportCause cause = event.getCause();
 
-        // Always allow explicit /tp commands.
-        if (cause == PlayerTeleportEvent.TeleportCause.COMMAND) {
+        // Block OTHER and NETHER_PORTAL / END_PORTAL / END_GATEWAY causes during the grace
+        // window (5 ticks for vanilla worlds, 20 ticks for custom/non-vanilla worlds).
+        // PLUGIN teleports (e.g. /fpp tph) and COMMAND teleports are intentionally allowed
+        // so that bots can leave spawn-protection or cross-world; WorldGuard session refresh
+        // runs afterwards to re-evaluate region flags at the new location.
+        if (cause == PlayerTeleportEvent.TeleportCause.COMMAND || cause == PlayerTeleportEvent.TeleportCause.PLUGIN) {
             return;
         }
 

@@ -213,6 +213,9 @@ Debug logging is now controlled by `plugins/FakePlayerPlugin/debug.yml` for bett
 **Master switch:**
 - `enabled: false` — Enable all debug categories at once
 
+**Debug chat broadcast:**
+- `debug-chat: false` — When `true`, all debug output is also sent to online **OP / notify** players as in-game chat messages
+
 **NMS debug:**
 - `nms.enabled: false` — General NMS operations
 - `nms.bot: false` — Bot lifecycle (spawn, despawn, inventory)
@@ -240,7 +243,7 @@ Debug logging is now controlled by `plugins/FakePlayerPlugin/debug.yml` for bett
 - `swap: false` — Swap system (requires fpp-spoof)
 - `packets: false` — Packet injection/manipulation
 
-> Run `/fpp reload` after editing `debug.yml` to apply changes.
+> You can toggle any of these at runtime via **`/fpp settings`** → the **🐛 ᴅᴇʙᴜɢ** category. Changes are saved to `debug.yml` immediately. Run `/fpp reload` after manual edits to `debug.yml`.
 ---
 
 ## 10. Attack Mob Targeting

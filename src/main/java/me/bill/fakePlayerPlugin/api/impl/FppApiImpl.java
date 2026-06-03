@@ -188,12 +188,12 @@ public final class FppApiImpl implements FppApi {
 
     @Override
     public boolean despawnBot(@NotNull String name) {
-        return manager.delete(name);
+        return manager.delete(name, "api_despawn");
     }
 
     @Override
     public boolean despawnBot(@NotNull FppBot bot) {
-        return manager.delete(bot.getName());
+        return manager.delete(bot.getName(), "api_despawn");
     }
 
     @Override

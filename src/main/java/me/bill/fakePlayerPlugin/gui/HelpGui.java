@@ -333,11 +333,11 @@ public final class HelpGui implements Listener {
 
         String desc = cmd.description();
         if (desc != null && !desc.isBlank()) {
-        for (String line : wrapText(desc, 38)) {
-            lore.add(Component.empty()
-                    .decoration(TextDecoration.ITALIC, false)
-                    .append(Component.text(line).color(GRAY)));
-        }
+            for (String line : wrapText(desc, 38)) {
+                lore.add(Component.empty()
+                        .decoration(TextDecoration.ITALIC, false)
+                        .append(Component.text(line).color(GRAY)));
+            }
         }
 
         String usage = cmd.usage();

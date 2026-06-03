@@ -1,6 +1,7 @@
 package me.bill.fakePlayerPlugin.command;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -13,8 +14,16 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Ghast;
+import org.bukkit.entity.Hoglin;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Monster;
+import org.bukkit.entity.Phantom;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Shulker;
+import org.bukkit.entity.Slime;
 import org.jetbrains.annotations.Nullable;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
@@ -163,37 +172,42 @@ public final class LeftClickCommand implements FppCommand {
         }
 
         ClickMode mode = ClickMode.ONCE;
-        if (args.length >= 2) {
-            String action = args[1].toLowerCase(Locale.ROOT);
-            switch (action) {
+        boolean stop = false;
+
+        for (int i = 1; i < args.length; i++) {
+            String a = args[i].toLowerCase(Locale.ROOT);
+            switch (a) {
                 case "--once" -> mode = ClickMode.ONCE;
                 case "--repeat" -> mode = ClickMode.REPEAT;
                 case "--hold" -> mode = ClickMode.HOLD;
-                case "--stop" -> {
-                    if (!Perm.has(sender, Perm.LEFT_CLICK_STOP)) {
-                        sender.sendMessage(Lang.get("no-permission"));
-                        return true;
-                    }
-                    cleanupBot(fp.getUuid());
-                    sender.sendMessage(Lang.get("left-click-stopped", "name", fp.getDisplayName()));
-                    return true;
-                }
+                case "--stop" -> stop = true;
                 default -> {
                     sender.sendMessage(Lang.get("left-click-usage"));
                     return true;
                 }
             }
-            String modePerm =
-                    switch (mode) {
-                        case ONCE -> Perm.LEFT_CLICK_ONCE;
-                        case REPEAT -> Perm.LEFT_CLICK_REPEAT;
-                        case HOLD -> Perm.LEFT_CLICK_HOLD;
-                        default -> Perm.LEFT_CLICK;
-                    };
-            if (!Perm.has(sender, modePerm)) {
+        }
+
+        if (stop) {
+            if (!Perm.has(sender, Perm.LEFT_CLICK_STOP)) {
                 sender.sendMessage(Lang.get("no-permission"));
                 return true;
             }
+            cleanupBot(fp.getUuid());
+            sender.sendMessage(Lang.get("left-click-stopped", "name", fp.getDisplayName()));
+            return true;
+        }
+
+        String modePerm =
+                switch (mode) {
+                    case ONCE -> Perm.LEFT_CLICK_ONCE;
+                    case REPEAT -> Perm.LEFT_CLICK_REPEAT;
+                    case HOLD -> Perm.LEFT_CLICK_HOLD;
+                    default -> Perm.LEFT_CLICK;
+                };
+        if (!Perm.has(sender, modePerm)) {
+            sender.sendMessage(Lang.get("no-permission"));
+            return true;
         }
 
         cancelAll(fp.getUuid());
@@ -204,16 +218,22 @@ public final class LeftClickCommand implements FppCommand {
         BlockFace targetFace = null;
 
         if (sender instanceof Player player) {
-            Block playerTarget = player.getTargetBlockExact((int) Math.ceil(CLICK_REACH));
-            if (playerTarget != null && !playerTarget.getType().isAir()) {
-                blockTarget = new BlockPos(playerTarget.getX(), playerTarget.getY(), playerTarget.getZ());
-                target = playerTarget;
-                org.bukkit.util.RayTraceResult ray = player.rayTraceBlocks(CLICK_REACH);
-                if (ray != null) targetFace = ray.getHitBlockFace();
+            LivingEntity hostileTarget = rayTraceHostileEntity(player);
+            if (hostileTarget != null) {
+                entityTarget = hostileTarget;
+                target = hostileTarget;
             } else {
-                entityTarget = rayTraceEntity(player);
-                if (entityTarget != null) {
-                    target = entityTarget;
+                Block playerTarget = player.getTargetBlockExact((int) Math.ceil(CLICK_REACH));
+                if (playerTarget != null && !playerTarget.getType().isAir()) {
+                    blockTarget = new BlockPos(playerTarget.getX(), playerTarget.getY(), playerTarget.getZ());
+                    target = playerTarget;
+                    org.bukkit.util.RayTraceResult ray = player.rayTraceBlocks(CLICK_REACH);
+                    if (ray != null) targetFace = ray.getHitBlockFace();
+                } else {
+                    entityTarget = rayTraceEntity(player);
+                    if (entityTarget != null) {
+                        target = entityTarget;
+                    }
                 }
             }
         }
@@ -397,15 +417,39 @@ public final class LeftClickCommand implements FppCommand {
     }
 
     private boolean tryBreakBlock(ServerPlayer nms, ClickState state) {
+        Player bot = nms.getBukkitEntity();
+
         // Clear stale entity target (out of range, dead, or invalid)
         if (state.entityTarget != null
                 && (!state.entityTarget.isValid()
                         || state.entityTarget.isDead()
-                        || state.entityTarget
-                                        .getLocation()
-                                        .distance(nms.getBukkitEntity().getLocation())
-                                > CLICK_REACH)) {
+                        || state.entityTarget.getLocation().distance(bot.getLocation()) > CLICK_REACH)) {
             state.entityTarget = null;
+        }
+
+        // --- Auto-detect hostile mobs in forward cone ---
+        // If no entity target yet (or it went stale), try finding a new one
+        if (state.entityTarget == null) {
+            LivingEntity bestMob = findBestMobTarget(bot, state);
+            if (bestMob != null) {
+                state.entityTarget = bestMob;
+                Location aimLoc = computeAimingVector(bot, bestMob);
+                if (aimLoc != null) {
+                    bot.setRotation(aimLoc.getYaw(), aimLoc.getPitch());
+                    NmsPlayerSpawner.setHeadYaw(bot, aimLoc.getYaw());
+                }
+                return tryAttackEntity(nms, state, bot);
+            }
+        }
+
+        if (state.entityTarget != null) {
+            // Keep aiming at the current entity target
+            Location aimLoc = computeAimingVector(bot, state.entityTarget);
+            if (aimLoc != null) {
+                bot.setRotation(aimLoc.getYaw(), aimLoc.getPitch());
+                NmsPlayerSpawner.setHeadYaw(bot, aimLoc.getYaw());
+            }
+            return tryAttackEntity(nms, state, bot);
         }
 
         BlockPos pos = state.blockTarget;
@@ -415,14 +459,11 @@ public final class LeftClickCommand implements FppCommand {
             if (currentTarget != null) {
                 // Check if an entity is blocking the way to the target block
                 Entity blockingEntity = findEntityInRange(nms);
-                if (blockingEntity != null && blockingEntity != nms.getBukkitEntity()) {
+                if (blockingEntity != null && blockingEntity != bot) {
                     state.entityTarget = blockingEntity;
+                    return tryAttackEntity(nms, state, bot);
                 } else {
-                    state.entityTarget = null;
-                    if (pos == null || !pos.equals(currentTarget)) {
-                        state.progress = 0;
-                        state.blockTarget = currentTarget;
-                    }
+                    state.blockTarget = currentTarget;
                     pos = currentTarget;
                 }
             } else if (pos != null) {
@@ -430,20 +471,9 @@ public final class LeftClickCommand implements FppCommand {
                 if (blockState.isAir()) {
                     state.progress = 0;
                     state.blockTarget = null;
+                    pos = null;
                 }
             }
-
-            if (pos == null && state.entityTarget == null) {
-                // Only look for entities when NOT already breaking a block
-                Entity nearbyEntity = findEntityInRange(nms);
-                if (nearbyEntity != null && nearbyEntity != nms.getBukkitEntity()) {
-                    state.entityTarget = nearbyEntity;
-                }
-            }
-        }
-
-        if (state.entityTarget != null) {
-            return tryAttackEntity(nms, state, nms.getBukkitEntity());
         }
 
         if (pos == null) return false;
@@ -773,6 +803,40 @@ public final class LeftClickCommand implements FppCommand {
         return null;
     }
 
+    /**
+     * Ray-trace from the player's eyes and return the first hostile living entity
+     * the ray intersects. More precise than rayTraceEntity().
+     */
+    @Nullable
+    private LivingEntity rayTraceHostileEntity(Player player) {
+        try {
+            Location eye = player.getEyeLocation();
+            org.bukkit.util.Vector dir = eye.getDirection();
+            org.bukkit.util.RayTraceResult result = player.getWorld()
+                    .rayTrace(eye, dir, CLICK_REACH, org.bukkit.FluidCollisionMode.NEVER, true, 0.0, e -> {
+                        if (!(e instanceof LivingEntity le)) return false;
+                        if (le instanceof Player) return false;
+                        if (le.isDead() || !le.isValid()) return false;
+                        // Hostile detection matching AttackCommand.findBestTarget
+                        if (!(le instanceof Monster)
+                                && !(le instanceof Slime)
+                                && !(le instanceof Shulker)
+                                && !(le instanceof Phantom)
+                                && !(le instanceof EnderDragon)
+                                && !(le instanceof Ghast)
+                                && !(le instanceof Hoglin)) {
+                            return false;
+                        }
+                        return true;
+                    });
+            if (result != null && result.getHitEntity() instanceof LivingEntity le) {
+                return le;
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
     @Nullable
     private Location getTargetLocation(Player bot, Object target) {
         if (target instanceof Block b) {
@@ -865,5 +929,73 @@ public final class LeftClickCommand implements FppCommand {
         float progress;
         boolean dynamicTarget;
         int entityCooldown;
+    }
+
+    /**
+     * Find the best hostile mob target the bot is actually facing (within a forward cone).
+     * Matches the PvE system's hostile-detection but restricts to the bot's look direction.
+     */
+    @Nullable
+    private LivingEntity findBestMobTarget(Player bot, ClickState state) {
+        Location botLoc = bot.getLocation();
+        Location botEye = bot.getEyeLocation();
+        org.bukkit.util.Vector lookDir = botEye.getDirection();
+        Collection<Entity> nearby = bot.getWorld().getNearbyEntities(botLoc, CLICK_REACH, CLICK_REACH, CLICK_REACH);
+
+        LivingEntity best = null;
+        double bestScore = Double.MAX_VALUE;
+
+        for (Entity e : nearby) {
+            if (!(e instanceof LivingEntity le)) continue;
+            if (le instanceof Player) continue;
+            if (le.isDead() || !le.isValid()) continue;
+
+            { // Hostile mob detection matching AttackCommand.findBestTarget
+                if (!(le instanceof Monster)
+                        && !(le instanceof Slime)
+                        && !(le instanceof Shulker)
+                        && !(le instanceof Phantom)
+                        && !(le instanceof EnderDragon)
+                        && !(le instanceof Ghast)
+                        && !(le instanceof Hoglin)) continue;
+            }
+
+            Location entCenter = le.getLocation().clone().add(0, le.getHeight() / 2.0, 0);
+            double dist = entCenter.distance(botEye);
+            if (dist > CLICK_REACH) continue;
+
+            // Must be within forward view cone (~70 degrees horizontal)
+            org.bukkit.util.Vector toEnt =
+                    entCenter.toVector().subtract(botEye.toVector()).normalize();
+            double angle = lookDir.angle(toEnt);
+            if (angle > 1.22) continue; // ~70 degrees
+
+            double score = dist + (angle * 2.0); // prefer closer and more centered
+            if (score < bestScore) {
+                bestScore = score;
+                best = le;
+            }
+        }
+
+        return best;
+    }
+
+    @Nullable
+    private Location computeAimingVector(Player bot, Entity target) {
+        if (target == null || !target.isValid()) return null;
+
+        Location botEye = bot.getEyeLocation();
+        double tx = target.getLocation().getX();
+        double tz = target.getLocation().getZ();
+        double ty = target.getLocation().getY() + target.getHeight() / 2.0;
+
+        double dx = tx - botEye.getX();
+        double dy = ty - botEye.getY();
+        double dz = tz - botEye.getZ();
+        double horizDist = Math.sqrt(dx * dx + dz * dz);
+
+        float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+        float pitch = (float) -Math.toDegrees(Math.atan2(dy, horizDist));
+        return new Location(bot.getWorld(), tx, ty, tz, yaw, pitch);
     }
 }

@@ -174,7 +174,7 @@ public final class BotRenameHelper {
         }
 
         manager.suppressNextDespawnSnapshot(oldUuid);
-        manager.delete(oldName);
+        manager.delete(oldName, "rename_swap");
 
         FppScheduler.runSyncLater(
                 plugin,

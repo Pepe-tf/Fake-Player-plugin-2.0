@@ -116,12 +116,6 @@ public final class AttributionManager {
             for (String a : authors) {
                 if (a.equalsIgnoreCase(expected)) return true;
             }
-            FppLogger.warn(new String(new char[] {9552}).repeat(65));
-            FppLogger.warn("  " + (char) 9888 + "  ATTRIBUTION WARNING  " + (char) 9888);
-            FppLogger.warn("  Original author '" + expected + "' was removed from plugin.yml.");
-            FppLogger.warn("  This plugin is free and open-source. Please restore the");
-            FppLogger.warn("  original author credit. You may add your own name too.");
-            FppLogger.warn(new String(new char[] {9552}).repeat(65));
             return false;
         } catch (Exception e) {
             return true;
@@ -131,7 +125,6 @@ public final class AttributionManager {
     public static boolean validateAttributionMessage() {
         String m = getAttributionMessage();
         if (m == null || m.length() < 20) {
-            FppLogger.warn("Attribution message integrity check failed.");
             return false;
         }
         return true;
@@ -141,7 +134,6 @@ public final class AttributionManager {
         String l1 = getModrinthLink();
         String l2 = getGithubLink();
         if (l1 == null || l1.length() < 10 || l2 == null || l2.length() < 10) {
-            FppLogger.warn("Attribution link integrity check failed.");
             return false;
         }
         return true;

@@ -137,7 +137,9 @@ public final class LicenseManager {
                     try {
                         sendHeartbeat();
                     } catch (Exception e) {
-                        plugin.getLogger().log(Level.WARNING, "License heartbeat failed", e);
+                        if (me.bill.fakePlayerPlugin.config.Config.debugLicense()) {
+                            plugin.getLogger().log(Level.WARNING, "License heartbeat failed", e);
+                        }
                     }
                 },
                 15,
@@ -206,11 +208,6 @@ public final class LicenseManager {
                         handleJsonResponse(errorStream, null, null);
                     }
                 }
-                if (responseCode >= 400) {
-                    plugin.getLogger()
-                            .warning("License HTTP Error: " + responseCode
-                                    + " - Check your team ID, product ID and license key");
-                }
             }
         } catch (Exception e) {
             try {
@@ -252,7 +249,6 @@ public final class LicenseManager {
                     if (result.has(ERROR_DETAILS_KEY)) {
                         errorMessage += " (" + result.get(ERROR_DETAILS_KEY).getAsString() + ")";
                     }
-                    plugin.getLogger().warning("License Error: " + errorMessage);
                     return false;
                 }
             }
@@ -331,7 +327,7 @@ public final class LicenseManager {
     }
 
     private void logResponse(String response) {
-        if (response != null) {
+        if (response != null && me.bill.fakePlayerPlugin.config.Config.debugLicense()) {
             plugin.getLogger().info("Received JSON response (pretty printed):");
             plugin.getLogger().info(response);
         }
@@ -345,13 +341,9 @@ public final class LicenseManager {
                 .filter(entry -> response.contains(entry.getKey()))
                 .findFirst();
         if (errorEntry.isPresent()) {
-            String errorMessage = errorEntry.get().getValue();
-            plugin.getLogger().severe(errorMessage);
-            plugin.getLogger().warning("License Error: " + errorMessage);
             return true;
         }
         if (response.contains("\"valid\":false")) {
-            plugin.getLogger().warning("License: License validation failed. Check your license configuration");
             return true;
         }
         return false;
@@ -359,7 +351,6 @@ public final class LicenseManager {
 
     private void sendHeartbeat() throws Exception {
         String urlString = API_BASE_URL + "/" + teamId + HEARTBEAT_ENDPOINT;
-        plugin.getLogger().info("Sending license heartbeat to: " + urlString);
         var url = URI.create(urlString).toURL();
 
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -373,7 +364,6 @@ public final class LicenseManager {
         String jsonBody = String.format(
                 "{\"licenseKey\":\"%s\",\"productId\":\"%s\",\"hardwareIdentifier\":\"%s\"}",
                 licenseKey, productId, hardwareIdentifier);
-        plugin.getLogger().info("Heartbeat payload: " + jsonBody);
 
         try (var os = connection.getOutputStream()) {
             byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
@@ -381,7 +371,6 @@ public final class LicenseManager {
         }
 
         int responseCode = connection.getResponseCode();
-        plugin.getLogger().info("Heartbeat response code: " + responseCode);
 
         try (var is = (responseCode < HttpURLConnection.HTTP_BAD_REQUEST)
                         ? connection.getInputStream()
@@ -392,13 +381,13 @@ public final class LicenseManager {
             while ((line = br.readLine()) != null) {
                 response.append(line);
             }
-            plugin.getLogger().info("Heartbeat response: " + response.toString());
             if (responseCode >= HttpURLConnection.HTTP_BAD_REQUEST) {
-                plugin.getLogger().warning("Heartbeat failed with response code: " + responseCode);
                 handleErrorCodes(response.toString());
             }
         } catch (IOException e) {
-            plugin.getLogger().log(Level.WARNING, "Failed to read heartbeat response", e);
+            if (me.bill.fakePlayerPlugin.config.Config.debugLicense()) {
+                plugin.getLogger().log(Level.WARNING, "Failed to read heartbeat response", e);
+            }
         } finally {
             connection.disconnect();
         }
@@ -414,8 +403,10 @@ public final class LicenseManager {
             return UUID.nameUUIDFromBytes(combinedIdentifier.getBytes(StandardCharsets.UTF_8))
                     .toString();
         } catch (Exception e) {
-            plugin.getLogger().warning("Failed to get hardware identifier: " + e.getMessage());
-            plugin.getLogger().warning("License: Hostname retrieval failed, using random identifier");
+            if (me.bill.fakePlayerPlugin.config.Config.debugLicense()) {
+                plugin.getLogger().warning("Failed to get hardware identifier: " + e.getMessage());
+                plugin.getLogger().warning("License: Hostname retrieval failed, using random identifier");
+            }
             return UUID.randomUUID().toString();
         }
     }

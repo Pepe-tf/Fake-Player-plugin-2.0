@@ -27,7 +27,8 @@
 - 🧭 **Pathfinding & Automation** — A* navigation, follow, roam, find-and-mine, sleep, auto-eat, auto-place-bed
 - ⛏️ **Area Mining & Block Placing** — Cuboid region mining (`/fpp mine`) and placement (`/fpp place`) with supply-container restocking
 - ⚔️ **PvE Combat** — Per-bot attack settings, hunt mode, melee cooldowns
-- ⚙️ **Per-Bot Settings GUI** — Shift+right-click any bot for inventories, pathfinding toggles, PvE settings, and automation overrides
+- ⚙️ **Per-Bot Settings GUI** — Shift+right-click any bot for inventories, pathfinding toggles, PvE settings, automation overrides, and **debug category toggles**
+- 🐛 **Debug GUI & Chat** — Toggle every `debug.yml` category at runtime via `/fpp settings`, and broadcast debug output to **OP / notify** players as in-game chat
 - 💾 **Persistence** — Bot positions, tasks, and inventories survive restarts (YAML or database)
 - 🗄️ **Database** — SQLite (local) or MySQL (network / multi-server with proxy-merged shared tables)
 - 🌐 **Proxy Support** — Velocity & BungeeCord with companion plugins; **proxy-merged database shares live bot registry and player counts across all backends**

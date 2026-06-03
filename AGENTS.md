@@ -1,164 +1,66 @@
 # AGENTS.md — FakePlayerPlugin
 
-## Project Overview
-Minecraft Paper/Purpur 1.21+ plugin for spawning fake players with tab-list, physical bodies, pathfinding, automation, and multi-server proxy support.
-
-**Current version:** 1.6.6.12.3 | **Config version:** 73 | **Java:** Toolchain 25, targets 21
-
----
-
-## Build & Commands
+## Build
 ```bash
-./gradlew shadowJar           # Build distributable JAR (build/libs/fake-player-plugin-*.jar)
-./gradlew test                # Minimal tests (2 JUnit tests, mostly no-op)
-./gradlew runServer           # Run Paper 1.21.11 dev server
+./gradlew shadowJar           # Build fat plugin JAR (build/libs/fake-player-plugin-*.jar)
+./gradlew test                # Only 2 string-assertion JUnit tests; do not rely on coverage
+./gradlew runServer           # Paper 1.21.11 dev server
+./gradlew runFolia            # Folia 1.21.11 dev server
+./gradlew runDevBundleServer  # Mojang-mapped dev server (paperweight)
+./gradlew spotlessApply       # Auto-format Java + Gradle KTS
 ```
 
-**Build quirk:** Use `shadowJar`, not `build`, to produce the runnable plugin JAR.
+**Important:** 
+- Use `shadowJar`, not `build` or `jar`, to produce the runnable plugin JAR.
+- Java toolchain is **25** but release target is **21**. Paper dev bundle `26.1.2.build.65-stable`.
+- Spotless uses `palantirJavaFormat("2.56.0")` with import order: `java, javax, org, com, me.bill`.
+- CI runs `test` then `shadowJar` on Java 21 Temurin; Qodana (`qodana.starter` profile, JDK 25) runs on push to `master`/`Dev` and PRs.
 
 ---
 
-## Critical Gotchas (Read First)
+## Critical Dev Gotchas
 
-### License Verification (BLOCKER)
-- Plugin fetches credentials from `fpp.wtf` on startup and **disables itself** if unreachable
-- **Internet required for development/testing**
-- License check happens BEFORE most initialization (see `FakePlayerPlugin.java:168-203`)
+### License Check Blocks Startup
+`FakePlayerPlugin.onEnable()` (lines ~184-198) fetches credentials from `fpp.wtf` and **disables the plugin** if unreachable.
+- **Internet is required for local dev/testing.**
+- The check runs before most initialization.
 
-### Folia Support (v1.6.6.12.2+)
-- Plugin supports Folia via region scheduler for bot spawning
-- `FakePlayerManager.spawn()` detects Folia and routes entire spawn chain to region thread via `FppScheduler.runAtLocation()`
-- `NmsPlayerSpawner.isFoliaServer()` detects Folia at runtime
-- `folia-supported: true` in `plugin.yml`
-
-### Body System Changed (v1.6.6.12)
-- Body disable toggle REMOVED — bots **always** spawn with physical bodies
-- Tab-list only mode no longer available
-
-### Command Registration Quirk
-New commands must be registered in **BOTH**:
-1. `CommandManager.java` (constructor)
-2. `FakePlayerPlugin.onEnable()` (lines 342-414)
+### Command Registration Requires Two Steps
+New commands must be registered in **both**:
+1. `CommandManager.java` (`register()` in constructor or init)
+2. `FakePlayerPlugin.onEnable()` (lines ~330-370) — commands are instantiated there and wired to manager
 
 ### Config Migration
-- Auto-migrates on startup via `ConfigMigrator`
-- **Do not manually edit `config-version`**
-
-### Tight Coupling
-Commands typically require references to: `FakePlayerManager`, `PathfindingService`, `StorageStore`. Many commands have circular dependencies (e.g., `StopCommand` needs all action commands).
+`ConfigMigrator` auto-runs on startup. The current `config-version` is **74** (in `src/main/resources/config.yml`). **Do not edit `config-version` manually.**
 
 ---
 
-## Architecture & Entrypoints
+## Architecture
 
-**Main class:** `FakePlayerPlugin.java:88` — standard Bukkit `JavaPlugin`
-
-### Core Components
-| Component | File | Purpose |
-|-----------|------|---------|
-| **Bot tick loop** | `FakePlayerManager.java` | Head AI, action locks (`actingBots` set), pathfinding coordination |
-| **Pathfinding** | `PathfindingService.java` + `BotPathfinder.java` | A* with door/parkour/swim handling |
-| **Click commands** | `LeftClickCommand`, `RightClickCommand` | Unified click actions (`--once`, `--repeat`, `--hold`, `--stop`) |
-| **Persistence** | `BotPersistence.java` | Save/restore positions, tasks, inventories (DB or YAML) |
-| **Extension API** | `api/FppExtension.java` | Drop `.jar` into `plugins/FakePlayerPlugin/extensions/` |
-
-### Package Structure
-```
-src/main/java/me/bill/fakePlayerPlugin/
-├── api/           # Extension interfaces
-├── command/       # 28+ command handlers
-├── config/        # Config accessors (Config, BotNameConfig)
-├── database/      # SQLite/MySQL abstraction
-├── extension/     # Extension loader
-├── fakeplayer/    # Core bot logic (15+ classes)
-├── gui/           # Settings/help inventories
-├── listener/      # 10+ Bukkit event handlers
-├── messaging/     # Velocity/BungeeCord channels
-├── network/       # Cross-server heartbeat
-├── sync/          # Config sync manager
-└── util/          # 30+ utility classes
-```
+- **Entry:** `FakePlayerPlugin.java:89` — standard Bukkit `JavaPlugin` extending `JavaPlugin`
+- **Main shadow JAR manifest:** `Main-Class = me.bill.fakePlayerPlugin.Launcher` (for standalone launcher), but Bukkit loads via `plugin.yml` → `FakePlayerPlugin`
+- **Bot lifecycle:** `FakePlayerManager` owns spawn/despawn/tick loop and `actingBots` action-lock set
+- **Pathfinding:** `PathfindingService` + `BotPathfinder` — A* with door/parkour/swim handling
+- **Scheduler abstraction:** `FppScheduler` routes tasks through Folia-compatible APIs; legacy `Bukkit.getScheduler()` is prohibited (enforced by test)
+- **Folia:** Runtime detected via `Class.forName("io.papermc.paper.threadedregions.ThreadedRegionizer")`; `NmsPlayerSpawner.isFoliaServer()` used in spawn chain; `folia-supported: true` in `plugin.yml`
 
 ---
 
-## Config & Data
+## Tests
 
-**Main config:** `plugins/FakePlayerPlugin/config.yml` (auto-migrated)
+Only `FoliaCompatibilityTest.java`:
+- Asserts `plugin.yml` contains `folia-supported: true`
+- Asserts `FppScheduler.java` does not contain `Bukkit.getScheduler()`
 
-**Database:**
-- SQLite (local): `plugins/FakePlayerPlugin/data/fpp.db`
-- MySQL (NETWORK mode): Shared across proxy backends, requires unique `server-id` per server
-
-**Persistence:** Bot positions, tasks, inventories survive restarts (database primary, YAML fallback)
-
-**Languages:** `plugins/FakePlayerPlugin/lang/`
-
----
-
-## Known Issues / TODOs
-
-See `note.md` for authoritative list. Current priorities:
-
-- [ ] **PacketEvents injection** can fail on some Paper/Purpur versions
-- [ ] **Pathfinding:** door handling, parkour, swimming need work
-- [ ] **Area mining/place:** tick implementation improvements needed
-
----
-
-## CI/CD
-
-**Build:** `.github/workflows/build.yml`
-- Java 21 (Temurin), `shadowJar`
-- Runs on: pull_request, push
-
-**Qodana:** `qodana.yaml`
-- Linter: `jetbrains/qodana-jvm-community:2026.1`
-- Project JDK: 25
-- Profile: `qodana.starter`
+There is **no integration test harness**; Minecraft-specific logic is untested in CI.
 
 ---
 
 ## Dependencies
 
-**Hard:** PaperMC 1.21.11 dev bundle, FastStats metrics
+**Bundled:** Paper dev bundle `26.1.2.build.65-stable`, FastStats metrics `0.22.0`
 
-**Soft (runtime reflection):**
-- PlaceholderAPI (80+ placeholders)
-- LuckPerms (prefix/suffix, bot groups)
-- WorldGuard (bot PvP region protection)
-- WorldEdit (`--wesel` flag for area mining/placing)
-
-**compileOnly:** LuckPerms API, WorldGuard
-
----
-
-## Testing
-
-**Automated:** 2 JUnit tests (`FoliaCompatibilityTest`) — mostly no-op
-
-**Manual checklist** (from `note.md`):
-- Mine/Use/Place commands (single block + area)
-- Head AI disabled during actions (`actingBots` set)
-- Bots pushable while acting
-- Persistence save/restore
-- PacketEvents injection on target server versions
-- No console errors on startup
-
----
-
-## Important Directories
-
-| Directory | Purpose |
-|-----------|---------|
-| `build/libs/` | Output JAR (after `shadowJar`) |
-| `plugins/FakePlayerPlugin/extensions/` | Extension JAR drop location |
-| `plugins/FakePlayerPlugin/data/` | SQLite DB, persistence YAML |
-| `src/main/resources/` | Plugin resources (config.yml, plugin.yml) |
-
----
-
-## References
-
-- **Development notes:** `note.md` (authoritative TODO list, recent changes, testing checklist)
-- **Wiki:** https://fpp.wtf
-- **Modrinth:** https://modrinth.com/plugin/fake-player-plugin-(fpp)
+**compileOnly (soft at runtime):**
+- LuckPerms API (`5.5`)
+- PlaceholderAPI (`2.12.2`)
+- WorldGuard (`7.0.12`) — excludes Gson, Guava, fastutil

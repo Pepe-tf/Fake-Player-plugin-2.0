@@ -15,7 +15,10 @@
 **A:** Yes, but the server itself must be Paper 1.21+. ViaVersion only affects client versions.
 
 ### Q: Why is there so much debug spam on startup?
-**A:** In v1.6.6.12.2, license verification runs silently by default. If you see debug messages, check `plugins/FakePlayerPlugin/debug.yml` and ensure all categories are set to `false`. Run `/fpp reload` after editing.
+**A:** In v1.6.6.12.2, license verification runs silently by default. If you see debug messages, check `plugins/FakePlayerPlugin/debug.yml` and ensure all categories are set to `false`, or use `/fpp settings` → **🐛 ᴅᴇʙᴜɢ** to toggle them interactively. Run `/fpp reload` after manual edits.
+
+### Q: Can I see debug output in-game instead of the console?
+**A:** Yes. Enable `debug-chat: true` in `debug.yml` (or via `/fpp settings` → Debug). All debug output will be sent to online players with `fpp.op` or `fpp.notify` as chat messages.
 
 ### Q: License verification fails on startup.
 **A:** The plugin requires internet access to verify the license from `app.lukittu.com`. If your server is offline, the plugin will run in limited mode. Check firewall rules and ensure outbound HTTPS (port 443) is allowed.

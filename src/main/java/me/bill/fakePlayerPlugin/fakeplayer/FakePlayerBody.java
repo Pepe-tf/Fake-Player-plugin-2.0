@@ -170,7 +170,7 @@ public final class FakePlayerBody {
     }
 
     public static void removeAll(FakePlayer fp) {
-        removeAll(fp, false, "unspecified");
+        removeAll(fp, false, "body_remove");
     }
 
     public static void removeAll(FakePlayer fp, String reason) {
@@ -178,7 +178,7 @@ public final class FakePlayerBody {
     }
 
     public static void removeAllFast(FakePlayer fp) {
-        removeAll(fp, true, "unspecified");
+        removeAll(fp, true, "body_remove");
     }
 
     public static void removeAllFast(FakePlayer fp, String reason) {
@@ -186,7 +186,7 @@ public final class FakePlayerBody {
     }
 
     public static void removeAllWithoutSaving(FakePlayer fp) {
-        removeAll(fp, true, "unspecified");
+        removeAll(fp, true, "body_remove");
     }
 
     public static void removeAllWithoutSaving(FakePlayer fp, String reason) {

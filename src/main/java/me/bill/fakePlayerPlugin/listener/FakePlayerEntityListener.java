@@ -20,6 +20,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.persistence.PersistentDataType;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
@@ -141,14 +142,54 @@ public class FakePlayerEntityListener implements Listener {
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onEntityTeleport(EntityTeleportEvent event) {
         if (!isFakeBotBody(event.getEntity())) return;
+        // EntityTeleportEvent is the super-type of PlayerTeleportEvent.
+        // For player-type bots the PlayerTeleportEvent handler below takes
+        // precedence (it can distinguish TeleportCause); skip here so that
+        // PLUGIN/COMMAND cross-world teleports are not blocked.
+        if (event.getEntity() instanceof Player) return;
         Location from = event.getFrom();
         Location to = event.getTo();
         if (to == null || from.getWorld() == null || to.getWorld() == null) return;
         if (!from.getWorld().equals(to.getWorld())) {
-
             event.setCancelled(true);
             Config.debug("Blocked cross-world teleport for bot body: "
                     + event.getEntity().getName());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerTeleport(PlayerTeleportEvent event) {
+        if (!isFakeBotBody(event.getPlayer())) return;
+        Location from = event.getFrom();
+        Location to = event.getTo();
+        if (to == null || from.getWorld() == null || to.getWorld() == null) return;
+
+        // Block non-plugin cross-world teleports (e.g. NETHER_PORTAL/END_PORTAL).
+        if (!from.getWorld().equals(to.getWorld())) {
+            if (event.getCause() != PlayerTeleportEvent.TeleportCause.PLUGIN
+                    && event.getCause() != PlayerTeleportEvent.TeleportCause.COMMAND) {
+                event.setCancelled(true);
+                Config.debug("Blocked cross-world PlayerTeleportEvent for bot body: "
+                        + event.getPlayer().getName());
+                return;
+            }
+        }
+
+        // Fire WorldGuard session re-initialisation whenever a bot teleports,
+        // regardless of whether it's same-world or cross-world, so that region
+        // flags (PVP, build, game-mode, etc.) are re-evaluated for the new location.
+        if (plugin.isWorldGuardAvailable()) {
+            Player bot = event.getPlayer();
+            // 1 tick delay lets the teleport finish so the position is committed.
+            FppScheduler.runSyncLater(
+                    plugin,
+                    () -> {
+                        if (bot.isOnline()) {
+                            WorldGuardHelper.refreshPlayerSession(bot);
+                            Config.debug("WorldGuardHelper: refreshed after teleport for bot " + bot.getName());
+                        }
+                    },
+                    1L);
         }
     }
 
@@ -312,6 +353,31 @@ public class FakePlayerEntityListener implements Listener {
         Location spawnLoc = fp.getSpawnLocation();
         if (spawnLoc != null && spawnLoc.getWorld() != null) {
             event.setRespawnLocation(spawnLoc);
+        }
+
+        // Re-evaluate WorldGuard session after respawn completes, because the
+        // respawn may place the bot in a different world (e.g. bed in another
+        // dimension) and WG handlers retain stale cached state from the old location.
+        if (plugin.isWorldGuardAvailable()) {
+            Player bot = event.getPlayer();
+            Location fromLoc = bot.getLocation(); // pre-respawn location
+            Location toLoc = event.getRespawnLocation(); // post-respawn location
+            boolean worldChanged = toLoc != null
+                    && toLoc.getWorld() != null
+                    && (fromLoc.getWorld() == null || !fromLoc.getWorld().equals(toLoc.getWorld()));
+            if (worldChanged) {
+                // Run after respawn completes so the entity is at the new location.
+                FppScheduler.runSyncLater(
+                        plugin,
+                        () -> {
+                            if (bot.isOnline()) {
+                                WorldGuardHelper.refreshPlayerSession(bot);
+                                Config.debug("WorldGuardHelper: refreshed after respawn world-change for bot "
+                                        + bot.getName());
+                            }
+                        },
+                        2L);
+            }
         }
     }
 

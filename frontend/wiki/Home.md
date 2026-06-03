@@ -48,11 +48,14 @@ Some advanced subsystems are implemented as extensions and are not part of the b
 
 ---
 
-## Latest Version: v1.6.6.12.2
+## Latest Version: v1.6.6.12.4
 
 **Highlights:**
+- ✅ **Debug GUI** — Toggle every debug category at runtime from `/fpp settings`
+- 💬 **Debug Chat** — Broadcast debug output to OP/notify players in-game
+- 🔧 **WorldGuard Refresh** — Stale region data fixed after teleports and respawns
+- 🛡️ **LuckPerms Warmup** — Pre-caches LP data before spawn to prevent Folia crashes
 - ✅ **Folia Support** — Full compatibility with Folia's region-threaded architecture
 - 🖱️ **Click Commands** — Unified left-click/right-click automation system
 - 🔇 **Silent License** — License verification runs silently without debug spam
-- 🐛 **Debug Fixed** — All debug messages now respect `debug.yml` settings
 - 📊 **80+ Placeholders** — Extensive PlaceholderAPI integration

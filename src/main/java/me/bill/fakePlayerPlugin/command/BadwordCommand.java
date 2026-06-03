@@ -261,7 +261,7 @@ public class BadwordCommand implements FppCommand {
                             + CLOSE
                             + GRAY
                             + "…");
-            manager.delete(task.oldName());
+            manager.delete(task.oldName(), "badword_filter");
         }
 
         for (int i = 0; i < tasks.size(); i++) {

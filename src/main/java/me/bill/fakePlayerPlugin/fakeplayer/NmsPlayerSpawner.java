@@ -694,12 +694,18 @@ public final class NmsPlayerSpawner {
                 final String name = player.getName();
                 final UUID uuid = player.getUniqueId();
 
-                FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Removing bot '" + name + "' (uuid=" + uuid + ") - reason: " + reason);
+                FppLogger.debug(
+                        "NMS-BOT",
+                        Config.debugNmsBot(),
+                        "Removing bot '" + name + "' (uuid=" + uuid + ") - reason: " + reason);
 
                 if (saveData) {
                     try {
                         player.saveData();
-                        FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Saved playerdata for '" + name + "' (uuid=" + uuid + ")");
+                        FppLogger.debug(
+                                "NMS-BOT",
+                                Config.debugNmsBot(),
+                                "Saved playerdata for '" + name + "' (uuid=" + uuid + ")");
                     } catch (Exception e) {
                         FppLogger.warn("NmsPlayerSpawner: saveData failed for '"
                                 + name
@@ -728,7 +734,9 @@ public final class NmsPlayerSpawner {
                         playerListRemoveMethod.invoke(playerList, nmsPlayer);
                         removedViaPlayerList = true;
                         FppLogger.debug(
-                                "NMS-BOT", true, "Removed '" + name + "' via PlayerList.remove() - reason: " + reason);
+                                "NMS-BOT",
+                                Config.debugNmsBot(),
+                                "Removed '" + name + "' via PlayerList.remove() - reason: " + reason);
                     } catch (Exception e) {
                         FppLogger.debug(
                                 "NMS-BOT",
@@ -745,7 +753,10 @@ public final class NmsPlayerSpawner {
                 }
 
                 if (!removedViaPlayerList && player.isOnline()) {
-                    FppLogger.debug("NMS-BOT", Config.debugNmsBot(), "Kicking '" + name + "' (uuid=" + uuid + ") - reason: " + reason);
+                    FppLogger.debug(
+                            "NMS-BOT",
+                            Config.debugNmsBot(),
+                            "Kicking '" + name + "' (uuid=" + uuid + ") - reason: " + reason);
                     player.kick(Component.empty());
                 }
             }
@@ -1466,6 +1477,7 @@ public final class NmsPlayerSpawner {
     private static void prepareJoinCompatibility(Object conn, Object serverPlayer, UUID uuid, String name) {
         Player bukkitPlayer = resolveBukkitPlayer(serverPlayer);
         markFakePlayerMetadata(bukkitPlayer);
+        preLoadLuckPermsUser(uuid);
         initialiseCmiUser(bukkitPlayer, uuid, name);
         registerPacketEventsUser(conn, bukkitPlayer, uuid, name);
     }
@@ -1493,6 +1505,50 @@ public final class NmsPlayerSpawner {
                     .set(new NamespacedKey(plugin, "fakeplayerplugin"), PersistentDataType.BYTE, (byte) 1);
         } catch (Throwable t) {
             FppLogger.debug("NmsPlayerSpawner: fake-player metadata failed: " + t.getMessage());
+        }
+    }
+
+    private static void preLoadLuckPermsUser(UUID uuid) {
+        if (uuid == null) return;
+        Plugin lpPlugin = Bukkit.getPluginManager().getPlugin("LuckPerms");
+        if (lpPlugin == null || !lpPlugin.isEnabled()) return;
+        try {
+            ClassLoader loader = lpPlugin.getClass().getClassLoader();
+            Class<?> providerClass = Class.forName("net.luckperms.api.LuckPermsProvider", false, loader);
+            Object api = providerClass.getMethod("get").invoke(null);
+            if (api == null) return;
+            Object userManager = api.getClass().getMethod("getUserManager").invoke(api);
+            if (userManager == null) return;
+
+            Object future =
+                    userManager.getClass().getMethod("loadUser", UUID.class).invoke(userManager, uuid);
+            if (future == null) return;
+
+            // If already cached we are done.
+            Method getNow = future.getClass().getMethod("getNow", Object.class);
+            Object user = getNow.invoke(future, (Object) null);
+            if (user != null) {
+                FppLogger.debug("NmsPlayerSpawner: LuckPerms user already cached for " + uuid);
+                return;
+            }
+
+            // Block until LP finishes the async load (usually <50 ms).
+            // This is safe because the DB work runs on LP's own threads;
+            // we are merely waiting so that Vault/WorldGuard see a warm cache.
+            Method get = future.getClass().getMethod("get");
+            get.invoke(future);
+            FppLogger.debug("NmsPlayerSpawner: pre-loaded LuckPerms user for " + uuid);
+        } catch (Throwable t) {
+            if (t instanceof java.lang.reflect.InvocationTargetException ite) {
+                Throwable cause = ite.getCause();
+                if (cause instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
+                FppLogger.debug("NmsPlayerSpawner: LuckPerms pre-load failed for " + uuid + ": "
+                        + (cause != null ? cause.getClass().getSimpleName() : "unknown"));
+            } else {
+                FppLogger.debug("NmsPlayerSpawner: LuckPerms pre-load skipped: " + t.getMessage());
+            }
         }
     }
 

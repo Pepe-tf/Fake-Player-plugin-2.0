@@ -1,6 +1,36 @@
 # Changelog
 
-## v1.6.6.12.3 (Current)
+## v1.6.6.12.4 (Debug GUI, Left-Click Combat & Stability)
+
+### 🎯 Main Focus
+- **Fix bot despawn after spawn bug** — bots no longer instantly despawn due to stale spawn-protection checks or missing WorldGuard session state after teleport/respawn
+- **PacketEvents fail injection** — suppressed kicks caused by `"packetevents"` + `"inject"` errors that triggered an infinite despawn loop on every bot join
+- **LuckPerms patch** — pre-caches LuckPerms user data before `placeNewPlayer()` to prevent `ServerThreadLookupException` on Folia and ensure Vault/WG hooks resolve correctly at spawn time
+
+### 🐛 Debug GUI & Chat Broadcasting
+- **Debug Settings GUI** — `/fpp settings` now has a **🐛 ᴅᴇʙᴜɢ** category with 23 clickable toggles for every `debug.yml` category (master, general, startup, NMS, database, packets, network, config-sync, chat, swap, commands, head-ai, right-click, etc.)
+- **Debug Chat Broadcast** — new `debug-chat: false` key in `debug.yml`. When enabled, all `FppLogger.debug()` output is sent to online players with `fpp.op` or `fpp.notify` as in-game chat messages (gray prefix: `[ꜰᴘᴘ DEBUG/<topic>] <message>`)
+- **Runtime debug toggling** — debug categories can be flipped on/off without restarting via the GUI; changes are saved to `debug.yml` immediately
+
+### 🖱️ Left-Click Command Improvements
+- **Auto-target hostile mobs** — bots now automatically detect and attack hostile mobs (Monsters, Slimes, Ghasts, Phantoms, Hoglins, Shulkers, EnderDragon) in their forward cone when no block is targeted
+- **Auto-aiming** — bot head and body smoothly rotate to face the targeted mob
+- **Multi-flag parsing** — fixed `--once`, `--repeat`, `--hold`, and `--stop` flag handling so multiple flags can be specified correctly in a single command
+
+### 🔧 Bug Fixes & Stability
+- **LuckPerms cache warmup** — `NmsPlayerSpawner` pre-loads LuckPerms user data before `placeNewPlayer()` to prevent `ServerThreadLookupException` on Folia
+- **WorldGuard session refresh** — complete rewrite using cold re-initialization via reflection (`tryRemoveSession` + `Session.initialize()`) to prevent stale region data after bot teleports/world changes
+- **Teleport/respawn WG refresh** — `FakePlayerEntityListener` adds `PlayerTeleportEvent.MONITOR` and `PlayerRespawnEvent` handlers with delayed (1-2 tick) WG session refresh
+- **Spawn protection teleport fix** — `BotSpawnProtectionListener` now allows `PLUGIN` and `COMMAND` teleports during the grace window so `/fpp tph` and cross-world moves work correctly; portals are still blocked
+- **Despawn reason tracking** — all `removeBot()` calls now pass descriptive reasons (`spawn_body_failed`, `command_despawn`, `gui_delete`, `badword_cleanup`, `packetevents_kick`, `kicked_by_server`, `api_despawn`, `rename_swap`, `body_remove`, etc.) instead of `"unspecified"`
+- **PacketEvents kick suppression** — `FakePlayerKickListener` silently cancels kicks containing `"packetevents"` + `"inject"` instead of despawning the bot, preventing instant-despawn loops
+- **Attribution/logging cleanup** — silenced license heartbeat, JSON response, and integrity check logs unless explicitly enabled via `debug.yml`
+- **Placeholder formatting** — cleaned up `formatUptime` one-liner in `FppPlaceholderExpansion`
+- **Help GUI formatting** — fixed indentation in lore builder
+
+---
+
+## v1.6.6.12.3
 
 ### 🔧 Folia Config Patch
 - **Folia config issue patched** — formatting normalization across `build.gradle.kts`, `Config.java`, and `plugin.yml` to resolve Folia-related configuration loading problems
@@ -211,7 +241,17 @@ https://github.com/Pepe-tf/fake-player-plugin/commits/main
 
 ---
 
-> **Note:** The built-in ConfigMigrator handles upgrades transparently. Current config version: **73**. Always back up `plugins/FakePlayerPlugin/` before major updates.
+> **Note:** The built-in ConfigMigrator handles upgrades transparently. Current config version: **75**. Always back up `plugins/FakePlayerPlugin/` before major updates.
+
+---
+
+## Migration Notes (v1.6.6.12.4)
+
+### New `debug-chat` Key
+If you are upgrading from an older version, `debug.yml` will be recreated from the template. The new `debug-chat: false` key controls whether debug output is broadcast to OP/notify players in-game. You can also toggle it via `/fpp settings` → **🐛 ᴅᴇʙᴜɢ**.
+
+### `debug.yml` Runtime Editing
+Prior to v1.6.6.12.4, `debug.yml` could only be edited by hand. The Settings GUI now lists every debug category as a clickable toggle. Changes are saved to disk immediately.
 
 ---
 

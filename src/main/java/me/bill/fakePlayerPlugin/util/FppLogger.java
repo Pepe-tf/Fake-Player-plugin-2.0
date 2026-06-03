@@ -2,7 +2,15 @@ package me.bill.fakePlayerPlugin.util;
 
 import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.permission.Perm;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 
 public final class FppLogger {
 
@@ -67,6 +75,20 @@ public final class FppLogger {
                 (topic == null || topic.isBlank()) ? "DEBUG" : topic.trim().toUpperCase();
         logger.info(TAG + " " + GRAY + "[" + YELLOW + "DEBUG" + GRAY + "/" + CYAN + label + GRAY + "] " + YELLOW
                 + message + RESET);
+
+        if (Config.debugChatBroadcast()) {
+            Component chatMsg = Component.empty()
+                    .decoration(TextDecoration.ITALIC, false)
+                    .append(Component.text("[ꜰᴘᴘ DEBUG/").color(NamedTextColor.GRAY))
+                    .append(Component.text(label).color(NamedTextColor.AQUA))
+                    .append(Component.text("] ").color(NamedTextColor.GRAY))
+                    .append(Component.text(message).color(NamedTextColor.YELLOW));
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (Perm.has(p, Perm.OP) || Perm.has(p, Perm.NOTIFY)) {
+                    p.sendMessage(chatMsg);
+                }
+            }
+        }
     }
 
     public static void highlight(String message) {
@@ -198,10 +220,6 @@ public final class FppLogger {
 
         rule();
         success("  Ready: /fpp help");
-        rule();
-        info("  " + GRAY + "Original author: " + WHITE + AttributionManager.getOriginalAuthor() + RESET);
-        info("  " + GRAY + AttributionManager.getAttributionMessage() + RESET);
-        info("  " + GRAY + "Source: " + CYAN + AttributionManager.getModrinthLink() + RESET);
         boldRule();
     }
 

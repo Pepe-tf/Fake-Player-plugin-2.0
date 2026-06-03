@@ -32,7 +32,7 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 | **badword** | `<check\|update\|status>` | Scan and fix bot names flagged by the badword filter | `fpp.badword` |
 | **migrate** | `<backup\|status\|config\|lang\|names\|db>` | Manages config/data migration and backups | `fpp.migrate` |
 | **reload** | `[all\|config\|lang\|extensions]` | Reloads the plugin configuration (optionally target a subsystem) | `fpp.reload` |
-| **settings** | `[bot]` | Open the interactive settings GUI (global or per-bot) | `fpp.settings` |
+| **settings** | `[bot]` | Open the interactive settings GUI (global, per-bot, or **debug** category) | `fpp.settings` |
 | **extension** | (bare) `\| --list` | Open marketplace link or list loaded extensions | (implied admin) |
 | **help** | `[page]` | Shows the command help menu | `fpp.help` |
 

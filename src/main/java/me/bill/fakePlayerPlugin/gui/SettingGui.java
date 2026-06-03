@@ -42,7 +42,6 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.AttributionManager;
-import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
@@ -99,10 +98,10 @@ public final class SettingGui implements Listener {
 
     public SettingGui(FakePlayerPlugin plugin) {
         this.plugin = plugin;
-        this.categories = new Category[] {general(), body()};
+        this.categories = new Category[] {general(), body(), debug()};
 
         if (!AttributionManager.quickAuthorCheck()) {
-            FppLogger.warn("Plugin attribution integrity check failed in SettingGui.");
+            // Attribution integrity check failed — silently continuing.
         }
     }
 
@@ -212,6 +211,13 @@ public final class SettingGui implements Listener {
                 plugin.saveConfig();
                 Config.reload();
                 applyLiveEffect(entry.configKey);
+                String newVal = entry.currentValueString(plugin);
+                playUiClick(player, newVal.startsWith("✔") ? 1.2f : 0.85f);
+                sendActionBarConfirm(player, entry.label, newVal);
+                build(player);
+            } else if (entry.type == SettingType.DEBUG_TOGGLE) {
+                entry.applyDebugToggle();
+                Config.reload();
                 String newVal = entry.currentValueString(plugin);
                 playUiClick(player, newVal.startsWith("✔") ? 1.2f : 0.85f);
                 sendActionBarConfirm(player, entry.label, newVal);
@@ -1109,6 +1115,77 @@ public final class SettingGui implements Listener {
                                 new int[] {1, 5, 10, 15, 20, 40, 60, 100})));
     }
 
+    private Category debug() {
+        return new Category(
+                "🐛 ᴅᴇʙᴜɢ",
+                Material.REDSTONE_TORCH,
+                Material.LEVER,
+                Material.RED_STAINED_GLASS_PANE,
+                List.of(
+                        SettingEntry.debugToggle(
+                                "enabled", "ᴍᴀꜱᴛᴇʀ ᴅᴇʙᴜɢ", "ᴇɴᴀʙʟᴇꜱ ᴀʟʟ ᴅᴇʙᴜɢ ᴏᴜᴛᴘᴜᴛ.", Material.BEACON),
+                        SettingEntry.debugToggle(
+                                "debug-chat",
+                                "ᴅᴇʙᴜɢ ᴄʜᴀᴛ",
+                                "ʙʀᴏᴀᴅᴄᴀꜱᴛ ᴅᴇʙᴜɢ ᴏᴜᴛᴘᴜᴛ ᴛᴏ ᴏᴘ/ɴᴏᴛɪꜰʏ ᴘʟᴀʏᴇʀꜱ.",
+                                Material.BOOK),
+                        SettingEntry.debugToggle("general", "ɢᴇɴᴇʀᴀʟ", "ʙᴀꜱɪᴄ ᴅᴇʙᴜɢ ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ.", Material.PAPER),
+                        SettingEntry.debugToggle(
+                                "startup", "ꜱᴛᴀʀᴛᴜᴘ", "ᴅᴇᴛᴀɪʟᴇᴅ ʟᴏɢɢɪɴɢ ᴅᴜʀɪɴɢ ɪɴɪᴛɪᴀʟɪᴢᴀᴛɪᴏɴ.", Material.CAMPFIRE),
+                        SettingEntry.debugToggle(
+                                "nms.enabled", "ɴᴍꜱ ᴍᴀꜱᴛᴇʀ", "ʟᴏᴡ-ʟᴇᴠᴇʟ ɴᴍꜱ ɪɴᴛᴇʀᴀᴄᴛɪᴏɴꜱ.", Material.COMPASS),
+                        SettingEntry.debugToggle("nms.bot", "ɴᴍꜱ ʙᴏᴛ", "ʙᴏᴛ ʟɪꜰᴇᴄʏᴄʟᴇ ᴇᴠᴇɴᴛꜱ.", Material.PLAYER_HEAD),
+                        SettingEntry.debugToggle(
+                                "nms.connection",
+                                "ɴᴍꜱ ᴄᴏɴɴᴇᴄᴛɪᴏɴ",
+                                "ɴᴍꜱ ᴄᴏɴɴᴇᴄᴛɪᴏɴ/ᴘᴀᴄᴋᴇᴛ ʟɪꜱᴛᴇɴᴇʀ ᴇᴠᴇɴᴛꜱ.",
+                                Material.REDSTONE),
+                        SettingEntry.debugToggle(
+                                "nms.physics", "ɴᴍꜱ ᴘʜʏꜱɪᴄꜱ", "ᴘʜʏꜱɪᴄꜱ ᴀɴᴅ ᴍᴏᴠᴇᴍᴇɴᴛ ᴛɪᴄᴋ ᴏᴘᴇʀᴀᴛɪᴏɴꜱ.", Material.ANVIL),
+                        SettingEntry.debugToggle(
+                                "nms.skin", "ɴᴍꜱ ꜱᴋɪɴ", "ꜱᴋɪɴ ᴀᴘᴘʟɪᴄᴀᴛɪᴏɴ ᴀɴᴅ ʀᴇꜱᴏʟᴜᴛɪᴏɴ.", Material.LEATHER),
+                        SettingEntry.debugToggle(
+                                "database.enabled", "ᴅᴀᴛᴀʙᴀꜱᴇ ᴍᴀꜱᴛᴇʀ", "ᴀʟʟ ᴅᴀᴛᴀʙᴀꜱᴇ ᴅᴇʙᴜɢɢɪɴɢ.", Material.CHEST),
+                        SettingEntry.debugToggle(
+                                "database.connection", "ᴅʙ ᴄᴏɴɴᴇᴄᴛɪᴏɴ", "ᴄᴏɴɴᴇᴄᴛɪᴏɴ ʟɪꜰᴇᴄʏᴄʟᴇ.", Material.HOPPER),
+                        SettingEntry.debugToggle(
+                                "database.operations", "ᴅʙ ᴏᴘᴇʀᴀᴛɪᴏɴꜱ", "ǫᴜᴇʀʏ ᴏᴘᴇʀᴀᴛɪᴏɴꜱ.", Material.WRITABLE_BOOK),
+                        SettingEntry.debugToggle(
+                                "database.migration",
+                                "ᴅʙ ᴍɪɢʀᴀᴛɪᴏɴ",
+                                "ᴍɪɢʀᴀᴛɪᴏɴ ᴀɴᴅ ꜱᴄʜᴇᴍᴀ ᴏᴘᴇʀᴀᴛɪᴏɴꜱ.",
+                                Material.FURNACE),
+                        SettingEntry.debugToggle(
+                                "database.persistence",
+                                "ᴅʙ ᴘᴇʀꜱɪꜱᴛᴇɴᴄᴇ",
+                                "ᴘᴇʀꜱɪꜱᴛᴇɴᴄᴇ ꜱᴀᴠᴇ/ʟᴏᴀᴅ.",
+                                Material.ENDER_CHEST),
+                        SettingEntry.debugToggle("packets", "ᴘᴀᴄᴋᴇᴛꜱ", "ᴘᴀᴄᴋᴇᴛ ɪɴᴊᴇᴄᴛɪᴏɴ ᴅᴇʙᴜɢɢɪɴɢ.", Material.MAP),
+                        SettingEntry.debugToggle(
+                                "network", "ɴᴇᴛᴡᴏʀᴋ", "ᴍᴜʟᴛɪ-ꜱᴇʀᴠᴇʀ ɴᴇᴛᴡᴏʀᴋ ᴏᴘᴇʀᴀᴛɪᴏɴꜱ.", Material.SPYGLASS),
+                        SettingEntry.debugToggle(
+                                "config-sync",
+                                "ᴄᴏɴꜰɪɢ ꜱʏɴᴄ",
+                                "ᴄᴏɴꜰɪɢ ꜱʏɴᴄʀᴏɴɪᴢᴀᴛɪᴏɴ ᴀᴄʀᴏꜱꜱ ɴᴇᴛᴡᴏʀᴋ.",
+                                Material.REPEATER),
+                        SettingEntry.debugToggle("chat", "ᴄʜᴀᴛ", "ʙᴏᴛ ᴄʜᴀᴛ ꜱʏꜱᴛᴇᴍ ᴅᴇʙᴜɢɢɪɴɢ.", Material.OAK_SIGN),
+                        SettingEntry.debugToggle("swap", "ꜱᴡᴀᴘ", "ʙᴏᴛ ꜱᴡᴀᴘ ᴀɪ ᴀɴᴅ ʙᴇʜᴀᴠɪᴏʀ.", Material.TRIPWIRE_HOOK),
+                        SettingEntry.debugToggle(
+                                "commands", "ᴄᴏᴍᴍᴀɴᴅꜱ", "ᴄᴏᴍᴍᴀɴᴅ ᴇxᴇᴄᴜᴛɪᴏɴ ᴅᴇʙᴜɢɢɪɴɢ.", Material.COMMAND_BLOCK),
+                        SettingEntry.debugToggle(
+                                "head-ai", "ʜᴇᴀᴅ ᴀɪ", "ʙᴏᴛ ʜᴇᴀᴅ ʀᴏᴛᴀᴛɪᴏɴ ᴀɴᴅ ᴀɪ ᴛᴀʀɢᴇᴛɪɴɢ.", Material.ENDER_EYE),
+                        SettingEntry.debugToggle(
+                                "right-click",
+                                "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ",
+                                "ᴘʟᴀʏᴇʀ-ʙᴏᴛ ɪɴᴛᴇʀᴀᴄᴛɪᴏɴ (ʀɪɢʜᴛ-ᴄʟɪᴄᴋ).",
+                                Material.OAK_DOOR),
+                        SettingEntry.debugToggle(
+                                "right-click-head",
+                                "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ʜᴇᴀᴅ",
+                                "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ᴏɴ ʙᴏᴛ ʜᴇᴀᴅ.",
+                                Material.CARVED_PUMPKIN)));
+    }
+
     private static final class GuiHolder implements InventoryHolder {
         final UUID uuid;
 
@@ -1135,7 +1212,8 @@ public final class SettingGui implements Listener {
         CYCLE_INT,
         CYCLE_DOUBLE,
         ACTION,
-        COMING_SOON
+        COMING_SOON,
+        DEBUG_TOGGLE
     }
 
     private record ChatInputSession(SettingEntry entry, int[] guiState, int cleanupTaskId) {}
@@ -1197,11 +1275,16 @@ public final class SettingGui implements Listener {
             return new SettingEntry(key, label, desc, icon, SettingType.ACTION, null, null, valueOverride, clickAction);
         }
 
+        static SettingEntry debugToggle(String key, String label, String desc, Material icon) {
+            return new SettingEntry(key, label, desc, icon, SettingType.DEBUG_TOGGLE, null, null, null, null);
+        }
+
         String currentValueString(FakePlayerPlugin plugin) {
             if (valueOverride != null) return valueOverride;
             var cfg = plugin.getConfig();
             return switch (type) {
                 case TOGGLE -> cfg.getBoolean(configKey, false) ? "✔ ᴇɴᴀʙʟᴇᴅ" : "✘ ᴅɪꜱᴀʙʟᴇᴅ";
+                case DEBUG_TOGGLE -> Config.debugBoolValue(configKey, false) ? "✔ ᴇɴᴀʙʟᴇᴅ" : "✘ ᴅɪꜱᴀʙʟᴇᴅ";
                 case CYCLE_INT -> String.valueOf(cfg.getInt(configKey, intValues[0]));
                 case ACTION -> "ᴄʟɪᴄᴋ ᴛᴏ ʀᴜɴ";
                 case CYCLE_DOUBLE -> {
@@ -1217,6 +1300,12 @@ public final class SettingGui implements Listener {
         void apply(FakePlayerPlugin plugin) {
             if (type == SettingType.TOGGLE) {
                 plugin.getConfig().set(configKey, !plugin.getConfig().getBoolean(configKey, false));
+            }
+        }
+
+        void applyDebugToggle() {
+            if (type == SettingType.DEBUG_TOGGLE) {
+                Config.setDebugBool(configKey, !Config.debugBoolValue(configKey, false));
             }
         }
     }

@@ -1,7 +1,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 #  FakePlayerPlugin - Debug Configuration
 # ═══════════════════════════════════════════════════════════════════════════════
-# 
+#
 # This file controls all debug logging output for the plugin.
 # Each section can be enabled independently, or use the master switch above.
 #
@@ -14,6 +14,13 @@
 # Individual settings below will be overridden if this is true.
 # ═══════════════════════════════════════════════════════════════════════════════
 enabled: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEBUG CHAT
+# ═══════════════════════════════════════════════════════════════════════════════
+# When true, all debug output is also sent to online OP/notify players in-game.
+# ═══════════════════════════════════════════════════════════════════════════════
+debug-chat: false
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # GENERAL DEBUG

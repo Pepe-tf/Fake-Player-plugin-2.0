@@ -520,7 +520,8 @@ public final class BotSettingGui implements Listener {
             player.sendMessage(Component.empty()
                     .decoration(TextDecoration.ITALIC, false)
                     .append(Component.text("✔ ").color(ON_GREEN))
-                    .append(Component.text("ʙᴏᴛ ꜱᴇᴛᴛɪɴɢꜱ ꜱᴀᴠᴇᴅ • ꜱᴇᴛᴛɪɴɢꜱ ᴀᴘᴘʟɪᴇᴅ").color(WHITE)));
+                    .append(Component.text("ʙᴏᴛ ꜱᴇᴛᴛɪɴɢꜱ ꜱᴀᴠᴇᴅ • ꜱᴇᴛᴛɪɴɢꜱ ᴀᴘᴘʟɪᴇᴅ")
+                            .color(WHITE)));
         }
     }
 
@@ -906,7 +907,7 @@ public final class BotSettingGui implements Listener {
             player.closeInventory();
             pendingDelete.remove(playerUuid);
 
-            manager.delete(botName);
+            manager.delete(botName, "gui_delete");
             player.sendMessage(Component.empty()
                     .decoration(TextDecoration.ITALIC, false)
                     .append(Component.text("✕ ").color(DANGER_RED))
