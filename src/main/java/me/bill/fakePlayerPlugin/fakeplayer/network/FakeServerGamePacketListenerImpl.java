@@ -152,9 +152,19 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
         try {
             Player bukkit = this.player.getBukkitEntity() instanceof Player p ? p : null;
             if (bukkit != null) {
+                if (isWorldGuardPvpProtected(bukkit)) {
+                    Config.debugNms("[KB-DEBUG] packet knockback blocked in PvP-protected region for bot="
+                            + bukkit.getName());
+                    return;
+                }
                 var last = bukkit.getLastDamageCause();
                 if (last instanceof EntityDamageByEntityEvent byEntity) {
                     Entity attacker = resolveKnockbackSource(byEntity.getDamager());
+                    if (attacker instanceof Player && byEntity.isCancelled()) {
+                        Config.debugNms("[KB-DEBUG] packet knockback blocked after cancelled player damage for bot="
+                                + bukkit.getName());
+                        return;
+                    }
                     if (attacker instanceof Player && !isPvpEnabled(bukkit.getLocation())) {
                         return;
                     }
@@ -206,12 +216,20 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
         }
     }
 
+    private static boolean isWorldGuardPvpProtected(Player bot) {
+        if (bot == null || !bot.isOnline()) return false;
+        FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
+        if (plugin == null || !plugin.isWorldGuardAvailable()) return false;
+        Location location = bot.getLocation();
+        return location != null && location.getWorld() != null && !WorldGuardHelper.isPvpAllowed(location);
+    }
+
     @SuppressWarnings("deprecation")
     private static boolean isPvpEnabled(Location location) {
         if (location == null || location.getWorld() == null) return false;
-        if (location.getWorld().getPVP()) return true;
         FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
-        return plugin != null && plugin.isWorldGuardAvailable() && WorldGuardHelper.isPvpAllowed(location);
+        if (plugin != null && plugin.isWorldGuardAvailable()) return WorldGuardHelper.isPvpAllowed(location);
+        return location.getWorld().getPVP();
     }
 
     private static Entity resolveKnockbackSource(Entity damager) {

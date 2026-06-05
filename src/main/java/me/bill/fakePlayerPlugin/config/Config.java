@@ -751,20 +751,6 @@ public final class Config {
         return Math.max(pathfindingMaxNodes(), integer("pathfinding.max-nodes-extended", 1800));
     }
 
-    /**
-     * Number of lateral sweep steps tried on each side when searching for a detour waypoint.
-     */
-    public static int pathfindingDetourAttempts() {
-        return Math.max(1, Math.min(integer("pathfinding.detour-attempts", 5), 20));
-    }
-
-    /**
-     * Total lateral radius (in blocks) spread across detour-attempts steps.
-     */
-    public static double pathfindingDetourRadius() {
-        return Math.max(2.0, Math.min(decimal("pathfinding.detour-radius", 16.0), 64.0));
-    }
-
     public static double collisionWalkRadius() {
         return cfg.getDouble("collision.walk-radius", 0.85);
     }

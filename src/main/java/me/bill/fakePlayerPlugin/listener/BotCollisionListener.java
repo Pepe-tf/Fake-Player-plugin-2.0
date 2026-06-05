@@ -76,7 +76,11 @@ public class BotCollisionListener implements Listener {
                 + " bodyDamageable="
                 + Config.bodyDamageable());
 
-        if (event.isCancelled()) return;
+        if (event.isCancelled()) {
+            Config.debugNms("[KB-DEBUG] BotCollision: SKIP - damage event cancelled for bot="
+                    + target.getName());
+            return;
+        }
 
         double hitStrength = Config.collisionHitStrength();
         double hitMaxHoriz = Config.collisionHitMaxHoriz();
@@ -117,7 +121,7 @@ public class BotCollisionListener implements Listener {
                 + " hitStrength="
                 + hitStrength);
 
-        applyBotKnockback(target, finalVel);
+        applyBotKnockback(target, finalVel, fromPlayer);
 
         Vector readBack = target.getVelocity();
         Config.debugNms("[KB-DEBUG] BotCollision: readback velocity for "
@@ -130,13 +134,24 @@ public class BotCollisionListener implements Listener {
                 + String.format("%.4f", readBack.getZ()));
     }
 
-    private void applyBotKnockback(Player target, Vector velocity) {
+    private void applyBotKnockback(Player target, Vector velocity, boolean fromPlayer) {
+        if (fromPlayer && !isPvpEnabled(target.getLocation())) {
+            Config.debugNms("[KB-DEBUG] BotCollision: blocked knockback in PvP-protected region for bot="
+                    + target.getName());
+            return;
+        }
         NmsPlayerSpawner.applyServerVelocity(target, velocity);
         FppScheduler.runAtEntityLaterWithId(
                 plugin,
                 target,
                 () -> {
                     if (target.isOnline() && target.isValid() && isFakeBody(target)) {
+                        if (fromPlayer && !isPvpEnabled(target.getLocation())) {
+                            Config.debugNms(
+                                    "[KB-DEBUG] BotCollision: blocked delayed knockback in PvP-protected region for bot="
+                                            + target.getName());
+                            return;
+                        }
                         NmsPlayerSpawner.applyServerVelocity(target, velocity);
                     }
                 },
@@ -174,7 +189,7 @@ public class BotCollisionListener implements Listener {
             kbZ *= scale;
         }
 
-        applyBotKnockback(target, new Vector(kbX, kb.getY(), kbZ));
+        applyBotKnockback(target, new Vector(kbX, kb.getY(), kbZ), false);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -357,8 +372,8 @@ public class BotCollisionListener implements Listener {
     @SuppressWarnings("deprecation")
     private boolean isPvpEnabled(Location location) {
         if (location == null || location.getWorld() == null) return false;
-        if (location.getWorld().getPVP()) return true;
-        return plugin.isWorldGuardAvailable() && WorldGuardHelper.isPvpAllowed(location);
+        if (plugin.isWorldGuardAvailable()) return WorldGuardHelper.isPvpAllowed(location);
+        return location.getWorld().getPVP();
     }
 
     private static Entity resolveKnockbackSource(Entity damager) {

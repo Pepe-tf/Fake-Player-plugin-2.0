@@ -217,7 +217,7 @@ public final class BotSettingGui implements Listener {
         this.plugin = plugin;
         this.manager = manager;
         this.renameHelper = new BotRenameHelper(plugin, manager);
-        this.categories = List.of(general(), pathfinding(), pve(), danger());
+        this.categories = List.of(general(), pve(), danger());
     }
 
     public void registerExtensionTab(FppSettingsTab tab) {
@@ -1934,52 +1934,6 @@ public final class BotSettingGui implements Listener {
                                         + "ᴛᴏ ɢʀᴀɴᴛ ᴏʀ ʀᴇᴠᴏᴋᴇ ᴄᴏɴᴛʀᴏʟ.\n"
                                         + "ᴏɴʟʏ ᴏᴡɴᴇʀꜱ ᴀɴᴅ ᴀᴅᴍɪɴꜱ ᴄᴀɴ ꜱʜᴀʀᴇ.",
                                 Material.PLAYER_HEAD,
-                                false)));
-    }
-
-    private BotCategory pathfinding() {
-        return new BotCategory(
-                "🧭 ᴘᴀᴛʜꜰɪɴᴅɪɴɢ",
-                Material.COMPASS,
-                Material.GRAY_DYE,
-                Material.ORANGE_STAINED_GLASS_PANE,
-                List.of(
-                        BotEntry.toggle(
-                                "nav_parkour",
-                                "ᴘᴀʀᴋᴏᴜʀ (ɢᴀᴘ ᴊᴜᴍᴘ)",
-                                "ʙᴏᴛ ᴄᴀɴ ᴊᴜᴍᴘ ɢᴀᴘꜱ ᴜᴘ ᴛᴏ 3 ʙʟᴏᴄᴋꜱ.\n"
-                                        + "ᴇɴᴀʙʟᴇᴅ = ᴄʀᴏꜱꜱ ᴛʀᴇɴᴄʜᴇꜱ, ʟᴀᴠᴀ.\n"
-                                        + "ɢʟᴏʙᴀʟ: "
-                                        + (Config.pathfindingParkour() ? "ᴇɴᴀʙʟᴇᴅ" : "ᴅɪꜱᴀʙʟᴇᴅ"),
-                                Material.FEATHER,
-                                false),
-                        BotEntry.toggle(
-                                "nav_break_blocks",
-                                "ʙʀᴇᴀᴋ ʙʟᴏᴄᴋꜱ",
-                                "ʙᴏᴛ ʙʀᴇᴀᴋꜱ ʙʟᴏᴄᴋꜱ ɪɴ ɪᴛꜱ ᴡᴀʏ.\n"
-                                        + "ᴜꜱᴇꜱ ᴛᴏᴏʟꜱ/ʜᴀɴᴅꜱ. ᴄᴏᴏʟᴅᴏᴡɴ ᴀᴘᴘʟɪᴇꜱ.\n"
-                                        + "ᴄᴀɴɴᴏᴛ ʙʀᴇᴀᴋ ʙᴇᴅʀᴏᴄᴋ/ᴏʙꜱɪᴅɪᴀɴ.\n"
-                                        + "ɢʟᴏʙᴀʟ: "
-                                        + (Config.pathfindingBreakBlocks() ? "ᴇɴᴀʙʟᴇᴅ" : "ᴅɪꜱᴀʙʟᴇᴅ"),
-                                Material.DIAMOND_PICKAXE,
-                                false),
-                        BotEntry.toggle(
-                                "nav_place_blocks",
-                                "ᴘʟᴀᴄᴇ ʙʟᴏᴄᴋꜱ",
-                                "ʙᴏᴛ ᴘʟᴀᴄᴇꜱ ʙʟᴏᴄᴋꜱ ᴛᴏ ᴄʀᴏꜱꜱ ɢᴀᴘꜱ\n"
-                                        + "ᴏʀ ᴄʟɪᴍʙ ᴜᴘ. ᴜꜱᴇꜱ ɪɴᴠᴇɴᴛᴏʀʏ ʙʟᴏᴄᴋꜱ.\n"
-                                        + "ɢʟᴏʙᴀʟ: "
-                                        + (Config.pathfindingPlaceBlocks() ? "ᴇɴᴀʙʟᴇᴅ" : "ᴅɪꜱᴀʙʟᴇᴅ"),
-                                Material.DIRT,
-                                false),
-                        BotEntry.toggle(
-                                "swim_ai_enabled",
-                                "ꜱᴡɪᴍ ᴀɪ",
-                                "ʙᴏᴛ ꜱᴡɪᴍꜱ ᴜᴘ ᴡᴀʀᴅ ɪɴ ᴡᴀᴛᴇʀ/ʟᴀᴠᴀ.\n"
-                                        + "ᴅɪꜱᴀʙʟᴇ = ʙᴏᴛ ꜱɪɴᴋꜱ ᴀɴᴅ ᴡᴀʟᴋꜱ ᴏɴ ʙᴏᴛᴛᴏᴍ.\n"
-                                        + "ɢʟᴏʙᴀʟ: "
-                                        + (Config.swimAiEnabled() ? "ᴇɴᴀʙʟᴇᴅ" : "ᴅɪꜱᴀʙʟᴇᴅ"),
-                                Material.WATER_BUCKET,
                                 false)));
     }
 

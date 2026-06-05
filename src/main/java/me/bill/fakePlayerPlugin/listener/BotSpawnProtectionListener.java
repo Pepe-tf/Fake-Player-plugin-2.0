@@ -17,6 +17,7 @@ import org.bukkit.persistence.PersistentDataType;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
+import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 
 public class BotSpawnProtectionListener implements Listener {
@@ -64,6 +65,7 @@ public class BotSpawnProtectionListener implements Listener {
                 plugin,
                 () -> {
                     protectedBots.remove(botUuid);
+                    NmsPlayerSpawner.clearProtectedSpawnTarget(botUuid);
                     Config.debugNms("BotSpawnProtection: removed protection for " + player.getName());
                 },
                 protectionTicks);
@@ -78,22 +80,13 @@ public class BotSpawnProtectionListener implements Listener {
         if (!protectedBots.contains(player.getUniqueId())) return;
 
         PlayerTeleportEvent.TeleportCause cause = event.getCause();
-
-        // Block OTHER and NETHER_PORTAL / END_PORTAL / END_GATEWAY causes during the grace
-        // window (5 ticks for vanilla worlds, 20 ticks for custom/non-vanilla worlds).
-        // PLUGIN teleports (e.g. /fpp tph) and COMMAND teleports are intentionally allowed
-        // so that bots can leave spawn-protection or cross-world; WorldGuard session refresh
-        // runs afterwards to re-evaluate region flags at the new location.
-        if (cause == PlayerTeleportEvent.TeleportCause.COMMAND || cause == PlayerTeleportEvent.TeleportCause.PLUGIN) {
+        Location target = NmsPlayerSpawner.getProtectedSpawnTarget(player.getUniqueId());
+        if (target != null && isSameLocation(event.getTo(), target)) {
             return;
         }
 
-        // Block ALL other teleport causes during the grace window (5 ticks for vanilla
-        // worlds, 20 ticks for custom/non-vanilla worlds).
-        // This covers PLUGIN and UNKNOWN (other-plugin interference) such as Multiverse-Core
-        // first-join spawn teleports, as well as NETHER_PORTAL / END_PORTAL / END_GATEWAY
-        // (dimension respawn logic that fires when a bot is spawned directly into the nether
-        // or end and has no prior player-data at that location).
+        // Block delayed first-join/world-manager teleports during the grace window. FPP's
+        // own spawn correction is allowed above when it moves the bot to the requested target.
         event.setCancelled(true);
         Config.debugNms("BotSpawnProtection: blocked "
                 + cause.name()
@@ -125,6 +118,12 @@ public class BotSpawnProtectionListener implements Listener {
         // placeNewPlayer(), before the PDC key has been written.
         FakePlayerManager manager = plugin.getFakePlayerManager();
         return manager != null && manager.getByUuid(player.getUniqueId()) != null;
+    }
+
+    private boolean isSameLocation(Location actual, Location expected) {
+        if (actual == null || expected == null) return false;
+        if (actual.getWorld() != expected.getWorld()) return false;
+        return actual.distanceSquared(expected) <= 0.0001D;
     }
 
     private String formatLoc(Location loc) {

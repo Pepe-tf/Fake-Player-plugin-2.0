@@ -35,6 +35,7 @@ import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
 import me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -991,7 +992,7 @@ public final class PlaceCommand implements FppCommand {
                     int cx = tx + dx, cz = tz + dz;
                     for (int dy : new int[] {0, -1, 1}) {
                         int cy = ty + dy;
-                        if (BotPathfinder.walkable(world, cx, cy, cz)) {
+                        if (BotNavUtil.walkable(world, cx, cy, cz)) {
                             Location loc = new Location(world, cx + 0.5, cy, cz + 0.5);
                             double dist = loc.distance(new Location(world, tx + 0.5, ty + 0.5, tz + 0.5));
                             if (dist <= PLACE_REACH - 1.5) {

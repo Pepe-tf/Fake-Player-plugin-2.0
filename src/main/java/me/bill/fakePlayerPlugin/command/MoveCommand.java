@@ -20,9 +20,9 @@ import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
 import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
+import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
 import me.bill.fakePlayerPlugin.lang.Lang;
@@ -726,7 +726,7 @@ public final class MoveCommand implements FppCommand {
 
             int ty = findWalkableY(world, tx, tz, center.getBlockY());
             if (ty >= world.getMinHeight()
-                    && BotPathfinder.walkable(world, tx, ty, tz)
+                    && BotNavUtil.walkable(world, tx, ty, tz)
                     && hasRoamClearance(world, tx, ty, tz)) {
                 return new Location(world, tx + 0.5, ty, tz + 0.5);
             }
@@ -741,8 +741,8 @@ public final class MoveCommand implements FppCommand {
         for (int[] dir : dirs) {
             int nx = x + dir[0];
             int nz = z + dir[1];
-            boolean clear = BotPathfinder.canPassThrough(world, nx, y, nz)
-                    && BotPathfinder.canPassThrough(world, nx, y + 1, nz);
+            boolean clear = BotNavUtil.canPassThrough(world, nx, y, nz)
+                    && BotNavUtil.canPassThrough(world, nx, y + 1, nz);
             if (clear) open++;
             else blocked++;
         }
@@ -755,7 +755,7 @@ public final class MoveCommand implements FppCommand {
         int bestY = world.getMinHeight() - 1;
         int bestDist = Integer.MAX_VALUE;
         for (int y = maxY; y >= minY; y--) {
-            if (BotPathfinder.walkable(world, x, y, z)) {
+            if (BotNavUtil.walkable(world, x, y, z)) {
                 int d = Math.abs(y - refY);
                 if (d < bestDist) {
                     bestDist = d;

@@ -1,8 +1,12 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.type.Fence;
+import org.bukkit.block.data.type.Slab;
+import org.bukkit.block.data.type.TrapDoor;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -38,7 +42,7 @@ public final class BotNavUtil {
         if (sel != null) {
             for (int[] c : candidates) {
                 if (sel.contains(c[0], c[1], c[2])) continue;
-                if (BotPathfinder.walkable(world, c[0], c[1], c[2])) {
+                if (walkable(world, c[0], c[1], c[2])) {
                     Location loc = new Location(world, c[0] + 0.5, c[1], c[2] + 0.5);
                     if (loc.distanceSquared(targetCenter) <= 36.0) return loc;
                 }
@@ -46,7 +50,7 @@ public final class BotNavUtil {
         }
 
         for (int[] c : candidates) {
-            if (BotPathfinder.walkable(world, c[0], c[1], c[2])) {
+            if (walkable(world, c[0], c[1], c[2])) {
                 Location loc = new Location(world, c[0] + 0.5, c[1], c[2] + 0.5);
                 if (loc.distanceSquared(targetCenter) <= 36.0) return loc;
             }
@@ -70,6 +74,73 @@ public final class BotNavUtil {
         double xz = PathfindingService.xzDist(bot.getLocation(), loc);
         double dy = Math.abs(bot.getLocation().getY() - loc.getY());
         return xz <= Config.pathfindingArrivalDistance() && dy < 1.25;
+    }
+
+    public static boolean walkable(World world, int x, int y, int z) {
+        if (y <= world.getMinHeight() || y >= world.getMaxHeight() - 1) return false;
+        return canStandOn(world, x, y - 1, z) && canPassThrough(world, x, y, z) && canPassThrough(world, x, y + 1, z);
+    }
+
+    public static boolean canPassThrough(World world, int x, int y, int z) {
+        if (y < world.getMinHeight() || y > world.getMaxHeight()) return true;
+        try {
+            if (!world.isChunkLoaded(x >> 4, z >> 4)) return false;
+            Block block = world.getBlockAt(x, y, z);
+            Material mat = block.getType();
+            if (mat.isAir() || mat == Material.WATER) return true;
+            if (mat == Material.LAVA || mat == Material.COBWEB) return false;
+            if (block.getBlockData() instanceof Fence) return false;
+            if (mat.name().contains("_WALL") || mat == Material.COBBLESTONE_WALL || mat == Material.MOSSY_COBBLESTONE_WALL) {
+                return false;
+            }
+            if (block.getBlockData() instanceof org.bukkit.block.data.type.Door door) return door.isOpen();
+            if (block.getBlockData() instanceof org.bukkit.block.data.type.Gate gate) return gate.isOpen();
+            if (block.getBlockData() instanceof TrapDoor trapDoor) return trapDoor.isOpen();
+            if (block.getBlockData() instanceof Slab slab) return slab.getType() == Slab.Type.BOTTOM;
+            if (isClimbable(mat)) return true;
+            return block.isPassable();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static boolean canStandOn(World world, int x, int y, int z) {
+        if (y < world.getMinHeight() || y > world.getMaxHeight()) return false;
+        try {
+            if (!world.isChunkLoaded(x >> 4, z >> 4)) return false;
+            Block block = world.getBlockAt(x, y, z);
+            Material mat = block.getType();
+            if (mat.isAir() || mat == Material.WATER) return false;
+            if (mat.isSolid() && mat.isOccluding()) return true;
+            if (block.getBlockData() instanceof Slab) return true;
+            if (mat.name().contains("STAIRS")) return true;
+            if (block.getBlockData() instanceof Fence || mat.name().contains("WALL")) return false;
+            if (mat == Material.GLASS || mat.name().contains("STAINED_GLASS") && !mat.name().contains("PANE")) return true;
+            if (mat == Material.CHEST || mat == Material.TRAPPED_CHEST || mat == Material.ENDER_CHEST || mat == Material.BARREL) return true;
+            if (mat.name().contains("LEAVES")) return true;
+            if (mat == Material.FARMLAND || mat == Material.DIRT_PATH || mat == Material.SOUL_SAND) return true;
+            if (mat == Material.HONEY_BLOCK || mat.name().contains("_BED") || mat == Material.SCAFFOLDING) return true;
+            if (isClimbable(mat)) return true;
+            if (block.getBlockData() instanceof TrapDoor trapDoor) {
+                return !trapDoor.isOpen() && trapDoor.getHalf() == org.bukkit.block.data.Bisected.Half.TOP;
+            }
+            if (mat == Material.MAGMA_BLOCK) return true;
+            return !block.isPassable();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static boolean isClimbable(Material mat) {
+        return mat == Material.LADDER
+                || mat == Material.VINE
+                || mat == Material.TWISTING_VINES
+                || mat == Material.TWISTING_VINES_PLANT
+                || mat == Material.WEEPING_VINES
+                || mat == Material.WEEPING_VINES_PLANT
+                || mat == Material.CAVE_VINES
+                || mat == Material.CAVE_VINES_PLANT
+                || mat == Material.SCAFFOLDING;
     }
 
     public static void useStorageBlock(Player bot, Block block) {

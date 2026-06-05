@@ -106,6 +106,18 @@ public class FakePlayerEntityListener implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onWorldGuardProtectedBotDamage(EntityDamageByEntityEvent event) {
+        if (!plugin.isWorldGuardAvailable()) return;
+        if (!(event.getDamager() instanceof Player)) return;
+        if (!isFakeBotBody(event.getEntity())) return;
+        if (!WorldGuardHelper.isPvpAllowed(event.getEntity().getLocation())) {
+            event.setCancelled(true);
+            Config.debugNms("BotDamage: blocked player damage in WorldGuard PvP-protected region for bot="
+                    + event.getEntity().getName());
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntityTarget(EntityTargetLivingEntityEvent event) {
         if (!(event.getTarget() instanceof Player targetPlayer)) return;

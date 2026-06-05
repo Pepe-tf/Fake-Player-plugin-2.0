@@ -783,16 +783,8 @@ public final class ConfigMigrator {
     }
 
     private static boolean v49to50(YamlConfiguration cfg) {
-        boolean changed = false;
-        if (!cfg.contains("pathfinding")) {
-            cfg.set("pathfinding.parkour", false);
-            cfg.set("pathfinding.break-blocks", false);
-            cfg.set("pathfinding.place-blocks", false);
-            cfg.set("pathfinding.place-material", "DIRT");
-            log("v49→v50", "added pathfinding section (parkour / break-blocks / place-blocks /" + " place-material)");
-            changed = true;
-        }
-        return changed;
+        log("v49→v50", "pathfinding config now belongs to the fpp-pathfinder extension");
+        return false;
     }
 
     private static boolean v50to51(YamlConfiguration cfg) {
@@ -829,24 +821,11 @@ public final class ConfigMigrator {
 
     private static boolean v54to55(YamlConfiguration cfg) {
         boolean changed = false;
-        changed |= setIfMissing(cfg, "pathfinding.arrival-distance", 1.2);
-        changed |= setIfMissing(cfg, "pathfinding.patrol-arrival-distance", 1.5);
-        changed |= setIfMissing(cfg, "pathfinding.waypoint-arrival-distance", 0.65);
-        changed |= setIfMissing(cfg, "pathfinding.sprint-distance", 6.0);
         changed |= setIfMissing(cfg, "automation.auto-eat", true);
         changed |= setIfMissing(cfg, "automation.auto-place-bed", true);
         changed |= setIfMissing(cfg, "swim-ai.enabled", false);
-        changed |= setIfMissing(cfg, "pathfinding.follow-recalc-distance", 3.5);
-        changed |= setIfMissing(cfg, "pathfinding.recalc-interval", 60);
-        changed |= setIfMissing(cfg, "pathfinding.stuck-ticks", 5);
-        changed |= setIfMissing(cfg, "pathfinding.stuck-threshold", 0.04);
-        changed |= setIfMissing(cfg, "pathfinding.break-ticks", 15);
-        changed |= setIfMissing(cfg, "pathfinding.place-ticks", 5);
-        changed |= setIfMissing(cfg, "pathfinding.max-range", 64);
-        changed |= setIfMissing(cfg, "pathfinding.max-nodes", 900);
-        changed |= setIfMissing(cfg, "pathfinding.max-nodes-extended", 1800);
         if (changed) {
-            log("v54→v55", "added shared global pathfinding tuning keys");
+            log("v54→v55", "added automation and swim defaults");
         }
         return changed;
     }
@@ -917,12 +896,8 @@ public final class ConfigMigrator {
     }
 
     private static boolean v61to62(YamlConfiguration cfg) {
-        boolean changed = false;
-        changed |= setIfMissing(cfg, "pathfinding.max-fall", 3);
-        if (changed) {
-            log("v61→v62", "added pathfinding.max-fall");
-        }
-        return changed;
+        log("v61→v62", "pathfinding.max-fall now belongs to the fpp-pathfinder extension");
+        return false;
     }
 
     private static boolean v62to63(YamlConfiguration cfg) {

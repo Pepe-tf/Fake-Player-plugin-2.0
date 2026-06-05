@@ -44,6 +44,16 @@ New commands must be registered in **both**:
 - **Scheduler abstraction:** `FppScheduler` routes tasks through Folia-compatible APIs; legacy `Bukkit.getScheduler()` is prohibited (enforced by test)
 - **Folia:** Runtime detected via `Class.forName("io.papermc.paper.threadedregions.ThreadedRegionizer")`; `NmsPlayerSpawner.isFoliaServer()` used in spawn chain; `folia-supported: true` in `plugin.yml`
 
+## Current Runtime Invariants
+
+- `NmsPlayerSpawner.spawnFakePlayer(...)` creates an NMS `ServerPlayer`, runs `placeNewPlayer(...)`, then forces the returned Bukkit `Player` back to the requested world/coordinates/rotation. Keep this correction because existing playerdata can temporarily load a saved position during login.
+- `BotSpawnProtectionListener` protects newly spawned bots from delayed first-join/world-manager teleports away from the requested spawn target. It must allow only teleports to the protected target during the short protection window.
+- Bot physics is not automatic for fake connections. Every live, non-frozen bot body must reach `NmsPlayerSpawner.tickPhysics(...)` every tick through `FakePlayerManager`; do not reintroduce idle-maintenance gates that skip inactive bots, or gravity/fall behavior breaks.
+- `BotPersistence.saveActiveListAsync(...)` snapshots the bot list immediately before delayed async serialization. Do not store live `activePlayers.values()` views for later writes.
+- WorldGuard protection must be evaluated at the bot body's current live location. `FakePlayerEntityListener`, `FakePlayerManager.tickFallDamage(...)`, `BotCollisionListener`, and `FakeServerGamePacketListenerImpl` all participate in damage/knockback protection.
+- Cancelled player damage must not produce player-hit knockback. If `EntityDamageByEntityEvent` is cancelled, skip explicit `BotCollisionListener` velocity and block fake-connection motion-packet velocity.
+- Manual FPP fall damage is applied from `FakePlayerManager.tickFallDamage(...)`; keep a WorldGuard current-location check before calling `bot.damage(...)`.
+
 ---
 
 ## Tests

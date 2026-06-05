@@ -341,16 +341,6 @@ public class FakePlayerManager {
                         Player bot = fp.getPlayer();
 
                         if (bot == null) continue;
-                        boolean isNavigatingSnapshot = plugin.getPathfindingService() != null
-                                && plugin.getPathfindingService().isNavigating(fp.getUuid());
-                        boolean isActingSnapshot = actingBots.contains(fp.getUuid());
-                        boolean isNavLockedSnapshot = navLockedBots.contains(fp.getUuid());
-                        boolean isActiveSnapshot = isNavigatingSnapshot
-                                || isActingSnapshot
-                                || isNavLockedSnapshot
-                                || fp.isSleeping()
-                                || actionLockedBots.containsKey(fp.getUuid());
-                        if (!isActiveSnapshot && !shouldRunIdleMaintenance(fp)) continue;
                         FppScheduler.runAtEntity(plugin, bot, () -> {
                             if (!activePlayers.containsKey(fp.getUuid())) return;
                             if (!bot.isValid() || bot.isDead()) return;
@@ -359,13 +349,8 @@ public class FakePlayerManager {
                             boolean isActing = actingBots.contains(fp.getUuid());
                             boolean isNavLocked = navLockedBots.contains(fp.getUuid());
                             boolean hasMiningLock = actionLockedBots.containsKey(fp.getUuid());
-                            boolean isActive = isNavigating || isActing || isNavLocked || fp.isSleeping() || hasMiningLock;
                             boolean sendVisualSyncThisTick = shouldSendLaggedVisualUpdate(fp);
                             boolean runBehaviorThisTick = shouldRunLaggedBehaviorUpdate(fp);
-                            if (!isActive) {
-                                if (runBehaviorThisTick && fp.isAutoEatEnabled()) tickAutoEat(bot);
-                                return;
-                            }
                             Location before = bot.getLocation();
 
                             final int onlineCount = onlineSnapshot.size();
@@ -422,10 +407,7 @@ public class FakePlayerManager {
                                     }
                                 }
 
-                                boolean isNavigatingOrBusy = isNavigating || isActing || isNavLocked;
-                                if (isNavigatingOrBusy) {
-                                    NmsPlayerSpawner.tickPhysics(bot);
-                                }
+                                NmsPlayerSpawner.tickPhysics(bot);
                                 if (Config.debugHeadAi()) {
                                     if (isActing) {
                                         Config.debug(
@@ -632,6 +614,14 @@ public class FakePlayerManager {
             double damage = Math.floor(
                     (distance - safeDistance) * Config.fallDamageMultiplier() * landingFallDamageMultiplier(bot));
             if (damage > 0.0) {
+                if (plugin.isWorldGuardAvailable() && !WorldGuardHelper.isPvpAllowed(bot.getLocation())) {
+                    Config.debugNms("FallDamage: blocked bot fall damage in WorldGuard PvP-protected region for bot="
+                            + bot.getName());
+                    trackedFallDistance.remove(uuid);
+                    lastFallY.remove(uuid);
+                    wasOnGround.add(uuid);
+                    return;
+                }
                 double beforeHealth = bot.getHealth();
                 bot.damage(damage);
                 if (!bot.isDead() && Math.abs(bot.getHealth() - beforeHealth) < 0.001) {
@@ -2022,7 +2012,9 @@ public class FakePlayerManager {
         }
 
         FppLogger.debug(
-                "NMS-BOT", true, "Despawning bot '" + name + "' (uuid=" + fp.getUuid() + ") - reason: " + reason);
+                "NMS-BOT",
+                Config.debugNmsBot(),
+                "Despawning bot '" + name + "' (uuid=" + fp.getUuid() + ") - reason: " + reason);
 
         // Fire API despawn event before any state is removed.
         var fppApi = plugin.getFppApi();
@@ -2075,7 +2067,9 @@ public class FakePlayerManager {
         if (!explicitUuidSpawn) target.clearMetadata();
 
         FppLogger.debug(
-                "NMS-BOT", true, "Bot state unregistered: '" + botName + "' (explicitUuid=" + explicitUuidSpawn + ")");
+                "NMS-BOT",
+                Config.debugNmsBot(),
+                "Bot state unregistered: '" + botName + "' (explicitUuid=" + explicitUuidSpawn + ")");
 
         Runnable doVisualRemove = () -> {
             try {
@@ -2091,7 +2085,7 @@ public class FakePlayerManager {
 
                 FppLogger.debug(
                         "NMS-BOT",
-                        true,
+                        Config.debugNmsBot(),
                         "Bot '" + botName + "' marked as despawning (broadcastLeave=" + broadcastLeave + ", reason: "
                                 + reason + ")");
 
@@ -2117,7 +2111,9 @@ public class FakePlayerManager {
                         FakePlayerBody.removeAll(target, reason);
                     }
                     FppLogger.debug(
-                            "NMS-BOT", true, "Body removed for '" + botName + "' (fast=" + fastVisualRemove + ")");
+                            "NMS-BOT",
+                            Config.debugNmsBot(),
+                            "Body removed for '" + botName + "' (fast=" + fastVisualRemove + ")");
                 } finally {
                     restoreExplicitUuidPlayerData(target);
                     restoreExplicitUuidOperator(target);
@@ -2132,7 +2128,7 @@ public class FakePlayerManager {
                 for (Player online : snapshot) PacketHelper.sendTabListRemove(online, target);
                 FppLogger.debug(
                         "NMS-BOT",
-                        true,
+                        Config.debugNmsBot(),
                         "Tab-list entry removed for '" + botName + "' from " + snapshot.size() + " player(s)");
 
                 if (db != null) {
@@ -2144,7 +2140,9 @@ public class FakePlayerManager {
                 if (vc2 != null) {
                     vc2.broadcastBotDespawn(target.getUuid());
                     FppLogger.debug(
-                            "NMS-BOT", true, "Velocity/VelocityChannel3 broadcasted despawn for '" + botName + "'");
+                            "NMS-BOT",
+                            Config.debugNmsBot(),
+                            "Velocity/VelocityChannel3 broadcasted despawn for '" + botName + "'");
                 }
                 FppLogger.info("Despawned bot '" + botName + "' (reason: " + reason + ")");
                 if (persistence != null && Config.persistOnRestart()) {
@@ -2190,7 +2188,7 @@ public class FakePlayerManager {
 
         FppLogger.debug(
                 "NMS-BOT",
-                true,
+                Config.debugNmsBot(),
                 "Shutdown removing " + activePlayers.size() + " bot(s) (fast=" + fastShutdown + ", reason: " + reason
                         + ")");
 

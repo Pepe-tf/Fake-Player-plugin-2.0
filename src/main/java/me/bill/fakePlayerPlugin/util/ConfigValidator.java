@@ -4,7 +4,6 @@ import java.time.DateTimeException;
 import java.time.ZoneId;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.plugin.Plugin;
 
 import me.bill.fakePlayerPlugin.config.Config;
@@ -130,46 +129,6 @@ public final class ConfigValidator {
                         + "(accepted: LOCAL, NETWORK) - falling back to LOCAL.");
                 issues++;
             }
-        }
-
-        if (Config.pathfindingPlaceBlocks()) {
-            String matName = Config.pathfindingPlaceMaterial();
-            Material mat = Material.matchMaterial(matName.toUpperCase());
-            if (mat == null || !mat.isBlock() || !mat.isSolid()) {
-                FppLogger.warn("[Config] pathfinding.place-material \""
-                        + matName
-                        + "\" is not a valid "
-                        + "solid block - falling back to DIRT.");
-                issues++;
-            }
-        }
-        if (Config.pathfindingArrivalDistance() <= 0) {
-            FppLogger.warn("[Config] pathfinding.arrival-distance must be > 0.");
-            issues++;
-        }
-        if (Config.pathfindingPatrolArrivalDistance() <= 0) {
-            FppLogger.warn("[Config] pathfinding.patrol-arrival-distance must be > 0.");
-            issues++;
-        }
-        if (Config.pathfindingWaypointArrivalDistance() <= 0) {
-            FppLogger.warn("[Config] pathfinding.waypoint-arrival-distance must be > 0.");
-            issues++;
-        }
-        if (Config.pathfindingSprintDistance() < 0) {
-            FppLogger.warn("[Config] pathfinding.sprint-distance must be >= 0.");
-            issues++;
-        }
-        if (Config.pathfindingRecalcInterval() < 1) {
-            FppLogger.warn("[Config] pathfinding.recalc-interval must be >= 1.");
-            issues++;
-        }
-        if (Config.pathfindingStuckTicks() < 1) {
-            FppLogger.warn("[Config] pathfinding.stuck-ticks must be >= 1.");
-            issues++;
-        }
-        if (Config.pathfindingMaxNodesExtended() < Config.pathfindingMaxNodes()) {
-            FppLogger.warn("[Config] pathfinding.max-nodes-extended must be >= pathfinding.max-nodes.");
-            issues++;
         }
 
         if (issues == 0) {

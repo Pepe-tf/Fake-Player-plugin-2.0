@@ -138,11 +138,20 @@ public final class BotPersistence {
     }
 
     public void saveActiveListAsync(Iterable<FakePlayer> players) {
-        activeListSavePlayers = players;
+        activeListSavePlayers = snapshotPlayers(players);
         activeListSaveDirty = true;
         if (activeListSaveScheduled.compareAndSet(false, true)) {
             scheduleActiveListSave();
         }
+    }
+
+    private List<FakePlayer> snapshotPlayers(Iterable<FakePlayer> players) {
+        if (players == null) return List.of();
+        List<FakePlayer> snapshot = new ArrayList<>();
+        for (FakePlayer fp : players) {
+            if (fp != null) snapshot.add(fp);
+        }
+        return snapshot;
     }
 
     private void scheduleActiveListSave() {

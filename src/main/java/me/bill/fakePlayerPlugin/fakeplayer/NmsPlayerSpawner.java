@@ -59,6 +59,7 @@ public final class NmsPlayerSpawner {
     private static volatile boolean cmiJoinGuardInstalled = false;
     private static Field registeredListenerExecutorField;
     private static final Set<UUID> placingFakePlayers = Collections.synchronizedSet(new HashSet<>());
+    private static final Map<UUID, Location> protectedSpawnTargets = new ConcurrentHashMap<>();
     private static final Map<UUID, Boolean> lastJumpingState = new ConcurrentHashMap<>();
     private static final Map<Class<?>, Field> latencyFieldCache = new ConcurrentHashMap<>();
 
@@ -463,8 +464,10 @@ public final class NmsPlayerSpawner {
             FppLogger.debug("NmsPlayerSpawner: spawning '" + name + "' uuid=" + uuid);
             ensurePlayerDataExists(minecraftServer, serverPlayer, name, uuid);
 
+            protectedSpawnTargets.put(uuid, new Location(world, x, y, z, yaw, pitch));
             boolean placed = placePlayer(minecraftServer, conn, serverPlayer, gameProfile, clientInfo, uuid);
             if (!placed) {
+                protectedSpawnTargets.remove(uuid);
                 cleanupFailedSpawn(minecraftServer, serverPlayer, name);
                 FppLogger.warn("NmsPlayerSpawner: placeNewPlayer failed for " + name);
                 return null;
@@ -478,6 +481,7 @@ public final class NmsPlayerSpawner {
             Method getBukkitEntity = getServerPlayerGetBukkitEntityMethod();
             Object entity = getBukkitEntity.invoke(serverPlayer);
             if (entity instanceof Player result) {
+                forceSpawnLocation(result, world, x, y, z, yaw, pitch);
                 applyRotation(result, yaw, pitch);
                 result.setGameMode(GameMode.SURVIVAL);
                 setListed(result, true);
@@ -495,6 +499,33 @@ public final class NmsPlayerSpawner {
             FppLogger.error("NmsPlayerSpawner.spawnFakePlayer failed for " + name + ": " + e.getMessage());
             FppLogger.debug(Arrays.toString(e.getStackTrace()));
             return null;
+        }
+    }
+
+    public static Location getProtectedSpawnTarget(UUID uuid) {
+        Location target = uuid != null ? protectedSpawnTargets.get(uuid) : null;
+        return target != null ? target.clone() : null;
+    }
+
+    public static void clearProtectedSpawnTarget(UUID uuid) {
+        if (uuid != null) protectedSpawnTargets.remove(uuid);
+    }
+
+    private static void forceSpawnLocation(Player player, World world, double x, double y, double z, float yaw, float pitch) {
+        if (player == null || world == null) return;
+        try {
+            Location target = new Location(world, x, y, z, yaw, pitch);
+            Location current = player.getLocation();
+            if (current.getWorld() != world || current.distanceSquared(target) > 0.0001D) {
+                player.teleport(target, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
+            }
+            setPosition(player, x, y, z);
+            initPreviousPosition(craftPlayerGetHandleMethod.invoke(player), x, y, z);
+        } catch (Exception e) {
+            FppLogger.debug("NmsPlayerSpawner.forceSpawnLocation failed for "
+                    + player.getName()
+                    + ": "
+                    + e.getMessage());
         }
     }
 
@@ -732,7 +763,7 @@ public final class NmsPlayerSpawner {
                 } else {
                     FppLogger.debug(
                             "NMS-BOT",
-                            true,
+                            Config.debugNmsBot(),
                             "Skipping playerdata save for '" + name + "' (uuid=" + uuid + ") - fast remove");
                 }
 
@@ -755,7 +786,7 @@ public final class NmsPlayerSpawner {
                     } catch (Exception e) {
                         FppLogger.debug(
                                 "NMS-BOT",
-                                true,
+                                Config.debugNmsBot(),
                                 "PlayerList.remove failed for '"
                                         + name
                                         + "': "
@@ -764,7 +795,9 @@ public final class NmsPlayerSpawner {
                     }
                 } else {
                     FppLogger.debug(
-                            "NMS-BOT", true, "NMS methods not initialized for '" + name + "' - using kick fallback");
+                            "NMS-BOT",
+                            Config.debugNmsBot(),
+                            "NMS methods not initialized for '" + name + "' - using kick fallback");
                 }
 
                 if (!removedViaPlayerList && player.isOnline()) {
