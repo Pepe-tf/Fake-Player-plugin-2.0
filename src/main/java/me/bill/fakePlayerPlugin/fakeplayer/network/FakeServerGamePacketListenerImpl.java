@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.WorldGuardHelper;
 
@@ -138,11 +139,12 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
     }
 
     private void applyKnockback(ClientboundSetEntityMotionPacket packet) {
+        if (!Config.bodyPushable()) return;
+        if (NmsPlayerSpawner.isFoliaServer()) return;
+
         int packetEntityId = resolveEntityId(packet);
         int myId = this.player.getId();
         if (packetEntityId != -1 && packetEntityId != myId) return;
-
-        if (!Config.bodyPushable()) return;
 
         // Only allow player→bot knockback when PvP is enabled in the world
         // (or allowed by WorldGuard). This prevents fake players from getting

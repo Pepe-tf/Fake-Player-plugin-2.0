@@ -494,6 +494,14 @@ public final class Config {
         return cfg.getBoolean("persistence.enabled", true);
     }
 
+    public static int restoreDelayTicks() {
+        return Math.max(0, cfg.getInt("persistence.restore-delay-ticks", 0));
+    }
+
+    public static int restoreBatchSize() {
+        return Math.max(1, cfg.getInt("persistence.restore-batch-size", 1));
+    }
+
     public static List<String> namePool() {
         return BotNameConfig.getNames();
     }

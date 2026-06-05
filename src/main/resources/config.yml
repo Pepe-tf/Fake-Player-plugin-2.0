@@ -27,6 +27,8 @@ spawn-cooldown: 0
 # Active tasks (mine/place/patrol) also survive restarts via the database.
 persistence:
   enabled: true
+  restore-delay-ticks: 0
+  restore-batch-size: 1
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  2 · APPEARANCE
@@ -118,7 +120,7 @@ combat:
 # ── Death & Respawn ───────────────────────────────────────────────────────────
 death:
   respawn-on-death: false   # true = bot respawns at its spawn location after dying
-  respawn-delay: 15         # Ticks before respawn (20 = 1 s · 60 = 3 s · 100 = 5 s)
+  respawn-delay: 1          # Ticks before respawn (0 = immediate · 20 = 1 s)
   suppress-drops: false     # false = bots drop items/xp on death like real players; true = suppress all drops
 
 # ── Chunk Loading ─────────────────────────────────────────────────────────────

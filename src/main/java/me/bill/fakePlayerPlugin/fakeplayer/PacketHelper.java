@@ -11,9 +11,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,6 +37,8 @@ public final class PacketHelper {
 
     private static volatile boolean ready = false;
     private static volatile boolean broken = false;
+    private static final Map<UUID, ProfileCacheEntry> profileCache = new ConcurrentHashMap<>();
+    private static final Map<UUID, TabAddPacketCacheEntry> tabAddPacketCache = new ConcurrentHashMap<>();
 
     private static Class<?> craftPlayerClass;
     private static Class<?> gameProfileClass;
@@ -278,9 +282,6 @@ public final class PacketHelper {
             Object nms = getHandle(receiver);
             if (nms == null) return;
 
-            Object profile = buildProfileWithSkin(fp);
-            if (profile == null) return;
-
             String dispStr = fp.getDisplayName();
             if (dispStr == null || dispStr.isBlank()) dispStr = fp.getName();
             Object displayName = fp.getCachedNmsDisplayComponent();
@@ -293,11 +294,27 @@ public final class PacketHelper {
             }
 
             int latency = fp.getEffectivePing();
-            Object entry = buildEntryWithLatency(fp.getUuid(), profile, displayName, latency);
-            Object actions = buildActionSet();
+            SkinProfile skin = fp.getResolvedSkin();
+            String profileName = fp.getPacketProfileName();
+            if (profileName == null || profileName.isBlank()) profileName = fp.getName();
+            String skinValue = skin != null && skin.isValid() ? skin.getValue() : null;
+            String skinSignature = skin != null && skin.isValid() ? skin.getSignature() : null;
+            TabAddPacketCacheEntry cached = tabAddPacketCache.get(fp.getUuid());
+            Object packet;
+            if (cached != null && cached.matches(profileName, dispStr, skinValue, skinSignature, latency)) {
+                packet = cached.packet();
+            } else {
+                Object profile = buildProfileWithSkin(fp);
+                if (profile == null) return;
+                Object entry = buildEntryWithLatency(fp.getUuid(), profile, displayName, latency);
+                Object actions = buildActionSet();
+                packet = playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry));
+                tabAddPacketCache.put(
+                        fp.getUuid(), new TabAddPacketCacheEntry(profileName, dispStr, skinValue, skinSignature, latency, packet));
+            }
 
-            sendPacket(nms, playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry)));
-            Config.debugPackets("Tab ADD → " + receiver.getName() + " for " + fp.getName());
+            sendPacket(nms, packet);
+            if (Config.debugPackets()) Config.debugPackets("Tab ADD for " + fp.getName());
         } catch (Exception e) {
             FppLogger.error("sendTabListAdd failed: " + describeException(e));
             if (Config.debugPackets()) FppLogger.warn("  → " + e);
@@ -309,17 +326,46 @@ public final class PacketHelper {
         String profileName = fp.getPacketProfileName();
         if (profileName == null || profileName.isBlank()) profileName = fp.getName();
         SkinProfile skin = fp.getResolvedSkin();
+        String skinValue = skin != null && skin.isValid() ? skin.getValue() : null;
+        String skinSignature = skin != null && skin.isValid() ? skin.getSignature() : null;
+        ProfileCacheEntry cached = profileCache.get(fp.getUuid());
+        if (cached != null && cached.matches(profileName, skinValue, skinSignature)) return cached.profile();
+
+        Object profile;
         if (skin != null && skin.isValid()) {
             try {
-                return SkinProfileInjector.createGameProfile(gameProfileClass, fp.getUuid(), profileName, skin);
+                profile = SkinProfileInjector.createGameProfile(gameProfileClass, fp.getUuid(), profileName, skin);
+                profileCache.put(fp.getUuid(), new ProfileCacheEntry(profileName, skinValue, skinSignature, profile));
+                return profile;
             } catch (Exception e) {
                 Config.debugPackets("buildProfileWithSkin: mutable profile failed - " + e.getMessage());
             }
         }
 
-        return gameProfileCtor != null
+        profile = gameProfileCtor != null
                 ? gameProfileCtor.newInstance(fp.getUuid(), profileName)
                 : gameProfileClass.getDeclaredConstructors()[0].newInstance(fp.getUuid(), profileName);
+        profileCache.put(fp.getUuid(), new ProfileCacheEntry(profileName, skinValue, skinSignature, profile));
+        return profile;
+    }
+
+    private record ProfileCacheEntry(String profileName, String skinValue, String skinSignature, Object profile) {
+        boolean matches(String profileName, String skinValue, String skinSignature) {
+            return java.util.Objects.equals(this.profileName, profileName)
+                    && java.util.Objects.equals(this.skinValue, skinValue)
+                    && java.util.Objects.equals(this.skinSignature, skinSignature);
+        }
+    }
+
+    private record TabAddPacketCacheEntry(
+            String profileName, String displayName, String skinValue, String skinSignature, int latency, Object packet) {
+        boolean matches(String profileName, String displayName, String skinValue, String skinSignature, int latency) {
+            return this.latency == latency
+                    && java.util.Objects.equals(this.profileName, profileName)
+                    && java.util.Objects.equals(this.displayName, displayName)
+                    && java.util.Objects.equals(this.skinValue, skinValue)
+                    && java.util.Objects.equals(this.skinSignature, skinSignature);
+        }
     }
 
     private static void injectProperty(Object profile, String key, String value, String signature) throws Exception {
@@ -446,7 +492,7 @@ public final class PacketHelper {
                 ctor.setAccessible(true);
             }
             sendPacket(nms, ctor.newInstance(List.of(fp.getUuid())));
-            Config.debugPackets("Tab REMOVE → " + receiver.getName() + " for " + fp.getName());
+            if (Config.debugPackets()) Config.debugPackets("Tab REMOVE for " + fp.getName());
         } catch (Exception e) {
             FppLogger.error("sendTabListRemove failed: " + e.getMessage());
         }
@@ -462,7 +508,7 @@ public final class PacketHelper {
                 ctor.setAccessible(true);
             }
             sendPacket(nms, ctor.newInstance(List.of(uuid)));
-            Config.debugPackets("Tab REMOVE raw → " + receiver.getName() + " for " + uuid);
+            if (Config.debugPackets()) Config.debugPackets("Tab REMOVE raw for " + uuid);
         } catch (Exception e) {
             FppLogger.error("sendTabListRemoveByUuid failed: " + e.getMessage());
         }
@@ -607,7 +653,7 @@ public final class PacketHelper {
             }
 
             sendPacket(nms, playerInfoUpdateCtor.newInstance(cachedUpdateLatencyActions, buildSecondArg(entry)));
-            Config.debugPackets("Tab LATENCY → " + receiver.getName() + " for " + fp.getName() + " ping=" + latency);
+            if (Config.debugPackets()) Config.debugPackets("Tab LATENCY for " + fp.getName());
         } catch (Exception e) {
             Config.debugPackets("sendTabListLatencyUpdate failed: " + e.getMessage());
         }
@@ -641,7 +687,7 @@ public final class PacketHelper {
             }
 
             sendPacket(nms, playerInfoUpdateCtor.newInstance(cachedUpdateListedActions, buildSecondArg(entry)));
-            Config.debugPackets("Tab LISTED(" + listed + ") → " + receiver.getName() + " for " + fp.getName());
+            if (Config.debugPackets()) Config.debugPackets("Tab LISTED for " + fp.getName());
         } catch (Exception e) {
             Config.debugPackets("sendTabListUpdateListed failed: " + e.getMessage());
         }
@@ -682,7 +728,7 @@ public final class PacketHelper {
             Object actions = cachedUpdateDisplayLatencyListedActions;
 
             sendPacket(nms, playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry)));
-            Config.debugPackets("Tab REFRESH → " + receiver.getName() + " for " + fp.getName());
+            if (Config.debugPackets()) Config.debugPackets("Tab REFRESH for " + fp.getName());
         } catch (Exception e) {
             Config.debugPackets("sendTabListRefreshEntry failed: " + describeException(e));
         }
@@ -718,7 +764,7 @@ public final class PacketHelper {
                             0,
                             vec3Zero,
                             0.0));
-            Config.debugPackets("Spawn entity → " + receiver.getName() + " for " + fp.getName());
+            if (Config.debugPackets()) Config.debugPackets("Spawn entity for " + fp.getName());
         } catch (Exception e) {
             FppLogger.error("spawnFakePlayer failed: " + e.getMessage());
             if (Config.debugPackets()) FppLogger.warn("  → " + e);
@@ -731,7 +777,7 @@ public final class PacketHelper {
             Object nms = getHandle(receiver);
             Constructor<?> ctor = removeEntitiesPacketClass.getConstructor(int[].class);
             sendPacket(nms, ctor.newInstance((Object) new int[] {fp.getPlayer().getEntityId()}));
-            Config.debugPackets("Despawn entity → " + receiver.getName() + " for " + fp.getName());
+            if (Config.debugPackets()) Config.debugPackets("Despawn entity for " + fp.getName());
         } catch (Exception e) {
             FppLogger.error("despawnFakePlayer failed: " + e.getMessage());
         }

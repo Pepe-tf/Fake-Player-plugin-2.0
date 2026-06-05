@@ -51,7 +51,7 @@ public final class SaveCommand implements FppCommand {
             sender.sendMessage(Component.text("Bot persistence is not available.", NamedTextColor.RED));
             return true;
         }
-        plugin.getBotPersistence().saveAsync(plugin.getFakePlayerManager().getActivePlayers());
+        plugin.getBotPersistence().saveFullAsync(plugin.getFakePlayerManager().getActivePlayers());
         sender.sendMessage(Component.text(
                 "Saving " + plugin.getFakePlayerManager().getCount() + " active bot(s).", NamedTextColor.YELLOW));
         return true;

@@ -35,6 +35,7 @@ public class BotCollisionListener implements Listener {
     private static final double PLAYER_SPRINT_BONUS = 0.28D;
 
     private int separationTickCounter = 0;
+    private int separationCursor = 0;
 
     public BotCollisionListener(FakePlayerPlugin plugin, FakePlayerManager manager) {
         this.plugin = plugin;
@@ -216,9 +217,10 @@ public class BotCollisionListener implements Listener {
     }
 
     private void tickBotSeparation() {
+        if (NmsPlayerSpawner.isFoliaServer()) return;
         if (!Config.bodyPushable()) return;
 
-        if ((++separationTickCounter & 1) != 0) return;
+        if ((++separationTickCounter % 5) != 0) return;
 
         Collection<FakePlayer> all = manager.getActivePlayers();
         if (all.size() < 2) return;
@@ -229,12 +231,16 @@ public class BotCollisionListener implements Listener {
 
         FakePlayer[] bots = all.toArray(new FakePlayer[0]);
         int len = bots.length;
-        for (int i = 0; i < len; i++) {
+        int checks = 0;
+        int maxChecks = Math.max(32, len * 3);
+        for (int offset = 0; offset < len && checks < maxChecks; offset++) {
+            int i = (separationCursor + offset) % len;
             Player bodyA = bots[i].getPlayer();
             if (bodyA == null || !bodyA.isValid()) continue;
             Location locA = bodyA.getLocation();
 
             for (int j = i + 1; j < len; j++) {
+                if (++checks > maxChecks) break;
                 Player bodyB = bots[j].getPlayer();
                 if (bodyB == null || !bodyB.isValid()) continue;
                 if (!bodyA.getWorld().equals(bodyB.getWorld())) continue;
@@ -259,6 +265,7 @@ public class BotCollisionListener implements Listener {
                 applyImpulse(bodyA, -nx * strength, -nz * strength, maxHoriz);
             }
         }
+        separationCursor = (separationCursor + Math.max(1, len / 4)) % len;
     }
 
     private static void applyImpulse(Entity body, double ix, double iz, double maxHoriz) {

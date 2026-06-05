@@ -18,6 +18,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
@@ -518,6 +520,11 @@ public class DatabaseManager {
     private boolean isMysql = false;
     private File dataFolder;
     private FakePlayerPlugin plugin;
+    private final ExecutorService writeExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "FPP-Database-Writer");
+        t.setDaemon(true);
+        return t;
+    });
 
     private final Map<String, BotRecord> activeRecords = new ConcurrentHashMap<>();
     private final Map<String, PendingLocation> pendingLocations = new ConcurrentHashMap<>();
@@ -918,6 +925,14 @@ public class DatabaseManager {
         }
         Config.debugDbConn("Database close() called - connection=" + connection + ", closed=" + isClosed);
         flushPendingLocations();
+        writeExecutor.shutdown();
+        try {
+            if (!writeExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                FppLogger.warn("Database writer did not finish within 5 seconds; closing anyway.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         try {
             if (connection != null && !isClosed) {
                 Config.debugDbConn("Closing active database connection");
@@ -1703,12 +1718,16 @@ public class DatabaseManager {
         }
     }
 
-    private synchronized void enqueue(Runnable task) {
-        try {
-            task.run();
-        } catch (Exception e) {
-            FppLogger.error("DB write error: " + e.getMessage());
-        }
+    private void enqueue(Runnable task) {
+        writeExecutor.execute(() -> {
+            synchronized (this) {
+                try {
+                    task.run();
+                } catch (Exception e) {
+                    FppLogger.error("DB write error: " + e.getMessage());
+                }
+            }
+        });
     }
 
     private BotRecord mapSession(ResultSet rs) throws SQLException {

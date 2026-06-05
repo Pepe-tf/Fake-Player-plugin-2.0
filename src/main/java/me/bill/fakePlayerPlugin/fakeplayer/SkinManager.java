@@ -1518,6 +1518,16 @@ public final class SkinManager {
         Player botPlayer = bot.getPlayer();
         if (botPlayer == null || !botPlayer.isOnline()) return false;
 
+        if (NmsPlayerSpawner.isFoliaServer()) {
+            SkinProfile appliedSkin = new SkinProfile(texture, signature, "direct:" + bot.getName());
+            bot.setResolvedSkin(appliedSkin);
+            NmsPlayerSpawner.applySkinToGameProfile(botPlayer, appliedSkin);
+            if (plugin.getDatabaseManager() != null) {
+                plugin.getDatabaseManager().updateBotSkin(bot.getUuid().toString(), texture, signature);
+            }
+            return true;
+        }
+
         try {
             PlayerProfile profile = botPlayer.getPlayerProfile();
             profile.removeProperty("textures");
@@ -1545,6 +1555,15 @@ public final class SkinManager {
     public boolean resetToDefaultSkin(@NotNull FakePlayer bot) {
         Player botPlayer = bot.getPlayer();
         if (botPlayer == null || !botPlayer.isOnline()) return false;
+
+        if (NmsPlayerSpawner.isFoliaServer()) {
+            bot.setResolvedSkin(null);
+            NmsPlayerSpawner.applySkinToGameProfile(botPlayer, null);
+            if (plugin.getDatabaseManager() != null) {
+                plugin.getDatabaseManager().updateBotSkin(bot.getUuid().toString(), null, null);
+            }
+            return true;
+        }
 
         try {
             PlayerProfile profile = botPlayer.getPlayerProfile();
@@ -1642,6 +1661,14 @@ public final class SkinManager {
     }
 
     private void copyTexture(@NotNull PlayerProfile from, @NotNull Player to) {
+        if (NmsPlayerSpawner.isFoliaServer()) {
+            from.getProperties().stream()
+                    .filter(p -> "textures".equals(p.getName()))
+                    .findAny()
+                    .map(p -> new SkinProfile(p.getValue(), p.getSignature(), "profile:" + to.getName()))
+                    .ifPresent(skin -> NmsPlayerSpawner.applySkinToGameProfile(to, skin));
+            return;
+        }
         PlayerProfile toProfile = to.getPlayerProfile();
         toProfile.setTextures(from.getTextures());
         from.getProperties().stream()

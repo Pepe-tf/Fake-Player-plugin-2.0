@@ -269,6 +269,11 @@ public final class FakePlayerBody {
     private static void applyPaperSkin(Player bot, SkinProfile skin) {
         if (skin == null || !skin.isValid()) return;
         FakePlayerPlugin fpp = FakePlayerPlugin.getInstance();
+        if (NmsPlayerSpawner.isFoliaServer()) {
+            NmsPlayerSpawner.applySkinToGameProfile(bot, skin);
+            NmsPlayerSpawner.forceAllSkinParts(bot);
+            return;
+        }
         if (fpp != null && fpp.getSkinManager() != null) {
             FakePlayer fp = fpp.getFakePlayerManager() != null
                     ? fpp.getFakePlayerManager().getByUuid(bot.getUniqueId())

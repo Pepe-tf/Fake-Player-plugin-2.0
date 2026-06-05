@@ -16,6 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -27,8 +28,13 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
+import org.bukkit.event.EventException;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredListener;
+import org.bukkit.plugin.EventExecutor;
 import org.bukkit.util.Vector;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
@@ -50,6 +56,11 @@ public final class NmsPlayerSpawner {
 
     private static volatile boolean initialized = false;
     private static volatile boolean failed = false;
+    private static volatile boolean cmiJoinGuardInstalled = false;
+    private static Field registeredListenerExecutorField;
+    private static final Set<UUID> placingFakePlayers = Collections.synchronizedSet(new HashSet<>());
+    private static final Map<UUID, Boolean> lastJumpingState = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, Field> latencyFieldCache = new ConcurrentHashMap<>();
 
     private static Method craftPlayerGetHandleMethod;
     private static Method craftPlayerRefreshPlayerMethod;
@@ -70,6 +81,8 @@ public final class NmsPlayerSpawner {
     private static Method setPosMethod;
     private static Method doTickMethod;
     private static Method getPlayerListMethod;
+    private static volatile Method serverPlayerGetBukkitEntityMethod;
+    private static volatile Method playerListPlaceNewPlayerMethod;
 
     private static Field xoField;
     private static Field yoField;
@@ -450,7 +463,7 @@ public final class NmsPlayerSpawner {
             FppLogger.debug("NmsPlayerSpawner: spawning '" + name + "' uuid=" + uuid);
             ensurePlayerDataExists(minecraftServer, serverPlayer, name, uuid);
 
-            boolean placed = placePlayer(minecraftServer, conn, serverPlayer, gameProfile, clientInfo);
+            boolean placed = placePlayer(minecraftServer, conn, serverPlayer, gameProfile, clientInfo, uuid);
             if (!placed) {
                 cleanupFailedSpawn(minecraftServer, serverPlayer, name);
                 FppLogger.warn("NmsPlayerSpawner: placeNewPlayer failed for " + name);
@@ -462,7 +475,7 @@ public final class NmsPlayerSpawner {
 
             injectFakeListener(minecraftServer, conn, serverPlayer, gameProfile, clientInfo);
 
-            Method getBukkitEntity = serverPlayerClass.getMethod("getBukkitEntity");
+            Method getBukkitEntity = getServerPlayerGetBukkitEntityMethod();
             Object entity = getBukkitEntity.invoke(serverPlayer);
             if (entity instanceof Player result) {
                 applyRotation(result, yaw, pitch);
@@ -539,6 +552,8 @@ public final class NmsPlayerSpawner {
 
     public static void setJumping(Player bot, boolean jumping) {
         if (!initialized || jumpingField == null || craftPlayerGetHandleMethod == null) return;
+        Boolean previous = lastJumpingState.put(bot.getUniqueId(), jumping);
+        if (previous != null && previous == jumping) return;
         try {
             Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
             jumpingField.setBoolean(nmsPlayer, jumping);
@@ -1014,13 +1029,24 @@ public final class NmsPlayerSpawner {
     }
 
     private static Field findLatencyField(Class<?> clazz) {
+        Field cached = latencyFieldCache.get(clazz);
+        if (cached != null) return cached;
+
         Field direct = findFieldByType(clazz, int.class, "latency");
-        if (direct != null) return direct;
+        if (direct != null) {
+            direct.setAccessible(true);
+            latencyFieldCache.put(clazz, direct);
+            return direct;
+        }
         for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
             for (Field f : c.getDeclaredFields()) {
                 if (f.getType() != int.class || Modifier.isStatic(f.getModifiers())) continue;
                 String name = f.getName().toLowerCase(Locale.ROOT);
-                if (name.equals("ping") || name.equals("latency")) return f;
+                if (name.equals("ping") || name.equals("latency")) {
+                    f.setAccessible(true);
+                    latencyFieldCache.put(clazz, f);
+                    return f;
+                }
             }
         }
         return null;
@@ -1290,7 +1316,7 @@ public final class NmsPlayerSpawner {
     }
 
     private static boolean placePlayer(
-            Object minecraftServer, Object conn, Object serverPlayer, Object gameProfile, Object clientInfo) {
+            Object minecraftServer, Object conn, Object serverPlayer, Object gameProfile, Object clientInfo, UUID uuid) {
         try {
             Object playerList = getPlayerListMethod.invoke(minecraftServer);
             if (conn == null || commonListenerCookieClass == null) {
@@ -1300,16 +1326,22 @@ public final class NmsPlayerSpawner {
             Object cookie = createCookieDynamic(gameProfile, clientInfo);
             if (cookie == null) return false;
 
-            Method placeMethod = findMethod(playerList.getClass(), "placeNewPlayer", 3);
+            Method placeMethod = getPlaceNewPlayerMethod(playerList.getClass());
             if (placeMethod == null) {
                 FppLogger.warn("NmsPlayerSpawner: placeNewPlayer(3-arg) not found on PlayerList");
                 return false;
             }
-            placeMethod.setAccessible(true);
+            installCmiJoinGuard();
 
             for (int attempt = 0; attempt < 5; attempt++) {
                 try {
-                    placeMethod.invoke(playerList, conn, serverPlayer, cookie);
+                    placingFakePlayers.add(uuid);
+                    List<RegisteredListener> suppressedJoinListeners = suppressHeavyFakePlayerJoinListeners();
+                    try {
+                        placeMethod.invoke(playerList, conn, serverPlayer, cookie);
+                    } finally {
+                        restoreSuppressedJoinListeners(suppressedJoinListeners);
+                    }
                     if (attempt > 0) {
                         FppLogger.debug("NmsPlayerSpawner.placePlayer succeeded on attempt " + (attempt + 1));
                     }
@@ -1332,6 +1364,8 @@ public final class NmsPlayerSpawner {
                             + ": "
                             + cause.getMessage());
                     return false;
+                } finally {
+                    placingFakePlayers.remove(uuid);
                 }
             }
         } catch (Exception e) {
@@ -1342,6 +1376,111 @@ public final class NmsPlayerSpawner {
                     + cause.getMessage());
         }
         return false;
+    }
+
+    private static void installCmiJoinGuard() {
+        if (cmiJoinGuardInstalled || Bukkit.getPluginManager().getPlugin("CMI") == null) return;
+        cmiJoinGuardInstalled = true;
+        try {
+            if (registeredListenerExecutorField == null) {
+                registeredListenerExecutorField = RegisteredListener.class.getDeclaredField("executor");
+                registeredListenerExecutorField.setAccessible(true);
+            }
+            for (RegisteredListener registered : PlayerJoinEvent.getHandlerList().getRegisteredListeners()) {
+                if (!"CMI".equalsIgnoreCase(registered.getPlugin().getName())) continue;
+                String listenerClass = registered.getListener().getClass().getName();
+                if (!listenerClass.contains("com.Zrips.CMI.AllListeners.UserEvents")) continue;
+                Object current = registeredListenerExecutorField.get(registered);
+                if (!(current instanceof EventExecutor executor) || current instanceof CmiJoinGuardExecutor) continue;
+                registeredListenerExecutorField.set(registered, new CmiJoinGuardExecutor(executor));
+                FppLogger.info("NmsPlayerSpawner: installed CMI fake-player join guard.");
+            }
+        } catch (Throwable t) {
+            FppLogger.debug("NmsPlayerSpawner: CMI fake-player join guard unavailable: " + t.getMessage());
+        }
+    }
+
+    private static Method getServerPlayerGetBukkitEntityMethod() throws NoSuchMethodException {
+        Method method = serverPlayerGetBukkitEntityMethod;
+        if (method != null) return method;
+        synchronized (NmsPlayerSpawner.class) {
+            method = serverPlayerGetBukkitEntityMethod;
+            if (method == null) {
+                method = serverPlayerClass.getMethod("getBukkitEntity");
+                method.setAccessible(true);
+                serverPlayerGetBukkitEntityMethod = method;
+            }
+            return method;
+        }
+    }
+
+    private static Method getPlaceNewPlayerMethod(Class<?> playerListClass) {
+        Method method = playerListPlaceNewPlayerMethod;
+        if (method != null) return method;
+        synchronized (NmsPlayerSpawner.class) {
+            method = playerListPlaceNewPlayerMethod;
+            if (method == null) {
+                method = findMethod(playerListClass, "placeNewPlayer", 3);
+                if (method != null) {
+                    method.setAccessible(true);
+                    playerListPlaceNewPlayerMethod = method;
+                }
+            }
+            return method;
+        }
+    }
+
+    private static List<RegisteredListener> suppressHeavyFakePlayerJoinListeners() {
+        List<RegisteredListener> suppressed = new ArrayList<>();
+        try {
+            for (RegisteredListener registered : PlayerJoinEvent.getHandlerList().getRegisteredListeners()) {
+                if (!isHeavyFakePlayerJoinListener(registered)) continue;
+                PlayerJoinEvent.getHandlerList().unregister(registered);
+                suppressed.add(registered);
+            }
+            if (!suppressed.isEmpty()) {
+                FppLogger.debug("NmsPlayerSpawner: suppressed "
+                        + suppressed.size()
+                        + " heavy join listener(s) for fake-player placement.");
+            }
+        } catch (Throwable t) {
+            FppLogger.debug("NmsPlayerSpawner: heavy join suppression failed: " + t.getMessage());
+        }
+        return suppressed;
+    }
+
+    private static void restoreSuppressedJoinListeners(List<RegisteredListener> suppressed) {
+        if (suppressed == null || suppressed.isEmpty()) return;
+        try {
+            for (RegisteredListener registered : suppressed) {
+                PlayerJoinEvent.getHandlerList().register(registered);
+            }
+        } catch (Throwable t) {
+            FppLogger.warn("NmsPlayerSpawner: failed to restore suppressed join listener(s): " + t.getMessage());
+        }
+    }
+
+    private static boolean isHeavyFakePlayerJoinListener(RegisteredListener registered) {
+        if (registered == null || registered.getPlugin() == null || registered.getListener() == null) return false;
+        String pluginName = registered.getPlugin().getName();
+        String listenerClass = registered.getListener().getClass().getName();
+        if ("CMI".equalsIgnoreCase(pluginName)) {
+            return listenerClass.contains("com.Zrips.CMI.AllListeners.UserEvents");
+        }
+        return "voicechat".equalsIgnoreCase(pluginName)
+                || "SimpleVoiceChat".equalsIgnoreCase(pluginName)
+                || listenerClass.startsWith("de.maxhenkel.voicechat.");
+    }
+
+    private record CmiJoinGuardExecutor(EventExecutor delegate) implements EventExecutor {
+        @Override
+        public void execute(org.bukkit.event.Listener listener, Event event) throws EventException {
+            if (event instanceof PlayerJoinEvent joinEvent
+                    && placingFakePlayers.contains(joinEvent.getPlayer().getUniqueId())) {
+                return;
+            }
+            delegate.execute(listener, event);
+        }
     }
 
     private static boolean isWorldDataNotReadyFailure(Throwable cause) {
@@ -1532,12 +1671,15 @@ public final class NmsPlayerSpawner {
                 return;
             }
 
-            // Block until LP finishes the async load (usually <50 ms).
-            // This is safe because the DB work runs on LP's own threads;
-            // we are merely waiting so that Vault/WorldGuard see a warm cache.
-            Method get = future.getClass().getMethod("get");
-            get.invoke(future);
-            FppLogger.debug("NmsPlayerSpawner: pre-loaded LuckPerms user for " + uuid);
+            Method whenComplete = future.getClass().getMethod("whenComplete", java.util.function.BiConsumer.class);
+            whenComplete.invoke(future, (java.util.function.BiConsumer<Object, Throwable>) (loadedUser, error) -> {
+                if (error != null) {
+                    FppLogger.debug("NmsPlayerSpawner: async LuckPerms pre-load failed for " + uuid + ": "
+                            + error.getClass().getSimpleName());
+                    return;
+                }
+                FppLogger.debug("NmsPlayerSpawner: asynchronously pre-loaded LuckPerms user for " + uuid);
+            });
         } catch (Throwable t) {
             if (t instanceof java.lang.reflect.InvocationTargetException ite) {
                 Throwable cause = ite.getCause();

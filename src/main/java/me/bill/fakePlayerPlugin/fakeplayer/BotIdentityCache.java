@@ -6,6 +6,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -34,6 +36,13 @@ public final class BotIdentityCache {
     private static final String OFFLINE_UUID_NAMESPACE = "OfflinePlayer:";
     private static final String USER_AGENT = "FakePlayerPlugin/1.6.6.11";
     private static final long MOJANG_RATE_LIMIT_COOLDOWN_MS = TimeUnit.MINUTES.toMillis(5);
+    private static final ThreadLocal<MessageDigest> MD5 = ThreadLocal.withInitial(() -> {
+        try {
+            return MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    });
 
     private final FakePlayerPlugin pluginRef;
     private final DatabaseManager db;
@@ -96,8 +105,18 @@ public final class BotIdentityCache {
     }
 
     public static UUID offlineModeUuid(String botName) {
-        return UUID.nameUUIDFromBytes(
-                (OFFLINE_UUID_NAMESPACE + String.valueOf(botName)).getBytes(StandardCharsets.UTF_8));
+        MessageDigest md5 = MD5.get();
+        md5.reset();
+        byte[] bytes = md5.digest((OFFLINE_UUID_NAMESPACE + String.valueOf(botName)).getBytes(StandardCharsets.UTF_8));
+        bytes[6] &= 0x0f;
+        bytes[6] |= 0x30;
+        bytes[8] &= 0x3f;
+        bytes[8] |= 0x80;
+        long most = 0;
+        long least = 0;
+        for (int i = 0; i < 8; i++) most = (most << 8) | (bytes[i] & 0xffL);
+        for (int i = 8; i < 16; i++) least = (least << 8) | (bytes[i] & 0xffL);
+        return new UUID(most, least);
     }
 
     private UUID lookupOrCreateDb(String botName, String cacheKey) {

@@ -228,7 +228,7 @@ public class FakePlayerEntityListener implements Listener {
 
         if (fp.isRespawnOnDeath()) {
 
-            int delay = Math.max(1, Config.respawnDelay());
+            int delay = Math.max(0, Config.respawnDelay());
             if (chunkLoader != null) chunkLoader.releaseForBot(fp);
 
             fp.setPlayer(null);
@@ -285,7 +285,7 @@ public class FakePlayerEntityListener implements Listener {
 
                                     fp.setRespawning(false);
                                 },
-                                2L);
+                                1L);
                     },
                     delay);
 

@@ -766,6 +766,10 @@ public final class FakePlayer {
         return Set.copyOf(sharedControllers);
     }
 
+    public boolean hasSharedControllers() {
+        return !sharedControllers.isEmpty();
+    }
+
     public boolean hasSharedController(UUID uuid) {
         return uuid != null && sharedControllers.contains(uuid);
     }

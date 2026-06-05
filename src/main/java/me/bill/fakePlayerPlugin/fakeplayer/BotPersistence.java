@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -58,6 +59,10 @@ public final class BotPersistence {
     private final File xpFile;
     private final File unifiedFile;
     private final FakePlayerPlugin plugin;
+    private final AtomicBoolean asyncSaveQueued = new AtomicBoolean(false);
+    private final AtomicBoolean activeListSaveScheduled = new AtomicBoolean(false);
+    private volatile boolean activeListSaveDirty = false;
+    private volatile Iterable<FakePlayer> activeListSavePlayers = List.of();
 
     private MoveCommand moveCommand;
     private AttackCommand attackCommand;
@@ -103,6 +108,11 @@ public final class BotPersistence {
     }
 
     public void saveAsync(Iterable<FakePlayer> players) {
+        saveActiveListAsync(players);
+    }
+
+    public void saveFullAsync(Iterable<FakePlayer> players) {
+        if (!asyncSaveQueued.compareAndSet(false, true)) return;
 
         fireSaveEvents(players);
         List<Object> list = buildList(players);
@@ -111,15 +121,71 @@ public final class BotPersistence {
         Map<String, TaskEntry> taskSnap = snapshotTasks(players);
         FppScheduler.runAsync(plugin, () -> {
             try {
-                BotDataYaml.replaceSection(plugin, ROOT_BOTS, section -> {
-                    section.set("bots", list);
-                });
-            } catch (IOException e) {
-                FppLogger.error("Failed to auto-save active bots: " + e.getMessage());
+                try {
+                    BotDataYaml.replaceSection(plugin, ROOT_BOTS, section -> {
+                        section.set("bots", list);
+                    });
+                } catch (IOException e) {
+                    FppLogger.error("Failed to auto-save active bots: " + e.getMessage());
+                }
+                writeInventorySnapshot(invSnap);
+                writeXpSnapshot(xpSnap);
+                writeTaskSnapshot(taskSnap);
+            } finally {
+                asyncSaveQueued.set(false);
             }
-            writeInventorySnapshot(invSnap);
-            writeXpSnapshot(xpSnap);
-            writeTaskSnapshot(taskSnap);
+        });
+    }
+
+    public void saveActiveListAsync(Iterable<FakePlayer> players) {
+        activeListSavePlayers = players;
+        activeListSaveDirty = true;
+        if (activeListSaveScheduled.compareAndSet(false, true)) {
+            scheduleActiveListSave();
+        }
+    }
+
+    private void scheduleActiveListSave() {
+        FppScheduler.runSyncLater(plugin, () -> {
+            activeListSaveDirty = false;
+            List<Object> list = buildActiveListLight(activeListSavePlayers);
+            FppScheduler.runAsync(plugin, () -> {
+                try {
+                    writeActiveBotList(list);
+                } finally {
+                    if (activeListSaveDirty) {
+                        scheduleActiveListSave();
+                    } else {
+                        activeListSaveScheduled.set(false);
+                        if (activeListSaveDirty && activeListSaveScheduled.compareAndSet(false, true)) {
+                            scheduleActiveListSave();
+                        }
+                    }
+                }
+            });
+        }, 20L);
+    }
+
+    private void writeActiveBotList(List<Object> list) {
+        try {
+            BotDataYaml.replaceSection(plugin, ROOT_BOTS, section -> {
+                section.set("bots", list);
+            });
+        } catch (IOException e) {
+            FppLogger.error("Failed to auto-save active bots: " + e.getMessage());
+        }
+    }
+
+    private void saveActiveListNowAsync(Iterable<FakePlayer> players) {
+        if (!asyncSaveQueued.compareAndSet(false, true)) return;
+
+        List<Object> list = buildActiveListLight(players);
+        FppScheduler.runAsync(plugin, () -> {
+            try {
+                writeActiveBotList(list);
+            } finally {
+                asyncSaveQueued.set(false);
+            }
         });
     }
 
@@ -632,10 +698,11 @@ public final class BotPersistence {
             section.put("auto-milk-enabled", fp.isAutoMilkEnabled());
             section.put("prevent-bad-omen", fp.isPreventBadOmen());
             section.put("chunk-load-radius", fp.getChunkLoadRadius());
-            if (!fp.getSharedControllers().isEmpty()) {
+            if (fp.hasSharedControllers()) {
+                Set<UUID> sharedControllers = fp.getSharedControllers();
                 section.put(
                         "shared-controllers",
-                        fp.getSharedControllers().stream()
+                        sharedControllers.stream()
                                 .map(UUID::toString)
                                 .sorted()
                                 .toList());
@@ -673,6 +740,75 @@ public final class BotPersistence {
                 if (skin.getSignature() != null) {
                     section.put("skin-signature", skin.getSignature());
                 }
+            }
+            list.add(section);
+        }
+        return list;
+    }
+
+    private List<Object> buildActiveListLight(Iterable<FakePlayer> players) {
+        List<Object> list = new ArrayList<>();
+        for (FakePlayer fp : players) {
+            Location loc = fp.getSpawnLocation();
+            if (loc == null || loc.getWorld() == null) continue;
+
+            var section = new LinkedHashMap<String, Object>();
+            section.put("name", fp.getName());
+            section.put("uuid", fp.getUuid().toString());
+            section.put("display-name", fp.getDisplayName());
+            section.put("spawned-by", fp.getSpawnedBy());
+            section.put("spawned-by-uuid", fp.getSpawnedByUuid().toString());
+            section.put("world", loc.getWorld().getName());
+            section.put("x", loc.getX());
+            section.put("y", loc.getY());
+            section.put("z", loc.getZ());
+            section.put("yaw", (double) loc.getYaw());
+            section.put("pitch", (double) loc.getPitch());
+            section.put("bot-type", fp.getBotType().name());
+            section.put("chat-enabled", fp.isChatEnabled());
+            section.put("respawn-on-death", fp.isRespawnOnDeath());
+            section.put("head-ai-enabled", fp.isHeadAiEnabled());
+            section.put("pickup-items", fp.isPickUpItemsEnabled());
+            section.put("pickup-xp", fp.isPickUpXpEnabled());
+            section.put("frozen", fp.isFrozen());
+            section.put("nav-parkour", fp.isNavParkour());
+            section.put("nav-break-blocks", fp.isNavBreakBlocks());
+            section.put("nav-place-blocks", fp.isNavPlaceBlocks());
+            section.put("nav-avoid-water", fp.isNavAvoidWater());
+            section.put("nav-avoid-lava", fp.isNavAvoidLava());
+            section.put("swim-ai-enabled", fp.isSwimAiEnabled());
+            section.put("auto-eat-enabled", fp.isAutoEatEnabled());
+            section.put("auto-place-bed-enabled", fp.isAutoPlaceBedEnabled());
+            section.put("auto-milk-enabled", fp.isAutoMilkEnabled());
+            section.put("prevent-bad-omen", fp.isPreventBadOmen());
+            section.put("chunk-load-radius", fp.getChunkLoadRadius());
+            if (fp.hasSharedControllers()) {
+                section.put(
+                        "shared-controllers",
+                        fp.getSharedControllers().stream()
+                                .map(UUID::toString)
+                                .sorted()
+                                .toList());
+            }
+            section.put("pve-enabled", fp.isPveEnabled());
+            section.put("pve-smart-attack-mode", fp.getPveSmartAttackMode().name());
+            section.put("pve-range", fp.getPveRange());
+            if (fp.getPvePriority() != null) section.put("pve-priority", fp.getPvePriority());
+            if (fp.getPveMobType() != null) section.put("pve-mob-type", fp.getPveMobType());
+            if (fp.hasCustomPing() || fp.isPingSimulated()) {
+                section.put("ping", fp.getPing());
+                section.put("ping-user-set", fp.hasCustomPing());
+            }
+            if (fp.getChatTier() != null) section.put("chat-tier", fp.getChatTier());
+            if (fp.getAiPersonality() != null) section.put("ai-personality", fp.getAiPersonality());
+            if (fp.getLuckpermsGroup() != null && !fp.getLuckpermsGroup().isBlank()) {
+                section.put("luckperms-group", fp.getLuckpermsGroup());
+            }
+            if (fp.getRightClickCommand() != null) section.put("right-click-command", fp.getRightClickCommand());
+            SkinProfile skin = fp.getResolvedSkin();
+            if (skin != null && skin.isValid()) {
+                section.put("skin-texture", skin.getValue());
+                if (skin.getSignature() != null) section.put("skin-signature", skin.getSignature());
             }
             list.add(section);
         }
@@ -783,7 +919,7 @@ public final class BotPersistence {
                     }
                 }
                 if (!saved.isEmpty()) {
-                    FppScheduler.runSyncLater(plugin, () -> restoreChain(manager, saved, 0), 40L);
+                    FppScheduler.runSyncLater(plugin, () -> restoreChain(manager, saved, 0), Config.restoreDelayTicks());
                 } else {
 
                     manager.setRestorationInProgress(false);
@@ -980,7 +1116,7 @@ public final class BotPersistence {
         }
 
         FppLogger.info("Restoring " + saved.size() + " bot(s) from YAML fallback...");
-        FppScheduler.runSyncLater(plugin, () -> restoreChain(manager, saved, 0), 40L);
+        FppScheduler.runSyncLater(plugin, () -> restoreChain(manager, saved, 0), Config.restoreDelayTicks());
     }
 
     private Map<String, SkinProfile> loadYamlSkinFallback() {
@@ -1011,16 +1147,33 @@ public final class BotPersistence {
     }
 
     private void restoreChain(FakePlayerManager manager, List<SavedBot> saved, int index) {
-        if (index >= saved.size()) {
-
-            manager.setRestorationInProgress(false);
-            loadedInventories = null;
-            loadedXp = null;
-            loadedTasks = null;
-            clearUnifiedSection(ROOT_TASKS);
-            deleteFile(tasksFile);
-            FppLogger.info("Bot restoration complete: " + saved.size() + " bot(s) restored.");
+        int batchEnd = Math.min(saved.size(), index + Config.restoreBatchSize());
+        int nextIndex = index;
+        while (nextIndex < batchEnd) {
+            nextIndex = restoreOne(manager, saved, nextIndex);
+        }
+        if (nextIndex < saved.size()) {
+            final int resumeAt = nextIndex;
+            FppScheduler.runSyncLater(plugin, () -> restoreChain(manager, saved, resumeAt), 1L);
             return;
+        }
+
+        finishRestore(manager, saved);
+    }
+
+    private void finishRestore(FakePlayerManager manager, List<SavedBot> saved) {
+        manager.setRestorationInProgress(false);
+        loadedInventories = null;
+        loadedXp = null;
+        loadedTasks = null;
+        clearUnifiedSection(ROOT_TASKS);
+        deleteFile(tasksFile);
+        FppLogger.info("Bot restoration complete: " + saved.size() + " bot(s) restored.");
+    }
+
+    private int restoreOne(FakePlayerManager manager, List<SavedBot> saved, int index) {
+        if (index >= saved.size()) {
+            return index;
         }
 
         SavedBot sb = saved.get(index);
@@ -1028,8 +1181,7 @@ public final class BotPersistence {
         World world = Bukkit.getWorld(sb.worldName);
         if (world == null) {
             FppLogger.warn("Cannot restore bot '" + sb.name + "' - world '" + sb.worldName + "' not found. Skipping.");
-            restoreChain(manager, saved, index + 1);
-            return;
+            return index + 1;
         }
 
         Location loc = new Location(world, sb.x, sb.y, sb.z, sb.yaw, sb.pitch);
@@ -1290,7 +1442,7 @@ public final class BotPersistence {
             }
         }
 
-        FppScheduler.runSync(plugin, () -> restoreChain(manager, saved, index + 1));
+        return index + 1;
     }
 
     private void restoreExtensionMetadata(FakePlayer fp) {
@@ -1659,9 +1811,9 @@ public final class BotPersistence {
                 () -> {
                     purgeOrphanedBodies();
 
-                    FppScheduler.runSyncLater(plugin, () -> restore(manager), 5L);
+                    restore(manager);
                 },
-                40L);
+                0L);
     }
 
     private void purgeOrphanedBodies() {
