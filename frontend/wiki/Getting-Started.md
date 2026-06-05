@@ -21,20 +21,20 @@ FPP spawns server-side bot entities that behave like players — useful for **AF
    - `bot-names.yml` — name pool
    - `bad-words.yml` — profanity filter word list
    - `data/` — SQLite database and persistence files
-   - `extensions/` — third-party extension JARs
+   - `extensions/` — extension JARs and extension data folders
 5. Configure permissions (see [Permissions](Permissions)).
 6. Run `/fpp reload` to apply most changes without restarting.
 
 ## Building from Source
 
-Requires JDK 21 and Gradle.
+Requires JDK 21+ and the Gradle wrapper.
 
 ```bash
 ./gradlew clean shadowJar
 ```
 
 - Output: `build/libs/fake-player-plugin-<version>-all.jar`
-- Optional profiles: `-Pbuild-velocity-companion`, `-Pbuild-bungee-companion`
+- The runnable plugin task is `shadowJar`; plain `jar` is not the final server plugin.
 
 The build depends on the **paperweight** Paper dev bundle (`paper-1.21.11-R0.1-SNAPSHOT`). Gradle downloads this automatically via the Paperweight plugin.
 

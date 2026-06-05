@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.6.6.12.5 (Health Check & Click Command Docs)
+
+### Core Updates
+- **Version bump** — plugin metadata and Gradle version are now `1.6.6.12.5`.
+- **System health checks** — `/fpp check` is registered with targeted flags for command, listener, NMS, database, Folia, world, config, extension, memory, and full/deep checks.
+- **Registered command sync** — current startup registration exposes `left-click` and `right-click` automation; older mine/use/place/find/storage command classes are not part of the registered core command set.
+- **Config defaults** — default `config.yml` is `config-version: 74`, includes persistence restore batching, uses `death.respawn-delay: 1`, and no longer includes `metrics.debug` or the old help-mode block.
+
+### First-Party Extensions
+- **Gradle extension build** — `fpp-extensions` is a Gradle multi-project that builds individual module jars and `fpp-extensions-bundle.jar` into workspace `builds/`.
+- **Current modules** — `fpp-aichat`, `fpp-chat`, `fpp-command`, `fpp-groups`, `fpp-list`, `fpp-luckperms`, `fpp-nametag`, `fpp-pathfinder`, `fpp-peaks`, `fpp-ping`, `fpp-skin`, `fpp-swap`, and `fpp-waypoints`.
+
+---
+
 ## v1.6.6.12.4 (Debug GUI, Left-Click Combat & Stability)
 
 ### 🎯 Main Focus
@@ -207,7 +221,7 @@ Added `frontend/legal/` pages (copyright, extension policy, privacy, ToS)
 - Wiki marketplace links
 
 ## v1.6.6.8
-- Spoofing moved to `fpp-spoof.jar` extension (chat, AI, swap, peak-hours, ping, groups, stored cmds)
+- Spoofing/chat-related features moved out of core into first-party extensions (chat, AI, swap, peak-hours, ping, groups, stored cmds)
 - PvE Smart Attack Mode (OFF / ON_NO_MOVE / ON_MOVE)
 - `/fpp save`, `/fpp setowner`
 - Per-bot overrides: respawn-on-death, auto-eat, auto-place-bed
@@ -241,7 +255,7 @@ https://github.com/Pepe-tf/fake-player-plugin/commits/main
 
 ---
 
-> **Note:** The built-in ConfigMigrator handles upgrades transparently. Current config version: **75**. Always back up `plugins/FakePlayerPlugin/` before major updates.
+> **Note:** The built-in ConfigMigrator handles upgrades transparently. Current default config version: **74**. Always back up `plugins/FakePlayerPlugin/` before major updates.
 
 ---
 

@@ -70,11 +70,11 @@
 ### Q: Where do I put extension JARs?
 **A:** `plugins/FakePlayerPlugin/extensions/`. Create the folder if it doesn't exist, then `/fpp reload`.
 
-### Q: `fpp-spoof.jar` extension is missing.
-**A:** This extension is not part of the core plugin. Download it from the [FPP Marketplace](https://mp.fpp.wtf/resources/resource/9-fpp---spoof/).
+### Q: Where are the old spoof/chat/ping/skin features?
+**A:** They are first-party extensions now. Install the relevant individual jar or `fpp-extensions-bundle.jar` from the first-party `fpp-extensions` build.
 
 ### Q: Why do some config keys (fake-chat, swap, peak-hours, ping) not do anything?
-**A:** Those settings exist in core `config.yml` but only function when the **`fpp-spoof.jar`** extension is loaded. If you haven't installed it, the toggles will appear in config but have no effect.
+**A:** Those systems are owned by first-party extensions such as `fpp-chat`, `fpp-swap`, `fpp-peaks`, and `fpp-ping`. Check the extension's own config under `plugins/FakePlayerPlugin/extensions/<extension-name>/config.yml`.
 
 ## Performance
 

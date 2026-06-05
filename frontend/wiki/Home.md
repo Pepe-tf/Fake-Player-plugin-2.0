@@ -48,9 +48,11 @@ Some advanced subsystems are implemented as extensions and are not part of the b
 
 ---
 
-## Latest Version: v1.6.6.12.4
+## Latest Version: v1.6.6.12.5
 
 **Highlights:**
+- ✅ **System Check** — `/fpp check` runs targeted or full health checks for commands, listeners, NMS, database, Folia, world, config, extensions, and memory
+- 🖱️ **Left/Right Click Automation** — `/fpp left-click` and `/fpp right-click` replace older mine/use style automation with once, repeat, hold, and stop modes
 - ✅ **Debug GUI** — Toggle every debug category at runtime from `/fpp settings`
 - 💬 **Debug Chat** — Broadcast debug output to OP/notify players in-game
 - 🔧 **WorldGuard Refresh** — Stale region data fixed after teleports and respawns

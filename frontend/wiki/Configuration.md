@@ -26,6 +26,8 @@ Seconds between `/fpp spawn` uses. `0` = disabled.
 
 ### `persistence`
 - `enabled: true` — bots save position on shutdown and rejoin on restart
+- `restore-delay-ticks: 0` — delay before restore starts after plugin enable
+- `restore-batch-size: 1` — bots restored per batch
 
 ### `heartbeat`
 - `enabled: true` — controls whether the network heartbeat manager publishes server status
@@ -64,19 +66,14 @@ Seconds between `/fpp spawn` uses. `0` = disabled.
 - `kill-message: false` — broadcast when a real player kills a bot
 - `notify-admins-on-join: true` — send compatibility warnings to admins on join
 
-### `help`
-- `mode: gui` — `gui` (interactive inventory) or `text` (chat-based help menu)
-
 ### `metrics`
 - `enabled: true` — anonymous FastStats usage statistics
-- `debug: false` — log metrics flushes and individual events at `DEBUG` level
 
 ---
 
 ## 3. Body & Combat
 
 ### `body`
-- `enabled: true` — physical entity in the world
 - `pushable: true` — players/explosions can push bots
 - `damageable: true` — take all damage (if `false`, still takes environmental)
 - `pick-up-items: true`
@@ -93,11 +90,11 @@ Seconds between `/fpp spawn` uses. `0` = disabled.
 
 ### `death`
 - `respawn-on-death: false` — respawn at spawn location after death
-- `respawn-delay: 15` — ticks before respawn
+- `respawn-delay: 1` — ticks before respawn
 - `suppress-drops: false` — `true` = suppress all drops
 
 ### `skin`
-- `mode: random` — `off`, `auto`, `player`, `url`, `file`, `random`, `custom`
+- `mode: player` — `player`, `random`, or `none`
 - `clear-cache-on-reload: true` — clear memory cache on `/fpp reload`
 - `guaranteed-skin: true` — attempt to ensure every bot gets a valid skin
 - `pool: []` — list of Minecraft usernames to use as skin sources
@@ -108,7 +105,7 @@ Seconds between `/fpp spawn` uses. `0` = disabled.
   - `api-key: ""`
   - `visibility: private`
 
-> Skins require valid player profiles and depend on Mojang API rate limits.
+> Core keeps neutral skin persistence and profile refresh support. The user-facing `/fpp skin` command and spawn `--skin` hook are provided by the first-party `fpp-skin` extension.
 
 ### `automation`
 Defaults copied to newly spawned bots:
@@ -240,7 +237,7 @@ Debug logging is now controlled by `plugins/FakePlayerPlugin/debug.yml` for bett
 - `right-click: false` — Right-click automation
 - `right-click-head: false` — Right-click head rotation
 - `head-ai: false` — Head AI tracking
-- `swap: false` — Swap system (requires fpp-spoof)
+- `swap: false` — Swap system debug category (used when the first-party `fpp-swap` extension is installed)
 - `packets: false` — Packet injection/manipulation
 
 > You can toggle any of these at runtime via **`/fpp settings`** → the **🐛 ᴅᴇʙᴜɢ** category. Changes are saved to `debug.yml` immediately. Run `/fpp reload` after manual edits to `debug.yml`.
@@ -260,46 +257,42 @@ Debug logging is now controlled by `plugins/FakePlayerPlugin/debug.yml` for bett
 ## Ping
 
 ### `ping`
-> These keys exist in core `config.yml` but require the **`fpp-spoof.jar`** extension to function.
+> Ping editing and simulation are owned by the first-party `fpp-ping` extension. Its defaults live in `plugins/FakePlayerPlugin/extensions/fpp-ping/config.yml`.
 
-- `enabled: true` — random fake ping
-- `min: 8` — minimum ping ms
-- `max: 120` — maximum ping ms
-- `variability: 15` — how much ping can swing per update
+- `random.min: 20` — minimum random ping ms
+- `random.max: 200` — maximum random ping ms
+- `ping.enabled: false` — enable dynamic ping simulation
+- `ping.min: 20` — minimum simulated ping ms
+- `ping.max: 200` — maximum simulated ping ms
+- `variability: 8` — how much ping can swing per update
 - `update-interval: 40` — ticks between ping updates
 - `latency-effect: true` — ping influences other timing behavior
 - `behavior-effect: true` — ping influences bot AI reaction speed
-- `max-behavior-skip-ticks: 2` — max ticks to skip due to high ping
-- `spike-chance: 5.0` — chance for a ping spike (%)
+- `max-behavior-skip-ticks: 8` — max ticks to skip due to high ping
+- `spike-chance: 0.04` — chance for a ping spike
 - `spike-min: 200` — spike minimum ms
-- `spike-max: 400` — spike maximum ms
-- `join-ramp-ticks: 40` — ticks to ramp ping after bot join
+- `spike-max: 600` — spike maximum ms
+- `join-ramp-ticks: 60` — ticks to ramp ping after bot join
 
 ---
 
 ## Extension-Only Settings
 
-The following keys exist in core `config.yml` but only function when the **`fpp-spoof.jar`** extension is loaded:
+The following systems are first-party extensions. Their current defaults live in each extension data folder under `plugins/FakePlayerPlugin/extensions/<extension-name>/config.yml`:
 
-### `fake-chat`
-- `enabled: false`
-- `prefix: "[BOT]"`
-- `cooldown-seconds: 5`
-- `...`
-
-### `swap`
-- `enabled: false`
-- `cooldown-seconds: 30`
-- `...`
-
-### `peak-hours`
-- `enabled: false`
-- `slots: 20`
-- `start-hour: 0`
-- `end-hour: 23`
-- `...`
-
-Download `fpp-spoof.jar` from the [FPP Marketplace](https://mp.fpp.wtf/resources/resource/9-fpp---spoof/).
+- `fpp-aichat` — AI personalities and direct/public AI chat
+- `fpp-chat` — fake chat event triggers, bot-to-bot replies, keyword reactions
+- `fpp-command` — stored right-click command editor
+- `fpp-groups` — personal bot groups
+- `fpp-list` — bot tab-list and server-list count/sample handling
+- `fpp-luckperms` — bot LuckPerms group/display integration
+- `fpp-nametag` — external NameTag plugin integration
+- `fpp-pathfinder` — extension pathfinding settings tabs and tuning
+- `fpp-peaks` — peak-hour bot scheduling
+- `fpp-ping` — ping command and ping simulation
+- `fpp-skin` — skin command and spawn `--skin` hook
+- `fpp-swap` — bot session rotation
+- `fpp-waypoints` — route and patrol storage
 
 ---
 

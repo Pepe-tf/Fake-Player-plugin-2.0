@@ -8,7 +8,7 @@ fpp-command allows you to make bots execute Minecraft commands, either directly 
 
 ## How It Works
 
-When you execute `/fpp cmd <bot> <command>`, the extension uses the FPP API's `runAsBot()` method to execute the command with the bot as the executor. For right-click commands, the command is stored on the bot and executed when a player interacts with it.
+When you execute `/fpp cmd <bot> <command>`, the extension uses the FPP API's `runAsBot()` method to execute the command with the bot as the executor. For right-click binding, one command is stored on the bot and executed when a player interacts with it.
 
 ## Configuration
 
@@ -42,9 +42,9 @@ Makes the bot execute any command as if the bot typed it:
 Bind commands to right-click interactions with the bot:
 
 ```
-/fpp cmd <bot> --add <command>     # Add right-click command
-/fpp cmd <bot> --clear             # Clear all right-click commands
-/fpp cmd <bot> --show              # Show assigned right-click commands
+/fpp cmd <bot> --add <command>     # Set right-click command
+/fpp cmd <bot> --clear             # Clear the right-click command
+/fpp cmd <bot> --show              # Show assigned right-click command
 ```
 
 When a player right-clicks a bot with a bound command, the command executes as the bot.
@@ -52,7 +52,7 @@ When a player right-clicks a bot with a bound command, the command executes as t
 ## Key Features
 
 - **Direct Execution**: Run any command as a bot
-- **Right-Click Binding**: Assign commands activated by player interaction
+- **Right-Click Binding**: Assign one command activated by player interaction
 - **Permission-Based**: Access controlled via permission nodes
 - **Legacy Support**: Backward-compatible permission nodes
 - **Real-Time Execution**: Commands execute immediately with no delay
@@ -118,7 +118,7 @@ Bot announces server messages.
 - Use specific, limited bots for public-facing commands
 - Avoid giving bots unnecessary permissions
 - Monitor command execution logs
-- Clear right-click commands when no longer needed
+- Clear the right-click command when no longer needed
 
 ## Troubleshooting
 

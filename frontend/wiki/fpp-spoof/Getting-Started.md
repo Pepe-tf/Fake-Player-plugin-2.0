@@ -1,149 +1,74 @@
-# Getting Started with FPP Extensions
+# Getting Started With FPP First-Party Extensions
 
-This guide will help you install and configure FPP Extensions on your Minecraft server.
+This guide covers installing the current first-party modules from `fpp-extensions/`.
 
-## Prerequisites
+## Requirements
 
-Before installing FPP Extensions, ensure you have:
+- FakePlayerPlugin installed and running
+- Java 21 runtime
+- Paper/Purpur/Folia 1.21+
+- Optional: LuckPerms for `fpp-luckperms`
+- Optional: NameTag plugin for `fpp-nametag`
 
-- ✅ Minecraft server running 1.21 or higher
-- ✅ Paper or Spigot server software
-- ✅ Java 21 installed
-- ✅ Fake Player Plugin 1.6.6.12.2 or higher installed
-- ✅ LuckPerms (optional, for group/nametag extensions)
+## Build From Source
 
-## Installation
+From the workspace root, make sure `fake-player-plugin/build/fpp.jar` exists, then run:
 
-### Option 1: Full Pack (Recommended)
-
-The full pack includes all extensions in a single JAR file.
-
-1. **Build or download the extension pack:**
-   
-   If building from source:
-   ```bash
-   ./gradlew clean build --no-daemon
-   ```
-   
-   Or download the pre-built JAR from the [releases page](https://github.com/yourusername/fpp-extensions/releases).
-
-2. **Install the extension:**
-   
-   Copy `fpp-spoof-1.1.0-all.jar` to your server's extensions folder:
-   ```
-   plugins/FakePlayerPlugin/extensions/fpp-spoof-1.1.0-all.jar
-   ```
-
-3. **Restart your server:**
-   
-   ```bash
-   # Stop your server
-   # Start your server
-   ```
-
-4. **Verify installation:**
-   
-   Run the following command in-game or in the console:
-   ```
-   /fpp extensions
-   ```
-   
-   You should see all installed extensions listed.
-
-### Option 2: Individual Extensions
-
-If you only need specific extensions, you can build and install them individually.
-
-1. **Build a specific extension:**
-   
-   ```bash
-   ./gradlew :fpp-ping:build --no-daemon
-   ```
-
-2. **Install the extension:**
-   
-   Copy the JAR file to your server's extensions folder:
-   ```
-   plugins/FakePlayerPlugin/extensions/fpp-ping-1.1.0.jar
-   ```
-
-3. **Restart your server**
-
-## Post-Installation
-
-### Configuration Files
-
-On first startup, FPP Extensions will automatically generate configuration files for each extension in:
-
+```powershell
+cmd /c "fake-player-plugin\\gradlew.bat -p fpp-extensions build"
 ```
+
+The build writes individual jars and `fpp-extensions-bundle.jar` to workspace `builds/`.
+
+## Install
+
+Copy either the bundle or only the individual jars you need into:
+
+```text
 plugins/FakePlayerPlugin/extensions/
-├── fpp-chat/
-│   └── config.yml
-├── fpp-list/
-│   └── config.yml
-├── fpp-ping/
-│   └── config.yml
-├── fpp-skin/
-│   └── config.yml
-└── ...
 ```
 
-### Reloading Extensions
+Then restart the server or run:
 
-You can reload extensions without restarting the server:
-
-```
-/fpp reload
+```text
+/fpp reload extensions
 ```
 
-**Note:** Some extensions may require a full server restart to function properly after configuration changes.
+## Verify
 
-## Verifying Extensions Work
-
-### Test Ping Extension
-
-```
-/fpp ping <bot-name>
+```text
+/fpp extension --list
 ```
 
-This should display the bot's current ping value.
+You should see the loaded first-party extensions in the extension list.
 
-### Test Skin Extension
+## First Tests
 
+```text
+/fpp ping
+/fpp skin <bot> Notch
+/fpp chat status
+/fpp personality list
+/fpp wp list
 ```
-/fpp skin <bot-name>
+
+Only commands from installed extension jars will be available.
+
+## Config Files
+
+Each extension creates its own data folder:
+
+```text
+plugins/FakePlayerPlugin/extensions/fpp-ping/config.yml
+plugins/FakePlayerPlugin/extensions/fpp-skin/config.yml
+plugins/FakePlayerPlugin/extensions/fpp-chat/config.yml
 ```
 
-This should display the bot's current skin information.
-
-### Test Chat Extension
-
-Send a chat message near a bot. If configured correctly, the bot may respond based on its chat settings.
-
-## Troubleshooting
-
-### Extensions Not Loading
-
-1. Check server logs for error messages
-2. Verify FPP version is 1.6.6.12.2 or higher
-3. Ensure the JAR file is in the correct directory
-4. Check that the file name ends with `.jar`
-
-### Commands Not Working
-
-1. Verify you have the required permissions
-2. Check that the extension is enabled in its config.yml
-3. Try running `/fpp reload`
-
-### Configuration Not Applying
-
-1. Ensure you edited the correct config file
-2. Run `/fpp reload` after making changes
-3. Check for YAML syntax errors in your config
+See [Configuration](Configuration) for the current config highlights.
 
 ## Next Steps
 
-- [Configure Extensions](Configuration) - Learn about configuration options
-- [Commands Reference](Commands) - View all available commands
-- [Permissions](Permissions) - Set up permission nodes
-- [Extensions Guide](Extensions) - Detailed information about each extension
+- [Commands](Commands) - Current command syntax
+- [Permissions](Permissions) - Current permission nodes
+- [Extensions](Extensions) - Module reference
+- [Building](Building) - Build details and outputs

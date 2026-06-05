@@ -48,19 +48,12 @@ FPP uses a two-tier permission system with granular sub-nodes.
   - `fpp.move.stop` — `--stop`
 
 ### Automation
-- `fpp.mine` — bot mining
-  - `fpp.mine.start`, `fpp.mine.once`, `fpp.mine.stop`, `fpp.mine.area`
-  - `fpp.mine.wesel` — WorldEdit selection as mining area
-- `fpp.place` — block placement
-  - `fpp.place.start`, `fpp.place.once`, `fpp.place.stop`
-  - `fpp.place.wesel` — WorldEdit selection as placement area
-- `fpp.use.cmd` (alias: `fpp.useitem`) — right-click automation
-  - `fpp.useitem.start`, `fpp.useitem.once`, `fpp.useitem.stop`
+- `fpp.left-click` — left-click automation
+  - `fpp.left-click.start`, `fpp.left-click.once`, `fpp.left-click.repeat`, `fpp.left-click.hold`, `fpp.left-click.stop`
+- `fpp.right-click` — right-click automation
+  - `fpp.right-click.start`, `fpp.right-click.once`, `fpp.right-click.repeat`, `fpp.right-click.hold`, `fpp.right-click.stop`
 - `fpp.attack` — PvE attack
-  - `fpp.mine.wesel` — use WorldEdit selection for mining area
-- `fpp.place.wesel` — use WorldEdit selection for placement area
-- `fpp.attack.hunt` — `--hunt` roaming mob hunt
-- `fpp.find` — find-and-mine nearby blocks
+  - `fpp.attack.hunt` — `--hunt` roaming mob hunt
 - `fpp.follow` — make bot follow a player
 - `fpp.sleep` — auto-sleep at night
 - `fpp.stop` — cancel all active tasks
@@ -72,7 +65,6 @@ FPP uses a two-tier permission system with granular sub-nodes.
 - `fpp.inventory` — open bot inventory GUI
   - `fpp.inventory.cmd` — via command
   - `fpp.inventory.rightclick` — via right-click entity
-- `fpp.storage` — manage supply containers
 - `fpp.setowner` — transfer bot ownership
 - `fpp.save` — force-save all active bots
 - `fpp.settings` — open settings GUI
@@ -81,6 +73,7 @@ FPP uses a two-tier permission system with granular sub-nodes.
 - `fpp.reload` — hot-reload config
 - `fpp.migrate` — backup/migrate/convert data
 - `fpp.badword` — manage badword filter
+- `fpp.check` — run `/fpp check` system diagnostics
 
 ### Bypass
 - `fpp.bypass.max` — bypass global bot cap
@@ -115,3 +108,5 @@ These still work and map to their modern equivalents:
 - `fpp.delete` → identical to `fpp.despawn`
 - `fpp.delete.all` → identical to `fpp.despawn.bulk`
 - `fpp.useitem` → identical to `fpp.use.cmd`
+
+> Some legacy automation permission nodes remain declared for compatibility, but the current registered core automation commands are `left-click`, `right-click`, `attack`, `follow`, `sleep`, and `stop`.

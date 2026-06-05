@@ -1,67 +1,50 @@
-# FPP Extensions Wiki
+# FPP First-Party Extensions Wiki
 
-Welcome to the official documentation for **FPP Extensions** - extended functionality for Fake Player Plugin (FPP) on Minecraft servers.
+Official documentation for the first-party `fpp-extensions` modules.
 
 ## Quick Links
 
 - [Getting Started](Getting-Started) - Installation and setup guide
-- [Extensions](Extensions) - Complete list of available extensions
-- [Commands](Commands) - Command reference for all extensions
-- [Permissions](Permissions) - Permission nodes reference
-- [Configuration](Configuration) - Configuration guide
+- [Extensions](Extensions) - Current module reference
+- [Commands](Commands) - First-party extension commands
+- [Permissions](Permissions) - Permission nodes from extension configs/source
+- [Configuration](Configuration) - Extension config locations and highlights
 - [Changelog](Changelog) - Version history and updates
 
-## What are FPP Extensions?
+## Current Build
 
-FPP Extensions are modular add-ons that extend the functionality of the base Fake Player Plugin. They provide additional features like:
+- Build system: Gradle multi-project under `fpp-extensions/`
+- Java: toolchain 25, release target 21
+- Output: individual module jars plus `fpp-extensions-bundle.jar` copied to workspace `builds/`
+- Runtime install path: `plugins/FakePlayerPlugin/extensions/`
 
-- **Bot Communication**: AI-powered chat, custom messaging systems
-- **Bot Management**: Groups, permissions, LuckPerms integration
-- **Bot Appearance**: Skins, nametags, ping spoofing
-- **Bot Behavior**: Waypoints, pathfinding, command execution
-- **Server Tools**: Performance monitoring, advanced tab list control
-
-## Current Version
-
-**Version:** 1.1.0  
-**Release Date:** May 23, 2026
-
-## Requirements
-
-- Minecraft 1.21+
-- Paper/Spigot 1.21+
-- Java 21
-- Fake Player Plugin 1.6.6.12.2+
-
-## Quick Start
-
-1. Download `fpp-spoof-1.1.0-all.jar` from the [releases page](https://github.com/yourusername/fpp-extensions/releases)
-2. Place it in `plugins/FakePlayerPlugin/extensions/`
-3. Restart your server
-4. Configure extensions in `plugins/FakePlayerPlugin/extensions/`
-
-## Available Extensions
+## Modules
 
 | Extension | Description |
 |-----------|-------------|
-| [fpp-aichat](Extensions#fpp-aichat) | AI-powered chat for bots using LLM APIs |
-| [fpp-chat](Extensions#fpp-chat) | Bot chat with cooldowns and anti-spam |
-| [fpp-command](Extensions#fpp-command) | Execute commands as bots |
-| [fpp-groups](Extensions#fpp-groups) | Bot group management |
-| [fpp-list](Extensions#fpp-list) | Advanced player list/tab control |
-| [fpp-luckperms](Extensions#fpp-luckperms) | LuckPerms integration for bots |
-| [fpp-nametag](Extensions#fpp-nametag) | Custom nametags for bots |
-| [fpp-peaks](Extensions#fpp-peaks) | Display server TPS and performance |
-| [fpp-ping](Extensions#fpp-ping) | Show or spoof bot ping values |
-| [fpp-skin](Extensions#fpp-skin) | Manage bot skins from MCHead/NameMC |
-| [fpp-swap](Extensions#fpp-swap) | Bot session rotation (leave/rejoin) |
-| [fpp-waypoints](Extensions#fpp-waypoints) | Bot waypoint/pathfinding system |
+| [fpp-aichat](Extensions#fpp-aichat) | AI personalities, direct messages, and optional public AI replies |
+| [fpp-chat](Extensions#fpp-chat) | Fake bot chat, event-triggered messages, bot-to-bot replies |
+| [fpp-command](Extensions#fpp-command) | Execute commands as bots and bind one command to right-click |
+| [fpp-groups](Extensions#fpp-groups) | Personal bot groups and `--group` task targeting hooks |
+| [fpp-list](Extensions#fpp-list) | Bot tab-list team and server-list bot count/sample handling |
+| [fpp-luckperms](Extensions#fpp-luckperms) | LuckPerms display and bot rank commands |
+| [fpp-nametag](Extensions#fpp-nametag) | External NameTag plugin integration |
+| [fpp-pathfinder](Extensions#fpp-pathfinder) | Extension pathfinding service and settings tabs |
+| [fpp-peaks](Extensions#fpp-peaks) | Peak-hour bot scheduling |
+| [fpp-ping](Extensions#fpp-ping) | Bot ping viewing, overrides, randomization, and simulation |
+| [fpp-skin](Extensions#fpp-skin) | Skin command and spawn `--skin` hook |
+| [fpp-swap](Extensions#fpp-swap) | Bot session rotation with leave/rejoin behavior |
+| [fpp-waypoints](Extensions#fpp-waypoints) | Waypoint routes and patrols |
+
+## Requirements
+
+- FakePlayerPlugin `1.6.6.12.5` compatible API
+- Paper/Purpur/Folia 1.21+
+- Java 21 runtime
+- `fake-player-plugin/build/fpp.jar` available when building from source
 
 ## Support
 
-- **Issues:** https://github.com/yourusername/fpp-extensions/issues
-- **Discord:** https://discord.gg/WRvfmV24Hh
-
-## License
-
-MIT License - See [LICENSE](https://github.com/yourusername/fpp-extensions/blob/main/LICENSE) for details
+- Source: https://github.com/Pepe-tf/fake-player-plugin
+- Discord: https://discord.gg/RfjEJDG2TM
+- Marketplace: https://mp.fpp.wtf/resources/

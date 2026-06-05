@@ -558,6 +558,8 @@ api.saveDefaultExtensionConfig("OtherExtension");
 
 Multiple extension JARs can be packaged into a single "bundle" JAR for distribution.
 
+The first-party `fpp-extensions` Gradle build currently creates `fpp-extensions-bundle.jar` with all official modules embedded under `extensions/<module>.jar` and copies it to workspace `builds/`.
+
 ### Manifest Format
 
 ```
@@ -787,6 +789,19 @@ String kills = data.get("kills");
 
 ## Building an Extension
 
+### Gradle Setup
+
+```kotlin
+dependencies {
+    compileOnly(files("libs/fpp.jar"))
+    compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(21)
+}
+```
+
 ### Maven Setup
 
 ```xml
@@ -795,9 +810,9 @@ String kills = data.get("kills");
     <dependency>
         <groupId>me.bill</groupId>
         <artifactId>fpp</artifactId>
-        <version>1.6.6.11</version>
+        <version>1.6.6.12.5</version>
         <scope>system</scope>
-        <systemPath>${project.basedir}/libs/fpp-1.6.6.11.jar</systemPath>
+        <systemPath>${project.basedir}/libs/fpp.jar</systemPath>
     </dependency>
 </dependencies>
 ```
@@ -837,18 +852,25 @@ String kills = data.get("kills");
 - Cancel any Bukkit tasks your extension started.
 - Unregister Bukkit event listeners.
 
-### fpp-spoof.jar Extension
+### First-Party Extension Bundle
 
-The following features are **not in core** and require the `fpp-spoof.jar` extension:
+The following features are **not in core** and are currently implemented as first-party `fpp-extensions` modules. Install the relevant individual jar or `fpp-extensions-bundle.jar`:
 
-- AI conversations (`/msg` replies, personalities)
-- Fake chat / broadcast messaging
-- Swap system / peak-hours scheduler
-- Bot groups
-- Ping command (`/fpp ping`)
-- Stored right-click commands (`/fpp cmd`)
+- AI conversations and personalities (`fpp-aichat`)
+- Fake chat / broadcast messaging (`fpp-chat`)
+- Stored right-click commands (`fpp-command`)
+- Bot groups (`fpp-groups`)
+- Tab-list/server-list handling (`fpp-list`)
+- LuckPerms bot ranks (`fpp-luckperms`)
+- NameTag integration (`fpp-nametag`)
+- Extension pathfinding settings/service (`fpp-pathfinder`)
+- Peak-hour scheduler (`fpp-peaks`)
+- Ping command (`fpp-ping`)
+- Skin command and spawn `--skin` hook (`fpp-skin`)
+- Swap system (`fpp-swap`)
+- Waypoint routes and patrols (`fpp-waypoints`)
 
-You can download it from the [FPP Marketplace](https://mp.fpp.wtf/resources/resource/9-fpp---spoof/).
+Build from source with `cmd /c "fake-player-plugin\\gradlew.bat -p fpp-extensions build"` after `fake-player-plugin/build/fpp.jar` exists.
 
 ---
 
