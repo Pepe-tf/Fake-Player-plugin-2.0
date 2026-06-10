@@ -694,6 +694,10 @@ public class FakePlayerManager {
         return uuid != null && syntheticQuitBotIds.contains(uuid);
     }
 
+    public void addSyntheticQuit(UUID uuid) {
+        if (uuid != null) syntheticQuitBotIds.add(uuid);
+    }
+
     public void markDespawning(UUID uuid, String displayName) {
         despawningBotIds.put(uuid, displayName);
     }

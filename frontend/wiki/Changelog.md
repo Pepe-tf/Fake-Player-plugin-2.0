@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.6.6.12.6 (Synthetic Quit Kick Fix)
+
+### Core Updates
+- **Version bump** — plugin metadata and Gradle version are now `1.6.6.12.6`.
+- **Synthetic quit kick handling** — `FakePlayerKickListener` now marks kicked bots as synthetic quits via `FakePlayerManager.addSyntheticQuit(UUID)` before despawning. This ensures the manager treats server kicks as synthetic quits and despawns the bot with consistent quit-event semantics instead of treating it as a raw deletion.
+- **`addSyntheticQuit(UUID)` helper** — added null-checked `addSyntheticQuit(UUID)` to `FakePlayerManager` so callers can safely record synthetic quit UUIDs without duplicating null-guard logic.
+
+---
+
 ## v1.6.6.12.5 (Core Scope Reduction & Click API)
 
 ### Core Updates

@@ -48,9 +48,10 @@ Some advanced subsystems are implemented as extensions and are not part of the b
 
 ---
 
-## Latest Version: v1.6.6.12.5
+## Latest Version: v1.6.6.12.6
 
 **Highlights:**
+- 🚪 **Synthetic Quit on Kick** — `FakePlayerKickListener` now marks kicked bots as synthetic quits before despawning, ensuring consistent despawn/quit-event handling
 - ✅ **System Check** — `/fpp check` runs targeted or full health checks for commands, listeners, NMS, database, Folia, world, config, extensions, and memory
 - 🖱️ **Left/Right Click Automation** — `/fpp left-click` and `/fpp right-click` replace older mine/use style automation with once, repeat, hold, and stop modes
 - 👁️ **Sneak Command** — `/fpp sneak` toggles or sets the sneaking state for a live bot body

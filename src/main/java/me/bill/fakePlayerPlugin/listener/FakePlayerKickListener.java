@@ -46,6 +46,7 @@ public class FakePlayerKickListener implements Listener {
                 + kickReason
                 + ") — despawning instead.");
         event.setCancelled(true);
+        manager.addSyntheticQuit(fp.getUuid());
         manager.delete(fp.getName(), "kicked_by_server|" + (kickReason != null ? kickReason : "unknown"));
     }
 }
