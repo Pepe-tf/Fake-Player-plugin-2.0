@@ -389,11 +389,9 @@ public final class CheckCommand implements FppCommand {
 
             // Soft-depends
             Plugin papi = Bukkit.getPluginManager().getPlugin("PlaceholderAPI");
-            Plugin wg = Bukkit.getPluginManager().getPlugin("WorldGuard");
             Plugin we = Bukkit.getPluginManager().getPlugin("WorldEdit");
             Plugin lp = Bukkit.getPluginManager().getPlugin("LuckPerms");
             status(sender, "PlaceholderAPI", papi != null && papi.isEnabled());
-            status(sender, "WorldGuard", wg != null && wg.isEnabled());
             status(sender, "WorldEdit", we != null && we.isEnabled());
             status(sender, "LuckPerms", lp != null && lp.isEnabled());
         }

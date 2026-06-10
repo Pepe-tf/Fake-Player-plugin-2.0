@@ -3,6 +3,7 @@ package me.bill.fakePlayerPlugin.fakeplayer;
 import java.util.function.Consumer;
 
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
@@ -51,7 +52,8 @@ public final class FakePlayerBody {
                     loc.getZ(),
                     loc.getYaw(),
                     loc.getPitch(),
-                    initialPing);
+                    initialPing,
+                    shouldLoadSavedPlayerData(fp));
 
             if (player == null) {
                 FppLogger.warn("FakePlayerBody.spawn: NmsPlayerSpawner returned null for '" + fp.getName() + "'");
@@ -93,6 +95,7 @@ public final class FakePlayerBody {
                 loc.getYaw(),
                 loc.getPitch(),
                 initialPing,
+                shouldLoadSavedPlayerData(fp),
                 player -> {
                     if (player == null) {
                         FppLogger.warn("FakePlayerBody.spawnAsync: NmsPlayerSpawner returned null for " + fp.getName());
@@ -111,9 +114,14 @@ public final class FakePlayerBody {
                 });
     }
 
+    private static boolean shouldLoadSavedPlayerData(FakePlayer fp) {
+        return fp != null && Boolean.TRUE.equals(fp.getMetadata("fpp.explicit-uuid-spawn"));
+    }
+
     private static void finalizeSpawnedBody(FakePlayer fp, Player player) {
         try {
             if (FakePlayerManager.FAKE_PLAYER_KEY != null) {
+                player.getPersistentDataContainer().remove(new NamespacedKey(FakePlayerPlugin.getInstance(), "npc"));
                 player.getPersistentDataContainer()
                         .set(
                                 FakePlayerManager.FAKE_PLAYER_KEY,
@@ -126,6 +134,7 @@ public final class FakePlayerBody {
 
         player.setGravity(true);
         player.setInvulnerable(false);
+        player.setNoDamageTicks(0);
         player.setCollidable(true);
         player.setCanPickupItems(fp.isPickUpItemsEnabled());
 

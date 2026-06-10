@@ -24,7 +24,6 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
-import me.bill.fakePlayerPlugin.util.WorldGuardHelper;
 
 public class BotCollisionListener implements Listener {
 
@@ -58,13 +57,7 @@ public class BotCollisionListener implements Listener {
             return;
         }
 
-        if (attacker instanceof Player && !isPvpEnabled(target.getLocation())) {
-            Config.debugNms("[KB-DEBUG] BotCollision: SKIP - player PVP blocked for bot=" + target.getName());
-            return;
-        }
-
         boolean fromPlayer = attacker instanceof Player;
-
         Config.debugNms("[KB-DEBUG] BotCollision: hit event for bot="
                 + target.getName()
                 + " attacker="
@@ -77,8 +70,7 @@ public class BotCollisionListener implements Listener {
                 + Config.bodyDamageable());
 
         if (event.isCancelled()) {
-            Config.debugNms("[KB-DEBUG] BotCollision: SKIP - damage event cancelled for bot="
-                    + target.getName());
+            Config.debugNms("[KB-DEBUG] BotCollision: SKIP - damage event cancelled for bot=" + target.getName());
             return;
         }
 
@@ -108,8 +100,7 @@ public class BotCollisionListener implements Listener {
         }
 
         Vector finalVel = new Vector(kbX, kb.getY(), kbZ);
-
-        Config.debugNms("[KB-DEBUG] BotCollision: calling setVelocity on "
+        Config.debugNms("[KB-DEBUG] BotCollision: applying FPP knockback to "
                 + target.getName()
                 + " vel=("
                 + String.format("%.4f", finalVel.getX())
@@ -117,42 +108,31 @@ public class BotCollisionListener implements Listener {
                 + String.format("%.4f", finalVel.getY())
                 + ","
                 + String.format("%.4f", finalVel.getZ())
-                + ")"
-                + " hitStrength="
+                + ") hitStrength="
                 + hitStrength);
 
-        applyBotKnockback(target, finalVel, fromPlayer);
-
-        Vector readBack = target.getVelocity();
-        Config.debugNms("[KB-DEBUG] BotCollision: readback velocity for "
-                + target.getName()
-                + " x="
-                + String.format("%.4f", readBack.getX())
-                + " y="
-                + String.format("%.4f", readBack.getY())
-                + " z="
-                + String.format("%.4f", readBack.getZ()));
+        applyBotKnockback(target, finalVel, "entity-damage");
     }
 
-    private void applyBotKnockback(Player target, Vector velocity, boolean fromPlayer) {
-        if (fromPlayer && !isPvpEnabled(target.getLocation())) {
-            Config.debugNms("[KB-DEBUG] BotCollision: blocked knockback in PvP-protected region for bot="
-                    + target.getName());
-            return;
-        }
+    private void applyBotKnockback(Player target, Vector velocity, String source) {
         NmsPlayerSpawner.applyServerVelocity(target, velocity);
         FppScheduler.runAtEntityLaterWithId(
                 plugin,
                 target,
                 () -> {
                     if (target.isOnline() && target.isValid() && isFakeBody(target)) {
-                        if (fromPlayer && !isPvpEnabled(target.getLocation())) {
-                            Config.debugNms(
-                                    "[KB-DEBUG] BotCollision: blocked delayed knockback in PvP-protected region for bot="
-                                            + target.getName());
-                            return;
-                        }
                         NmsPlayerSpawner.applyServerVelocity(target, velocity);
+                        Vector readback = target.getVelocity();
+                        Config.debugNms("[KB-DEBUG] FPP "
+                                + source
+                                + " readback velocity for "
+                                + target.getName()
+                                + " x="
+                                + String.format("%.4f", readback.getX())
+                                + " y="
+                                + String.format("%.4f", readback.getY())
+                                + " z="
+                                + String.format("%.4f", readback.getZ()));
                     }
                 },
                 1L);
@@ -189,7 +169,7 @@ public class BotCollisionListener implements Listener {
             kbZ *= scale;
         }
 
-        applyBotKnockback(target, new Vector(kbX, kb.getY(), kbZ), false);
+        applyBotKnockback(target, new Vector(kbX, kb.getY(), kbZ), "explosion-damage");
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -322,7 +302,11 @@ public class BotCollisionListener implements Listener {
         if (newY < -4.0) newY = -4.0;
         vel.setY(newY);
         vel.setZ(newZ);
-        body.setVelocity(vel);
+        if (body instanceof Player player) {
+            NmsPlayerSpawner.applyServerVelocity(player, vel);
+        } else {
+            body.setVelocity(vel);
+        }
     }
 
     private boolean canCollide(Player source, Entity other) {
@@ -354,11 +338,6 @@ public class BotCollisionListener implements Listener {
         return true;
     }
 
-    private static Vector scaleHorizontal(Vector input, double multiplier) {
-        double scale = Math.max(0.0, multiplier);
-        return new Vector(input.getX() * scale, input.getY(), input.getZ() * scale);
-    }
-
     private boolean isFakeBody(Entity entity) {
         if (!(entity instanceof Player)) return false;
         if (manager.getByEntityId(entity.getEntityId()) != null) return true;
@@ -369,11 +348,9 @@ public class BotCollisionListener implements Listener {
         return byUuid != null && byUuid.getName().equalsIgnoreCase(entity.getName());
     }
 
-    @SuppressWarnings("deprecation")
-    private boolean isPvpEnabled(Location location) {
-        if (location == null || location.getWorld() == null) return false;
-        if (plugin.isWorldGuardAvailable()) return WorldGuardHelper.isPvpAllowed(location);
-        return location.getWorld().getPVP();
+    private static Vector scaleHorizontal(Vector input, double multiplier) {
+        double scale = Math.max(0.0, multiplier);
+        return new Vector(input.getX() * scale, input.getY(), input.getZ() * scale);
     }
 
     private static Entity resolveKnockbackSource(Entity damager) {

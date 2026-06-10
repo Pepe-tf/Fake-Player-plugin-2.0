@@ -58,11 +58,9 @@ public final class Perm {
 
     public static final String MOVE = "fpp.move";
 
-    public static final String MOVE_TO = "fpp.move.to";
-
-    public static final String MOVE_STOP = "fpp.move.stop";
-
     public static final String FREEZE = "fpp.freeze";
+
+    public static final String SNEAK = "fpp.sneak";
 
     public static final String RENAME = "fpp.rename";
 
@@ -113,10 +111,6 @@ public final class Perm {
     public static final String FIND = "fpp.find";
 
     public static final String FARM = "fpp.farm";
-
-    public static final String FOLLOW = "fpp.follow";
-
-    public static final String SLEEP = "fpp.sleep";
 
     public static final String STOP = "fpp.stop";
 

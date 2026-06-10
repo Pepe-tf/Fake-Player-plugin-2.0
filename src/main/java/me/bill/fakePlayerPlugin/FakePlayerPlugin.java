@@ -17,7 +17,6 @@ import me.bill.fakePlayerPlugin.command.CommandManager;
 import me.bill.fakePlayerPlugin.command.DeleteCommand;
 import me.bill.fakePlayerPlugin.command.ExtensionCommand;
 import me.bill.fakePlayerPlugin.command.FindCommand;
-import me.bill.fakePlayerPlugin.command.FollowCommand;
 import me.bill.fakePlayerPlugin.command.FreezeCommand;
 import me.bill.fakePlayerPlugin.command.InfoCommand;
 import me.bill.fakePlayerPlugin.command.InventoryCommand;
@@ -31,7 +30,7 @@ import me.bill.fakePlayerPlugin.command.RightClickCommand;
 import me.bill.fakePlayerPlugin.command.SaveCommand;
 import me.bill.fakePlayerPlugin.command.SetOwnerCommand;
 import me.bill.fakePlayerPlugin.command.SettingCommand;
-import me.bill.fakePlayerPlugin.command.SleepCommand;
+import me.bill.fakePlayerPlugin.command.SneakCommand;
 import me.bill.fakePlayerPlugin.command.SpawnCommand;
 import me.bill.fakePlayerPlugin.command.StatsCommand;
 import me.bill.fakePlayerPlugin.command.StopCommand;
@@ -61,7 +60,6 @@ import me.bill.fakePlayerPlugin.license.LicenseCredentialsApi;
 import me.bill.fakePlayerPlugin.license.LicenseManager;
 import me.bill.fakePlayerPlugin.listener.BotCollisionListener;
 import me.bill.fakePlayerPlugin.listener.BotLoginOverrideListener;
-import me.bill.fakePlayerPlugin.listener.BotSpawnProtectionListener;
 import me.bill.fakePlayerPlugin.listener.BotXpPickupListener;
 import me.bill.fakePlayerPlugin.listener.FakePlayerEntityListener;
 import me.bill.fakePlayerPlugin.listener.FakePlayerKickListener;
@@ -115,8 +113,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
     private AttackCommand attackCommand;
     private LeftClickCommand leftClickCommand;
     private RightClickCommand rightClickCommand;
-    private FollowCommand followCommand;
-    private SleepCommand sleepCommand;
     private FindCommand findCommand;
     private StopCommand stopCommand;
     private PathfindingService pathfindingService;
@@ -131,12 +127,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
     private ExtensionLoader extensionLoader;
 
     private Component updateNotificationMessage = null;
-
-    private boolean worldGuardAvailable = false;
-
-    public boolean isWorldGuardAvailable() {
-        return worldGuardAvailable;
-    }
 
     private boolean worldEditAvailable = false;
 
@@ -324,22 +314,18 @@ public final class FakePlayerPlugin extends JavaPlugin {
         commandManager.register(new CheckCommand(this, fakePlayerManager));
         commandManager.register(new ExtensionCommand(this));
         commandManager.register(new FreezeCommand(fakePlayerManager));
+        commandManager.register(new SneakCommand(fakePlayerManager));
         commandManager.register(new RenameCommand(this, fakePlayerManager));
-        moveCommand = new MoveCommand(this, fakePlayerManager, pathfindingService);
+        moveCommand = new MoveCommand(fakePlayerManager);
         storageStore = new StorageStore(this);
         storageStore.load();
         commandManager.register(moveCommand);
-        attackCommand = new AttackCommand(this, fakePlayerManager, pathfindingService);
+        attackCommand = new AttackCommand(this, fakePlayerManager);
         commandManager.register(attackCommand);
         leftClickCommand = new LeftClickCommand(this, fakePlayerManager, pathfindingService);
         commandManager.register(leftClickCommand);
         rightClickCommand = new RightClickCommand(this, fakePlayerManager, pathfindingService);
         commandManager.register(rightClickCommand);
-        followCommand = new FollowCommand(this, fakePlayerManager, pathfindingService);
-        commandManager.register(followCommand);
-        sleepCommand = new SleepCommand(this, fakePlayerManager, pathfindingService);
-        commandManager.register(sleepCommand);
-
         botSettingGui = new BotSettingGui(this, fakePlayerManager);
         inventoryCommand = new InventoryCommand(fakePlayerManager, this, botSettingGui);
         commandManager.register(inventoryCommand);
@@ -351,22 +337,12 @@ public final class FakePlayerPlugin extends JavaPlugin {
         Config.debugStartup(
                 "Commands registered: " + commandManager.getCommands().size() + " total.");
 
-        botPersistence.setMoveCommand(moveCommand);
-        botPersistence.setAttackCommand(attackCommand);
-        botPersistence.setFollowCommand(followCommand);
-        sleepCommand.setAttackCommand(attackCommand);
-        sleepCommand.setFollowCommand(followCommand);
-        sleepCommand.setMoveCommand(moveCommand);
-        sleepCommand.setFindCommand(findCommand);
-
         stopCommand = new StopCommand(fakePlayerManager);
         stopCommand.setMoveCommand(moveCommand);
         stopCommand.setLeftClickCommand(leftClickCommand);
         stopCommand.setRightClickCommand(rightClickCommand);
         stopCommand.setAttackCommand(attackCommand);
-        stopCommand.setFollowCommand(followCommand);
         stopCommand.setFindCommand(findCommand);
-        stopCommand.setSleepCommand(sleepCommand);
         commandManager.register(stopCommand);
 
         var fppCmd = getCommand("fpp");
@@ -387,7 +363,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(settingGui, this);
         getServer().getPluginManager().registerEvents(botSettingGui, this);
         getServer().getPluginManager().registerEvents(inventoryCommand, this);
-        getServer().getPluginManager().registerEvents(new BotSpawnProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new BotLoginOverrideListener(this, fakePlayerManager), this);
         getServer().getPluginManager().registerEvents(new BotXpPickupListener(this, fakePlayerManager), this);
 
@@ -431,11 +406,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
             }
         }
 
-        worldGuardAvailable = Bukkit.getPluginManager().getPlugin("WorldGuard") != null;
-        if (worldGuardAvailable) {
-            Config.debugStartup("WorldGuard detected - bot PvP region protection enabled.");
-        }
-
         worldEditAvailable = Bukkit.getPluginManager().getPlugin("WorldEdit") != null;
         if (worldEditAvailable) {
             Config.debugStartup("WorldEdit detected - --wesel flag enabled for /fpp mine and /fpp place.");
@@ -446,9 +416,14 @@ public final class FakePlayerPlugin extends JavaPlugin {
         heartbeatSender = new HeartbeatSender(this, fakePlayerManager);
         heartbeatSender.start();
 
-        fppMetrics = new FppMetrics();
         if (Config.metricsEnabled()) {
-            fppMetrics.init(this);
+            try {
+                fppMetrics = new FppMetrics();
+                fppMetrics.init(this);
+            } catch (Throwable t) {
+                fppMetrics = null;
+                FppLogger.warn("Metrics disabled because FastStats is unavailable: " + t.getMessage());
+            }
         } else {
             Config.debugStartup("Metrics disabled in config.yml - skipping FastStats init.");
         }
@@ -474,10 +449,9 @@ public final class FakePlayerPlugin extends JavaPlugin {
                 Config.persistOnRestart(),
                 effectiveTaskPersist,
                 Bukkit.getPluginManager().getPlugin("LuckPerms") != null,
-                worldGuardAvailable,
                 effectiveChunkLoading,
                 Config.maxBots(),
-                fppMetrics.isActive(),
+                fppMetrics != null && fppMetrics.isActive(),
                 configVersion,
                 backupCount,
                 startupMs);
@@ -501,16 +475,15 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
         if (botChatAI != null) botChatAI.cancelAll();
 
-        if (sleepCommand != null) sleepCommand.stopAll();
+        if (fppApi != null) fppApi.disableAllAddons();
 
         if (botPersistence != null && fakePlayerManager != null) {
             if (Config.persistOnRestart()) {
                 Config.debugStartup("Saving " + fakePlayerManager.getCount() + " bot(s) for persistence...");
-                botPersistence.save(fakePlayerManager.getActivePlayers());
+                botPersistence.saveForShutdown(fakePlayerManager.getActivePlayers());
             }
         }
 
-        if (fppApi != null) fppApi.disableAllAddons();
         if (extensionLoader != null) extensionLoader.closeClassLoaders();
 
         if (velocityChannel != null) {
@@ -625,14 +598,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     public AttackCommand getAttackCommand() {
         return attackCommand;
-    }
-
-    public FollowCommand getFollowCommand() {
-        return followCommand;
-    }
-
-    public SleepCommand getSleepCommand() {
-        return sleepCommand;
     }
 
     public PathfindingService getPathfindingService() {

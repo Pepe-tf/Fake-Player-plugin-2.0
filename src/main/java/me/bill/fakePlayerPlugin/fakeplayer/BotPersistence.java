@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -24,7 +23,6 @@ import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -33,9 +31,6 @@ import org.bukkit.persistence.PersistentDataType;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotSaveEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
-import me.bill.fakePlayerPlugin.command.AttackCommand;
-import me.bill.fakePlayerPlugin.command.FollowCommand;
-import me.bill.fakePlayerPlugin.command.MoveCommand;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.util.BotDataYaml;
@@ -52,6 +47,7 @@ public final class BotPersistence {
     private static final String ROOT_INVENTORIES = "persistence.inventories";
     private static final String ROOT_XP = "persistence.xp";
     private static final String ROOT_TASKS = "persistence.tasks";
+    private static final String EMPTY_INVENTORY_MARKER = "__empty";
 
     private final File dataFile;
     private final File inventoryFile;
@@ -63,22 +59,7 @@ public final class BotPersistence {
     private final AtomicBoolean activeListSaveScheduled = new AtomicBoolean(false);
     private volatile boolean activeListSaveDirty = false;
     private volatile Iterable<FakePlayer> activeListSavePlayers = List.of();
-
-    private MoveCommand moveCommand;
-    private AttackCommand attackCommand;
-    private FollowCommand followCommand;
-
-    public void setMoveCommand(MoveCommand cmd) {
-        this.moveCommand = cmd;
-    }
-
-    public void setAttackCommand(AttackCommand cmd) {
-        this.attackCommand = cmd;
-    }
-
-    public void setFollowCommand(FollowCommand cmd) {
-        this.followCommand = cmd;
-    }
+    private volatile boolean activeListSavesDisabled = false;
 
     private Map<String, Map<String, String>> loadedInventories = null;
 
@@ -100,11 +81,24 @@ public final class BotPersistence {
     }
 
     public void save(Iterable<FakePlayer> players) {
-        fireSaveEvents(players);
-        saveInternal(players);
-        saveInventoriesInternal(players);
-        saveXpInternal(players);
-        saveTasksInternal(players);
+        List<FakePlayer> snapshot = snapshotPlayers(players);
+        fireSaveEvents(snapshot);
+        saveInternal(snapshot);
+        saveInventoriesInternal(snapshot);
+        saveXpInternal(snapshot);
+        saveTasksInternal(snapshot);
+    }
+
+    public void saveForShutdown(Iterable<FakePlayer> players) {
+        List<FakePlayer> snapshot = snapshotPlayers(players);
+        activeListSavesDisabled = true;
+        activeListSaveDirty = false;
+        activeListSavePlayers = snapshot;
+        if (snapshot.isEmpty()) {
+            FppLogger.warn("Shutdown persistence skipped empty active-bots snapshot to avoid clearing restart state.");
+            return;
+        }
+        save(snapshot);
     }
 
     public void saveAsync(Iterable<FakePlayer> players) {
@@ -114,11 +108,12 @@ public final class BotPersistence {
     public void saveFullAsync(Iterable<FakePlayer> players) {
         if (!asyncSaveQueued.compareAndSet(false, true)) return;
 
-        fireSaveEvents(players);
-        List<Object> list = buildList(players);
-        Map<String, Map<String, String>> invSnap = snapshotInventories(players);
-        Map<String, XpEntry> xpSnap = snapshotXp(players);
-        Map<String, TaskEntry> taskSnap = snapshotTasks(players);
+        List<FakePlayer> snapshot = snapshotPlayers(players);
+        fireSaveEvents(snapshot);
+        List<Object> list = buildList(snapshot);
+        Map<String, Map<String, String>> invSnap = snapshotInventories(snapshot);
+        Map<String, XpEntry> xpSnap = snapshotXp(snapshot);
+        Map<String, TaskEntry> taskSnap = snapshotTasks(snapshot);
         FppScheduler.runAsync(plugin, () -> {
             try {
                 try {
@@ -138,6 +133,7 @@ public final class BotPersistence {
     }
 
     public void saveActiveListAsync(Iterable<FakePlayer> players) {
+        if (activeListSavesDisabled) return;
         activeListSavePlayers = snapshotPlayers(players);
         activeListSaveDirty = true;
         if (activeListSaveScheduled.compareAndSet(false, true)) {
@@ -155,24 +151,33 @@ public final class BotPersistence {
     }
 
     private void scheduleActiveListSave() {
-        FppScheduler.runSyncLater(plugin, () -> {
-            activeListSaveDirty = false;
-            List<Object> list = buildActiveListLight(activeListSavePlayers);
-            FppScheduler.runAsync(plugin, () -> {
-                try {
-                    writeActiveBotList(list);
-                } finally {
-                    if (activeListSaveDirty) {
-                        scheduleActiveListSave();
-                    } else {
+        FppScheduler.runSyncLater(
+                plugin,
+                () -> {
+                    if (activeListSavesDisabled) {
+                        activeListSaveDirty = false;
                         activeListSaveScheduled.set(false);
-                        if (activeListSaveDirty && activeListSaveScheduled.compareAndSet(false, true)) {
-                            scheduleActiveListSave();
-                        }
+                        return;
                     }
-                }
-            });
-        }, 20L);
+                    activeListSaveDirty = false;
+                    List<Object> list = buildActiveListLight(activeListSavePlayers);
+                    FppScheduler.runAsync(plugin, () -> {
+                        try {
+                            if (activeListSavesDisabled) return;
+                            writeActiveBotList(list);
+                        } finally {
+                            if (activeListSaveDirty) {
+                                scheduleActiveListSave();
+                            } else {
+                                activeListSaveScheduled.set(false);
+                                if (activeListSaveDirty && activeListSaveScheduled.compareAndSet(false, true)) {
+                                    scheduleActiveListSave();
+                                }
+                            }
+                        }
+                    });
+                },
+                20L);
     }
 
     private void writeActiveBotList(List<Object> list) {
@@ -183,19 +188,6 @@ public final class BotPersistence {
         } catch (IOException e) {
             FppLogger.error("Failed to auto-save active bots: " + e.getMessage());
         }
-    }
-
-    private void saveActiveListNowAsync(Iterable<FakePlayer> players) {
-        if (!asyncSaveQueued.compareAndSet(false, true)) return;
-
-        List<Object> list = buildActiveListLight(players);
-        FppScheduler.runAsync(plugin, () -> {
-            try {
-                writeActiveBotList(list);
-            } finally {
-                asyncSaveQueued.set(false);
-            }
-        });
     }
 
     private void saveInternal(Iterable<FakePlayer> players) {
@@ -266,73 +258,7 @@ public final class BotPersistence {
             double areaPos2X = 0, areaPos2Y = 0, areaPos2Z = 0;
             boolean areaActive = false;
 
-            String attackWorld = null;
-            double attackX = 0, attackY = 0, attackZ = 0;
-            float attackYaw = 0, attackPitch = 0;
-            boolean attackOnce = false;
-            String attackMode = null;
-            double attackRange = Config.attackMobDefaultRange();
-            String attackPriority = Config.attackMobDefaultPriority();
-            String attackMobTypes = null;
-            String attackSmartMode = null;
-            if (attackCommand != null) {
-                Location attackLoc = attackCommand.getActiveAttackLocation(fp.getUuid());
-                if (attackLoc != null && attackLoc.getWorld() != null) {
-                    attackWorld = attackLoc.getWorld().getName();
-                    attackX = attackLoc.getX();
-                    attackY = attackLoc.getY();
-                    attackZ = attackLoc.getZ();
-                    attackYaw = attackLoc.getYaw();
-                    attackPitch = attackLoc.getPitch();
-                    attackOnce = attackCommand.isActiveAttackOnce(fp.getUuid());
-                    attackMode = attackCommand.getAttackMode(fp.getUuid());
-                    if (attackMode != null && !attackMode.equals("classic")) {
-                        attackRange = attackCommand.getAttackRange(fp.getUuid());
-                        attackPriority = attackCommand.getAttackPriority(fp.getUuid());
-                        Set<EntityType> types = attackCommand.getAttackFilterTypes(fp.getUuid());
-                        if (types != null && !types.isEmpty()) {
-                            StringBuilder sb = new StringBuilder();
-                            for (EntityType et : types) {
-                                if (sb.length() > 0) sb.append(',');
-                                sb.append(et.name());
-                            }
-                            attackMobTypes = sb.toString();
-                        }
-                        FakePlayer.PveSmartAttackMode sm = attackCommand.getAttackSmartMode(fp.getUuid());
-                        if (sm != null) attackSmartMode = sm.name();
-                    }
-                }
-            }
-
-            String followTargetUuid = null;
-            if (followCommand != null && followCommand.isFollowing(fp.getUuid())) {
-                UUID targetUuid = followCommand.getFollowTarget(fp.getUuid());
-                if (targetUuid != null) followTargetUuid = targetUuid.toString();
-            }
-
-            String roamWorld = null;
-            double roamX = 0, roamY = 0, roamZ = 0;
-            double roamRadius = 0;
-            if (moveCommand != null && moveCommand.isRoaming(fp.getUuid())) {
-                Location roamCenter = moveCommand.getRoamCenter(fp.getUuid());
-                Double roamR = moveCommand.getRoamRadius(fp.getUuid());
-                if (roamCenter != null && roamCenter.getWorld() != null && roamR != null) {
-                    roamWorld = roamCenter.getWorld().getName();
-                    roamX = roamCenter.getX();
-                    roamY = roamCenter.getY();
-                    roamZ = roamCenter.getZ();
-                    roamRadius = roamR;
-                }
-            }
-
-            if (rcc != null
-                    || mineWorld != null
-                    || useWorld != null
-                    || areaPos1World != null
-                    || placeWorld != null
-                    || attackWorld != null
-                    || followTargetUuid != null
-                    || roamWorld != null) {
+            if (rcc != null || mineWorld != null || useWorld != null || areaPos1World != null || placeWorld != null) {
                 snap.put(
                         uuidStr,
                         new TaskEntry(
@@ -366,25 +292,7 @@ public final class BotPersistence {
                                 placeZ,
                                 placeYaw,
                                 placePitch,
-                                placeOnce,
-                                attackWorld,
-                                attackX,
-                                attackY,
-                                attackZ,
-                                attackYaw,
-                                attackPitch,
-                                attackOnce,
-                                attackMode,
-                                attackRange,
-                                attackPriority,
-                                attackMobTypes,
-                                attackSmartMode,
-                                followTargetUuid,
-                                roamWorld,
-                                roamX,
-                                roamY,
-                                roamZ,
-                                roamRadius));
+                                placeOnce));
             }
         }
         return snap;
@@ -423,33 +331,6 @@ public final class BotPersistence {
                         section.set(sec + "place-yaw", (double) t.placeYaw());
                         section.set(sec + "place-pitch", (double) t.placePitch());
                         section.set(sec + "place-once", t.placeOnce());
-                    }
-                    if (t.attackWorld() != null) {
-                        section.set(sec + "attack-world", t.attackWorld());
-                        section.set(sec + "attack-x", t.attackX());
-                        section.set(sec + "attack-y", t.attackY());
-                        section.set(sec + "attack-z", t.attackZ());
-                        section.set(sec + "attack-yaw", (double) t.attackYaw());
-                        section.set(sec + "attack-pitch", (double) t.attackPitch());
-                        section.set(sec + "attack-once", t.attackOnce());
-                        if (t.attackMode() != null) {
-                            section.set(sec + "attack-mode", t.attackMode());
-                            section.set(sec + "attack-range", t.attackRange());
-                            section.set(sec + "attack-priority", t.attackPriority());
-                            if (t.attackMobTypes() != null) section.set(sec + "attack-mob-types", t.attackMobTypes());
-                            if (t.attackSmartMode() != null)
-                                section.set(sec + "attack-smart-mode", t.attackSmartMode());
-                        }
-                    }
-                    if (t.followTargetUuid() != null) {
-                        section.set(sec + "follow-target", t.followTargetUuid());
-                    }
-                    if (t.roamWorld() != null) {
-                        section.set(sec + "roam-world", t.roamWorld());
-                        section.set(sec + "roam-x", t.roamX());
-                        section.set(sec + "roam-y", t.roamY());
-                        section.set(sec + "roam-z", t.roamZ());
-                        section.set(sec + "roam-radius", t.roamRadius());
                     }
                     if (t.areaPos1World() != null && t.areaPos2World() != null) {
                         section.set(sec + "area-pos1-world", t.areaPos1World());
@@ -527,54 +408,6 @@ public final class BotPersistence {
                         null,
                         false));
             }
-            if (t.attackWorld() != null) {
-                String attackExtra = null;
-                boolean attackExtraBool = false;
-                if (t.attackMode() != null && !t.attackMode().equals("classic")) {
-                    attackExtra = t.attackMode()
-                            + ":"
-                            + t.attackRange()
-                            + ":"
-                            + (t.attackPriority() != null ? t.attackPriority() : "")
-                            + ":"
-                            + (t.attackSmartMode() != null ? t.attackSmartMode() : "")
-                            + ":"
-                            + (t.attackMobTypes() != null ? t.attackMobTypes() : "");
-                    attackExtraBool = t.attackMode().equals("hunt");
-                }
-                rows.add(new DatabaseManager.BotTaskRow(
-                        uuid,
-                        serverId,
-                        "ATTACK",
-                        t.attackWorld(),
-                        t.attackX(),
-                        t.attackY(),
-                        t.attackZ(),
-                        t.attackYaw(),
-                        t.attackPitch(),
-                        t.attackOnce(),
-                        attackExtra,
-                        attackExtraBool));
-            }
-            if (t.followTargetUuid() != null) {
-                rows.add(new DatabaseManager.BotTaskRow(
-                        uuid, serverId, "FOLLOW", null, 0, 0, 0, 0f, 0f, false, t.followTargetUuid(), false));
-            }
-            if (t.roamWorld() != null) {
-                rows.add(new DatabaseManager.BotTaskRow(
-                        uuid,
-                        serverId,
-                        "ROAM",
-                        t.roamWorld(),
-                        t.roamX(),
-                        t.roamY(),
-                        t.roamZ(),
-                        (float) t.roamRadius(),
-                        0f,
-                        false,
-                        null,
-                        false));
-            }
         }
         return rows;
     }
@@ -585,9 +418,7 @@ public final class BotPersistence {
             Player bot = fp.getPlayer();
             if (bot == null || !bot.isValid()) continue;
             Map<String, String> slots = serializeInventory(bot.getInventory());
-            if (!slots.isEmpty()) {
-                snap.put(fp.getUuid().toString(), slots);
-            }
+            snap.put(fp.getUuid().toString(), slots);
         }
         return snap;
     }
@@ -607,6 +438,10 @@ public final class BotPersistence {
             BotDataYaml.replaceSection(plugin, ROOT_INVENTORIES, section -> {
                 for (Map.Entry<String, Map<String, String>> entry : snap.entrySet()) {
                     String uuidKey = entry.getKey();
+                    if (entry.getValue().isEmpty()) {
+                        section.set(uuidKey + "." + EMPTY_INVENTORY_MARKER, true);
+                        continue;
+                    }
                     for (Map.Entry<String, String> slot : entry.getValue().entrySet()) {
                         section.set(uuidKey + "." + slot.getKey(), slot.getValue());
                     }
@@ -711,10 +546,7 @@ public final class BotPersistence {
                 Set<UUID> sharedControllers = fp.getSharedControllers();
                 section.put(
                         "shared-controllers",
-                        sharedControllers.stream()
-                                .map(UUID::toString)
-                                .sorted()
-                                .toList());
+                        sharedControllers.stream().map(UUID::toString).sorted().toList());
             }
             section.put("pve-enabled", fp.isPveEnabled());
             section.put("pve-smart-attack-mode", fp.getPveSmartAttackMode().name());
@@ -852,13 +684,9 @@ public final class BotPersistence {
             List<DatabaseManager.ActiveBotRow> rows = db.getActiveBotsForThisServer();
             if (!rows.isEmpty()) {
                 Map<String, SkinProfile> yamlSkinFallback = loadYamlSkinFallback();
+                Map<String, BotType> yamlBotTypeFallback = loadYamlBotTypeFallback();
                 FppLogger.info(
                         "Restoring " + rows.size() + " bot(s) from database (server='" + Config.serverId() + "')...");
-
-                db.clearActiveBots();
-
-                clearUnifiedSection(ROOT_BOTS);
-                deleteFile(dataFile);
 
                 List<SavedBot> saved = new ArrayList<>();
                 for (var row : rows) {
@@ -868,6 +696,8 @@ public final class BotPersistence {
                         if (effectiveUuid == null) continue;
                         SkinProfile fallbackSkin =
                                 yamlSkinFallback.get(row.botName().toLowerCase(Locale.ROOT));
+                        BotType fallbackBotType =
+                                yamlBotTypeFallback.getOrDefault(row.botName().toLowerCase(Locale.ROOT), BotType.AFK);
                         String skinTexture = skinExtensionLoaded ? row.skinTexture() : null;
                         String skinSignature = skinExtensionLoaded ? row.skinSignature() : null;
                         if (skinExtensionLoaded
@@ -890,7 +720,7 @@ public final class BotPersistence {
                                 row.yaw(),
                                 row.pitch(),
                                 luckPermsExtensionLoaded ? row.luckpermsGroup() : null,
-                                BotType.AFK,
+                                fallbackBotType,
                                 chatExtensionLoaded && row.chatEnabled(),
                                 row.respawnOnDeath(),
                                 chatExtensionLoaded ? row.chatTier() : null,
@@ -928,7 +758,8 @@ public final class BotPersistence {
                     }
                 }
                 if (!saved.isEmpty()) {
-                    FppScheduler.runSyncLater(plugin, () -> restoreChain(manager, saved, 0), Config.restoreDelayTicks());
+                    FppScheduler.runSyncLater(
+                            plugin, () -> restoreChain(manager, saved, 0), Config.restoreDelayTicks());
                 } else {
 
                     manager.setRestorationInProgress(false);
@@ -957,8 +788,6 @@ public final class BotPersistence {
         }
 
         if (raw == null || raw.isEmpty()) {
-            clearUnifiedSection(ROOT_BOTS);
-            deleteFile(dataFile);
             manager.setRestorationInProgress(false);
             return;
         }
@@ -1117,8 +946,6 @@ public final class BotPersistence {
                 FppLogger.warn("Skipping malformed bot entry in " + FILE_NAME + ": " + e.getMessage());
             }
         }
-        clearUnifiedSection(ROOT_BOTS);
-        deleteFile(dataFile);
         if (saved.isEmpty()) {
             manager.setRestorationInProgress(false);
             return;
@@ -1155,6 +982,28 @@ public final class BotPersistence {
         return fallback;
     }
 
+    private Map<String, BotType> loadYamlBotTypeFallback() {
+        Map<String, BotType> fallback = new HashMap<>();
+        try {
+            YamlConfiguration unified = BotDataYaml.load(plugin);
+            List<?> raw = unified.getList(ROOT_BOTS + ".bots");
+            if ((raw == null || raw.isEmpty()) && dataFile.exists()) {
+                raw = YamlConfiguration.loadConfiguration(dataFile).getList("bots");
+            }
+            if (raw == null) return fallback;
+            for (Object obj : raw) {
+                if (!(obj instanceof Map<?, ?> map)) continue;
+                Object nameRaw = map.get("name");
+                Object typeRaw = map.get("bot-type");
+                if (!(nameRaw instanceof String name) || !(typeRaw instanceof String type)) continue;
+                fallback.put(name.toLowerCase(Locale.ROOT), BotType.parse(type));
+            }
+        } catch (Exception e) {
+            FppLogger.warn("BotPersistence: failed to read YAML bot type fallback: " + e.getMessage());
+        }
+        return fallback;
+    }
+
     private void restoreChain(FakePlayerManager manager, List<SavedBot> saved, int index) {
         int batchEnd = Math.min(saved.size(), index + Config.restoreBatchSize());
         int nextIndex = index;
@@ -1177,7 +1026,13 @@ public final class BotPersistence {
         loadedTasks = null;
         clearUnifiedSection(ROOT_TASKS);
         deleteFile(tasksFile);
+        if (Config.persistOnRestart()) saveActiveListNow(manager.getActivePlayers());
         FppLogger.info("Bot restoration complete: " + saved.size() + " bot(s) restored.");
+    }
+
+    private void saveActiveListNow(Iterable<FakePlayer> players) {
+        if (activeListSavesDisabled) return;
+        writeActiveBotList(buildActiveListLight(snapshotPlayers(players)));
     }
 
     private int restoreOne(FakePlayerManager manager, List<SavedBot> saved, int index) {
@@ -1284,25 +1139,6 @@ public final class BotPersistence {
                         },
                         5L);
             }
-
-            if (fp.isPveEnabled()) {
-                TaskEntry taskEntry = loadedTasks != null ? loadedTasks.get(sb.uuid.toString()) : null;
-                boolean hasAttackTask = taskEntry != null && taskEntry.attackWorld() != null;
-                if (!hasAttackTask) {
-                    final FakePlayer pveBot = fp;
-                    FppScheduler.runSyncLater(
-                            plugin,
-                            () -> {
-                                var attackCmd = plugin.getAttackCommand();
-                                if (attackCmd != null
-                                        && pveBot.getPlayer() != null
-                                        && pveBot.getPlayer().isOnline()) {
-                                    attackCmd.startMobModeFromSettings(pveBot);
-                                }
-                            },
-                            15L);
-                }
-            }
         }
 
         if (loadedTasks != null) {
@@ -1314,7 +1150,7 @@ public final class BotPersistence {
 
         if (loadedInventories != null) {
             Map<String, String> invSlots = loadedInventories.get(sb.uuid.toString());
-            if (invSlots != null && !invSlots.isEmpty()) {
+            if (invSlots != null) {
                 final UUID restoredUuid = sb.uuid;
                 final String restoredName = sb.name;
                 FppScheduler.runSyncLater(
@@ -1363,8 +1199,7 @@ public final class BotPersistence {
                     && (te.mineWorld() != null
                             || te.useWorld() != null
                             || te.areaPos1World() != null
-                            || te.placeWorld() != null
-                            || te.roamWorld() != null)) {
+                            || te.placeWorld() != null)) {
                 final TaskEntry task = te;
                 final UUID restoredUuid = sb.uuid;
                 FppScheduler.runSyncLater(
@@ -1377,75 +1212,6 @@ public final class BotPersistence {
 
                             // Legacy mine/use/place task restoration removed - migrated to left-click/right-click
                             // commands
-
-                            if (task.attackWorld() != null && attackCommand != null) {
-                                World w = Bukkit.getWorld(task.attackWorld());
-                                if (w != null && w.equals(bot.getWorld())) {
-                                    Location attackLoc = new Location(
-                                            w,
-                                            task.attackX(),
-                                            task.attackY(),
-                                            task.attackZ(),
-                                            task.attackYaw(),
-                                            task.attackPitch());
-                                    String mode = task.attackMode();
-                                    if ("hunt".equals(mode)) {
-                                        Set<EntityType> filterTypes = parseEntityTypes(task.attackMobTypes());
-                                        attackCommand.resumeHuntAttacking(
-                                                restored,
-                                                task.attackRange(),
-                                                task.attackPriority(),
-                                                filterTypes,
-                                                attackLoc);
-                                        Config.debug("Resumed hunt attack task for bot '" + restored.getName() + "'.");
-                                    } else if ("mob".equals(mode)) {
-                                        Set<EntityType> filterTypes = parseEntityTypes(task.attackMobTypes());
-                                        FakePlayer.PveSmartAttackMode smartMode = FakePlayer.PveSmartAttackMode.OFF;
-                                        if (task.attackSmartMode() != null) {
-                                            try {
-                                                smartMode =
-                                                        FakePlayer.PveSmartAttackMode.valueOf(task.attackSmartMode());
-                                            } catch (IllegalArgumentException ignored) {
-                                            }
-                                        }
-                                        attackCommand.resumeMobAttacking(
-                                                restored,
-                                                task.attackRange(),
-                                                task.attackPriority(),
-                                                filterTypes,
-                                                smartMode,
-                                                attackLoc);
-                                        Config.debug("Resumed mob attack task for bot '" + restored.getName() + "'.");
-                                    } else {
-                                        attackCommand.resumeAttacking(restored, task.attackOnce(), attackLoc);
-                                        Config.debug("Resumed attack task for bot '" + restored.getName() + "'.");
-                                    }
-                                }
-                            }
-
-                            if (task.followTargetUuid() != null && followCommand != null) {
-                                try {
-                                    UUID targetUuid = UUID.fromString(task.followTargetUuid());
-                                    followCommand.resumeFollowing(restored, targetUuid);
-                                    Config.debug("Resumed follow task for bot '" + restored.getName() + "'.");
-                                } catch (IllegalArgumentException ignored) {
-                                }
-                            }
-
-                            if (task.roamWorld() != null && moveCommand != null) {
-                                World w = Bukkit.getWorld(task.roamWorld());
-                                if (w != null && w.equals(bot.getWorld())) {
-                                    Location roamCenter = new Location(w, task.roamX(), task.roamY(), task.roamZ());
-                                    double roamR = task.roamRadius();
-                                    if (roamR < 3) roamR = 20;
-                                    moveCommand.resumeRoaming(restored, roamCenter, roamR);
-                                    Config.debug("Resumed roaming for bot '"
-                                            + restored.getName()
-                                            + "' (radius "
-                                            + (int) roamR
-                                            + ").");
-                                }
-                            }
                         },
                         25L);
             }
@@ -1517,11 +1283,13 @@ public final class BotPersistence {
             ConfigurationSection botSection = invSection.getConfigurationSection(uuidKey);
             if (botSection == null) continue;
             Map<String, String> slots = new LinkedHashMap<>();
+            boolean emptyInventory = botSection.getBoolean(EMPTY_INVENTORY_MARKER, false);
             for (String slot : botSection.getKeys(false)) {
+                if (slot.equals(EMPTY_INVENTORY_MARKER)) continue;
                 String val = botSection.getString(slot);
                 if (val != null && !val.isEmpty()) slots.put(slot, val);
             }
-            if (!slots.isEmpty()) loadedInventories.put(uuidKey, slots);
+            if (emptyInventory || !slots.isEmpty()) loadedInventories.put(uuidKey, slots);
         }
         Config.debug(
                 "Loaded inventories for " + loadedInventories.size() + " bot(s) from " + BotDataYaml.FILE_NAME + ".");
@@ -1641,27 +1409,6 @@ public final class BotPersistence {
             double areaPos2Z = sec.getDouble("area-pos2-z");
             boolean areaActive = sec.getBoolean("area-active", false);
 
-            String attackWorld = sec.getString("attack-world");
-            double attackX = sec.getDouble("attack-x");
-            double attackY = sec.getDouble("attack-y");
-            double attackZ = sec.getDouble("attack-z");
-            float attackYaw = (float) sec.getDouble("attack-yaw");
-            float attackPitch = (float) sec.getDouble("attack-pitch");
-            boolean attackOnce = sec.getBoolean("attack-once", false);
-            String attackMode = sec.getString("attack-mode");
-            double attackRange = sec.getDouble("attack-range", Config.attackMobDefaultRange());
-            String attackPriority = sec.getString("attack-priority", Config.attackMobDefaultPriority());
-            String attackMobTypes = sec.getString("attack-mob-types");
-            String attackSmartMode = sec.getString("attack-smart-mode");
-
-            String followTarget = sec.getString("follow-target");
-
-            String roamWorld = sec.getString("roam-world");
-            double roamX = sec.getDouble("roam-x");
-            double roamY = sec.getDouble("roam-y");
-            double roamZ = sec.getDouble("roam-z");
-            double roamRadius = sec.getDouble("roam-radius");
-
             loadedTasks.put(
                     uuidStr,
                     new TaskEntry(
@@ -1695,25 +1442,7 @@ public final class BotPersistence {
                             placeZ,
                             placeYaw,
                             placePitch,
-                            placeOnce,
-                            attackWorld,
-                            attackX,
-                            attackY,
-                            attackZ,
-                            attackYaw,
-                            attackPitch,
-                            attackOnce,
-                            attackMode,
-                            attackRange,
-                            attackPriority,
-                            attackMobTypes,
-                            attackSmartMode,
-                            followTarget,
-                            roamWorld,
-                            roamX,
-                            roamY,
-                            roamZ,
-                            roamRadius));
+                            placeOnce));
         }
         Config.debug("Loaded task state for " + loadedTasks.size() + " bot(s) from " + BotDataYaml.FILE_NAME + ".");
     }
@@ -1731,9 +1460,6 @@ public final class BotPersistence {
             var mine = tasks.get("MINE");
             var use = tasks.get("USE");
             var place = tasks.get("PLACE");
-            var attack = tasks.get("ATTACK");
-            var follow = tasks.get("FOLLOW");
-            var roam = tasks.get("ROAM");
             result.put(
                     uuid,
                     new TaskEntry(
@@ -1767,36 +1493,15 @@ public final class BotPersistence {
                             place != null ? place.posZ() : 0,
                             place != null ? place.posYaw() : 0f,
                             place != null ? place.posPitch() : 0f,
-                            place != null && place.onceFlag(),
-                            attack != null ? attack.worldName() : null,
-                            attack != null ? attack.posX() : 0,
-                            attack != null ? attack.posY() : 0,
-                            attack != null ? attack.posZ() : 0,
-                            attack != null ? attack.posYaw() : 0f,
-                            attack != null ? attack.posPitch() : 0f,
-                            attack != null && attack.onceFlag(),
-                            attack != null && attack.extraStr() != null ? parseAttackMode(attack.extraStr()) : null,
-                            attack != null && attack.extraStr() != null
-                                    ? parseAttackRange(attack.extraStr())
-                                    : Config.attackMobDefaultRange(),
-                            attack != null && attack.extraStr() != null
-                                    ? parseAttackPriority(attack.extraStr())
-                                    : Config.attackMobDefaultPriority(),
-                            attack != null && attack.extraStr() != null ? parseAttackMobTypes(attack.extraStr()) : null,
-                            attack != null && attack.extraStr() != null
-                                    ? parseAttackSmartMode(attack.extraStr())
-                                    : null,
-                            follow != null ? follow.extraStr() : null,
-                            roam != null ? roam.worldName() : null,
-                            roam != null ? roam.posX() : 0,
-                            roam != null ? roam.posY() : 0,
-                            roam != null ? roam.posZ() : 0,
-                            roam != null ? roam.posYaw() : 0));
+                            place != null && place.onceFlag()));
         }
         return result;
     }
 
     private static void applyInventory(PlayerInventory inv, Map<String, String> slots) {
+        inv.clear();
+        inv.setArmorContents(new ItemStack[4]);
+        inv.setItemInOffHand(null);
         for (Map.Entry<String, String> entry : slots.entrySet()) {
             try {
                 int slot = Integer.parseInt(entry.getKey());
@@ -1924,6 +1629,8 @@ public final class BotPersistence {
                 : storedUuid;
         if (resolved != null && storedUuid != null && !resolved.equals(storedUuid)) {
             remapLoadedState(storedUuid, resolved);
+            DatabaseManager db = plugin.getDatabaseManager();
+            if (db != null) db.deleteActiveBot(storedUuid.toString());
             Config.debugDatabase(
                     "BotPersistence: remapped restored UUID for '" + botName + "' " + storedUuid + " -> " + resolved);
         }
@@ -1954,57 +1661,6 @@ public final class BotPersistence {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
-    }
-
-    private static Set<EntityType> parseEntityTypes(String mobTypes) {
-        Set<EntityType> result = new HashSet<>();
-        if (mobTypes == null || mobTypes.isEmpty()) return result;
-        for (String name : mobTypes.split(",")) {
-            try {
-                result.add(EntityType.valueOf(name));
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        return result;
-    }
-
-    private static String parseAttackMode(String extraStr) {
-        if (extraStr == null || extraStr.isEmpty()) return null;
-        String[] parts = extraStr.split(":", 5);
-        return parts.length > 0 && !parts[0].isEmpty() ? parts[0] : null;
-    }
-
-    private static double parseAttackRange(String extraStr) {
-        if (extraStr == null || extraStr.isEmpty()) return Config.attackMobDefaultRange();
-        String[] parts = extraStr.split(":", 5);
-        if (parts.length > 1) {
-            try {
-                return Double.parseDouble(parts[1]);
-            } catch (NumberFormatException ignored) {
-            }
-        }
-        return Config.attackMobDefaultRange();
-    }
-
-    private static String parseAttackPriority(String extraStr) {
-        if (extraStr == null || extraStr.isEmpty()) return Config.attackMobDefaultPriority();
-        String[] parts = extraStr.split(":", 5);
-        if (parts.length > 2 && !parts[2].isEmpty()) return parts[2];
-        return Config.attackMobDefaultPriority();
-    }
-
-    private static String parseAttackMobTypes(String extraStr) {
-        if (extraStr == null || extraStr.isEmpty()) return null;
-        String[] parts = extraStr.split(":", 5);
-        if (parts.length > 4 && !parts[4].isEmpty()) return parts[4];
-        return null;
-    }
-
-    private static String parseAttackSmartMode(String extraStr) {
-        if (extraStr == null || extraStr.isEmpty()) return null;
-        String[] parts = extraStr.split(":", 5);
-        if (parts.length > 3 && !parts[3].isEmpty()) return parts[3];
-        return null;
     }
 
     private record TaskEntry(
@@ -2038,25 +1694,7 @@ public final class BotPersistence {
             double placeZ,
             float placeYaw,
             float placePitch,
-            boolean placeOnce,
-            String attackWorld,
-            double attackX,
-            double attackY,
-            double attackZ,
-            float attackYaw,
-            float attackPitch,
-            boolean attackOnce,
-            String attackMode,
-            double attackRange,
-            String attackPriority,
-            String attackMobTypes,
-            String attackSmartMode,
-            String followTargetUuid,
-            String roamWorld,
-            double roamX,
-            double roamY,
-            double roamZ,
-            double roamRadius) {}
+            boolean placeOnce) {}
 
     private record XpEntry(int totalExperience, int level, float progress) {}
 }

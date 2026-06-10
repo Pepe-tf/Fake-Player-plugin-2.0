@@ -14,7 +14,9 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
@@ -22,7 +24,9 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredListener;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -287,6 +291,7 @@ public final class ExtensionLoader {
                         "[Extensions] Failed to unregister extension '" + wrapper.getName() + "': " + t.getMessage());
             }
         }
+        unregisterBukkitListeners();
         EXTENSIONS.clear();
         activeWrappers.clear();
         closeClassLoaders();
@@ -447,6 +452,24 @@ public final class ExtensionLoader {
             }
         }
         classLoaders.clear();
+    }
+
+    private void unregisterBukkitListeners() {
+        if (classLoaders.isEmpty()) return;
+        Set<ClassLoader> extensionLoaders = new HashSet<>(classLoaders);
+        int removed = 0;
+        for (HandlerList handlerList : HandlerList.getHandlerLists()) {
+            for (RegisteredListener registered : handlerList.getRegisteredListeners()) {
+                ClassLoader listenerLoader = registered.getListener().getClass().getClassLoader();
+                if (extensionLoaders.contains(listenerLoader)) {
+                    handlerList.unregister(registered);
+                    removed++;
+                }
+            }
+        }
+        if (removed > 0) {
+            FppLogger.info("[Extensions] Unregistered " + removed + " Bukkit listener(s) from unloaded extensions.");
+        }
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────

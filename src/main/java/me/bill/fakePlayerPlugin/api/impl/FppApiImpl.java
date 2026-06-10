@@ -29,6 +29,7 @@ import me.bill.fakePlayerPlugin.api.FppAddonCommand;
 import me.bill.fakePlayerPlugin.api.FppApi;
 import me.bill.fakePlayerPlugin.api.FppBot;
 import me.bill.fakePlayerPlugin.api.FppBotTickHandler;
+import me.bill.fakePlayerPlugin.api.FppClickMode;
 import me.bill.fakePlayerPlugin.api.FppCommandExtension;
 import me.bill.fakePlayerPlugin.api.FppCommandInfo;
 import me.bill.fakePlayerPlugin.api.FppCommandSource;
@@ -479,6 +480,46 @@ public final class FppApiImpl implements FppApi {
     public boolean isNavigating(@NotNull FppBot bot) {
         PathfindingService svc = plugin.getPathfindingService();
         return svc != null && svc.isNavigating(bot.getUuid());
+    }
+
+    @Override
+    public boolean leftClick(@NotNull FppBot bot) {
+        return leftClick(bot, FppClickMode.ONCE);
+    }
+
+    @Override
+    public boolean leftClick(@NotNull FppBot bot, @NotNull FppClickMode mode) {
+        FakePlayer fp = manager.getByUuid(bot.getUuid());
+        return fp != null && plugin.getLeftClickCommand() != null && plugin.getLeftClickCommand().click(fp, toLeftClickMode(mode));
+    }
+
+    @Override
+    public boolean rightClick(@NotNull FppBot bot) {
+        return rightClick(bot, FppClickMode.ONCE);
+    }
+
+    @Override
+    public boolean rightClick(@NotNull FppBot bot, @NotNull FppClickMode mode) {
+        FakePlayer fp = manager.getByUuid(bot.getUuid());
+        return fp != null && plugin.getRightClickCommand() != null && plugin.getRightClickCommand().click(fp, toRightClickMode(mode));
+    }
+
+    private static me.bill.fakePlayerPlugin.command.LeftClickCommand.ClickMode toLeftClickMode(FppClickMode mode) {
+        return switch (mode) {
+            case ONCE -> me.bill.fakePlayerPlugin.command.LeftClickCommand.ClickMode.ONCE;
+            case REPEAT -> me.bill.fakePlayerPlugin.command.LeftClickCommand.ClickMode.REPEAT;
+            case HOLD -> me.bill.fakePlayerPlugin.command.LeftClickCommand.ClickMode.HOLD;
+            case STOP -> me.bill.fakePlayerPlugin.command.LeftClickCommand.ClickMode.STOP;
+        };
+    }
+
+    private static me.bill.fakePlayerPlugin.command.RightClickCommand.ClickMode toRightClickMode(FppClickMode mode) {
+        return switch (mode) {
+            case ONCE -> me.bill.fakePlayerPlugin.command.RightClickCommand.ClickMode.ONCE;
+            case REPEAT -> me.bill.fakePlayerPlugin.command.RightClickCommand.ClickMode.REPEAT;
+            case HOLD -> me.bill.fakePlayerPlugin.command.RightClickCommand.ClickMode.HOLD;
+            case STOP -> me.bill.fakePlayerPlugin.command.RightClickCommand.ClickMode.STOP;
+        };
     }
 
     @Override

@@ -178,7 +178,7 @@ public class SpawnCommand implements FppCommand {
                                 player.getLocation().getYaw(),
                                 player.getLocation().getPitch());
             } else {
-                location = player.getLocation();
+                location = player.getLocation().clone();
             }
         } else {
 

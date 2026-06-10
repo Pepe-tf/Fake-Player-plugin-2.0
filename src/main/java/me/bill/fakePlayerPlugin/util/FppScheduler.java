@@ -1,6 +1,7 @@
 package me.bill.fakePlayerPlugin.util;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -129,9 +130,9 @@ public final class FppScheduler {
         Bukkit.getAsyncScheduler().runNow(plugin, ignored -> runnable.run());
     }
 
-    public static void teleportAsync(Entity entity, Location dest) {
-        if (entity == null || dest == null) return;
-        entity.teleportAsync(dest, PlayerTeleportEvent.TeleportCause.PLUGIN);
+    public static CompletableFuture<Boolean> teleportAsync(Entity entity, Location dest) {
+        if (entity == null || dest == null) return CompletableFuture.completedFuture(false);
+        return entity.teleportAsync(dest, PlayerTeleportEvent.TeleportCause.PLUGIN);
     }
 
     public static void cancelTask(int taskId) {

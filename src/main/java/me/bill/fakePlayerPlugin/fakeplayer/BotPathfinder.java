@@ -3,7 +3,8 @@ package me.bill.fakePlayerPlugin.fakeplayer;
 public final class BotPathfinder {
     private BotPathfinder() {}
 
-    public record PathOptions(boolean parkour, boolean breakBlocks, boolean placeBlocks, boolean avoidWater, boolean avoidLava) {
+    public record PathOptions(
+            boolean parkour, boolean breakBlocks, boolean placeBlocks, boolean avoidWater, boolean avoidLava) {
         public PathOptions(boolean parkour, boolean breakBlocks, boolean placeBlocks) {
             this(parkour, breakBlocks, placeBlocks, false, false);
         }

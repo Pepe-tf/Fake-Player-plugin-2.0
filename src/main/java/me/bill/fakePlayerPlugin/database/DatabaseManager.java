@@ -175,32 +175,6 @@ public class DatabaseManager {
             + "  skin_signature TEXT DEFAULT NULL"
             + ")";
 
-    private static final String CREATE_SLEEPING_SQLITE = "CREATE TABLE IF NOT EXISTS fpp_sleeping_bots ("
-            + "  sleep_order INTEGER NOT NULL,"
-            + "  bot_name    VARCHAR(16)  NOT NULL,"
-            + "  world_name  VARCHAR(64)  NOT NULL,"
-            + "  pos_x       DOUBLE NOT NULL,"
-            + "  pos_y       DOUBLE NOT NULL,"
-            + "  pos_z       DOUBLE NOT NULL,"
-            + "  pos_yaw     FLOAT  NOT NULL DEFAULT 0,"
-            + "  pos_pitch   FLOAT  NOT NULL DEFAULT 0,"
-            + "  server_id   VARCHAR(64)  NOT NULL DEFAULT 'default',"
-            + "  PRIMARY KEY (server_id, sleep_order)"
-            + ")";
-
-    private static final String CREATE_SLEEPING_MYSQL = "CREATE TABLE IF NOT EXISTS fpp_sleeping_bots ("
-            + "  sleep_order INT NOT NULL,"
-            + "  bot_name    VARCHAR(16)  NOT NULL,"
-            + "  world_name  VARCHAR(64)  NOT NULL,"
-            + "  pos_x       DOUBLE NOT NULL,"
-            + "  pos_y       DOUBLE NOT NULL,"
-            + "  pos_z       DOUBLE NOT NULL,"
-            + "  pos_yaw     FLOAT  NOT NULL DEFAULT 0,"
-            + "  pos_pitch   FLOAT  NOT NULL DEFAULT 0,"
-            + "  server_id   VARCHAR(64)  NOT NULL DEFAULT 'default',"
-            + "  PRIMARY KEY (server_id, sleep_order)"
-            + ")";
-
     private static final String CREATE_IDENTITIES_SQLITE = "CREATE TABLE IF NOT EXISTS fpp_bot_identities ("
             + "  bot_name   VARCHAR(16) NOT NULL,"
             + "  server_id  VARCHAR(64) NOT NULL DEFAULT 'default',"
@@ -365,20 +339,7 @@ public class DatabaseManager {
             "CREATE INDEX IF NOT EXISTS idx_sessions_server_id ON fpp_bot_sessions(server_id)",
             "CREATE INDEX IF NOT EXISTS idx_active_server_id   ON fpp_active_bots(server_id)"
         },
-        {
-            "CREATE TABLE IF NOT EXISTS fpp_sleeping_bots ("
-                    + "  sleep_order INTEGER NOT NULL,"
-                    + "  bot_name    VARCHAR(16)  NOT NULL,"
-                    + "  world_name  VARCHAR(64)  NOT NULL,"
-                    + "  pos_x       DOUBLE NOT NULL,"
-                    + "  pos_y       DOUBLE NOT NULL,"
-                    + "  pos_z       DOUBLE NOT NULL,"
-                    + "  pos_yaw     FLOAT  NOT NULL DEFAULT 0,"
-                    + "  pos_pitch   FLOAT  NOT NULL DEFAULT 0,"
-                    + "  server_id   VARCHAR(64)  NOT NULL DEFAULT 'default',"
-                    + "  PRIMARY KEY (server_id, sleep_order)"
-                    + ")"
-        },
+        {},
         {
             "CREATE TABLE IF NOT EXISTS fpp_bot_identities ("
                     + "  bot_name   VARCHAR(16) NOT NULL,"
@@ -635,7 +596,6 @@ public class DatabaseManager {
     private void createTables() {
         exec(isMysql ? CREATE_SESSIONS_MYSQL : CREATE_SESSIONS_SQLITE);
         exec(isMysql ? CREATE_ACTIVE_MYSQL : CREATE_ACTIVE_SQLITE);
-        exec(isMysql ? CREATE_SLEEPING_MYSQL : CREATE_SLEEPING_SQLITE);
         exec(isMysql ? CREATE_IDENTITIES_MYSQL : CREATE_IDENTITIES_SQLITE);
         exec(isMysql ? CREATE_TASKS_MYSQL : CREATE_TASKS_SQLITE);
         exec(isMysql ? CREATE_SKIN_CACHE_MYSQL : CREATE_SKIN_CACHE_SQLITE);
@@ -1118,6 +1078,20 @@ public class DatabaseManager {
                 Config.debug("DB cleared " + rows + " active_bot(s) for server='" + sid + "'.");
             } catch (SQLException e) {
                 FppLogger.error("DB clearActiveBots: " + e.getMessage());
+            }
+        });
+    }
+
+    public void deleteActiveBot(String botUuid) {
+        if (botUuid == null || botUuid.isBlank()) return;
+        enqueue(() -> {
+            if (!isAlive()) return;
+            try (PreparedStatement ps = connection.prepareStatement("DELETE FROM fpp_active_bots WHERE bot_uuid=?")) {
+                ps.setString(1, botUuid);
+                int rows = ps.executeUpdate();
+                if (rows > 0) Config.debugDatabase("DB deleted stale active_bot row for uuid=" + botUuid);
+            } catch (SQLException e) {
+                FppLogger.error("DB deleteActiveBot: " + e.getMessage());
             }
         });
     }
@@ -1895,85 +1869,6 @@ public class DatabaseManager {
         }
     }
 
-    public void saveSleepingBots(List<SleepingBotRow> bots) {
-        final List<SleepingBotRow> snap = new ArrayList<>(bots);
-        final String sid = Config.serverId();
-        enqueue(() -> {
-            if (!isAlive()) return;
-
-            try (PreparedStatement del =
-                    connection.prepareStatement("DELETE FROM fpp_sleeping_bots WHERE server_id=?")) {
-                del.setString(1, sid);
-                del.executeUpdate();
-            } catch (SQLException e) {
-                FppLogger.error("DB saveSleepingBots (delete): " + e.getMessage());
-                return;
-            }
-            if (snap.isEmpty()) return;
-            String sql = "INSERT INTO fpp_sleeping_bots"
-                    + "(sleep_order,bot_name,world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,server_id)"
-                    + " VALUES(?,?,?,?,?,?,?,?,?)";
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                for (SleepingBotRow row : snap) {
-                    ps.setInt(1, row.sleepOrder());
-                    ps.setString(2, row.botName());
-                    ps.setString(3, row.world());
-                    ps.setDouble(4, row.x());
-                    ps.setDouble(5, row.y());
-                    ps.setDouble(6, row.z());
-                    ps.setFloat(7, row.yaw());
-                    ps.setFloat(8, row.pitch());
-                    ps.setString(9, sid);
-                    ps.addBatch();
-                }
-                ps.executeBatch();
-                Config.debug("DB saved " + snap.size() + " sleeping bot(s) for server='" + sid + "'.");
-            } catch (SQLException e) {
-                FppLogger.error("DB saveSleepingBots (insert): " + e.getMessage());
-            }
-        });
-    }
-
-    public List<SleepingBotRow> loadSleepingBots() {
-        List<SleepingBotRow> list = new ArrayList<>();
-        if (!isAlive()) return list;
-        String sql = "SELECT * FROM fpp_sleeping_bots WHERE server_id=? ORDER BY sleep_order ASC";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, Config.serverId());
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(new SleepingBotRow(
-                            rs.getInt("sleep_order"),
-                            rs.getString("bot_name"),
-                            rs.getString("world_name"),
-                            rs.getDouble("pos_x"),
-                            rs.getDouble("pos_y"),
-                            rs.getDouble("pos_z"),
-                            rs.getFloat("pos_yaw"),
-                            rs.getFloat("pos_pitch")));
-                }
-            }
-        } catch (SQLException e) {
-            FppLogger.error("DB loadSleepingBots: " + e.getMessage());
-        }
-        return list;
-    }
-
-    public void clearSleepingBots() {
-        final String sid = Config.serverId();
-        enqueue(() -> {
-            if (!isAlive()) return;
-            try (PreparedStatement ps =
-                    connection.prepareStatement("DELETE FROM fpp_sleeping_bots WHERE server_id=?")) {
-                ps.setString(1, sid);
-                int rows = ps.executeUpdate();
-                Config.debug("DB cleared " + rows + " sleeping bot(s) for server='" + sid + "'.");
-            } catch (SQLException e) {
-                FppLogger.error("DB clearSleepingBots: " + e.getMessage());
-            }
-        });
-    }
-
     public void mergeSessionRow(
             String botName,
             String botDisplay,
@@ -2695,9 +2590,6 @@ public class DatabaseManager {
             boolean preventBadOmen,
             boolean respawnOnDeath,
             boolean pingUserSet) {}
-
-    public record SleepingBotRow(
-            int sleepOrder, String botName, String world, double x, double y, double z, float yaw, float pitch) {}
 
     public record DespawnSnapshotRow(
             String botName,

@@ -123,6 +123,14 @@ public interface FppApi {
 
     boolean isNavigating(@NotNull FppBot bot);
 
+    boolean leftClick(@NotNull FppBot bot);
+
+    boolean leftClick(@NotNull FppBot bot, @NotNull FppClickMode mode);
+
+    boolean rightClick(@NotNull FppBot bot);
+
+    boolean rightClick(@NotNull FppBot bot, @NotNull FppClickMode mode);
+
     void setNavigationGoal(@NotNull FppBot bot, @NotNull FppNavigationGoal goal);
 
     void clearNavigationGoal(@NotNull FppBot bot);

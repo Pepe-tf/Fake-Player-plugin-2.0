@@ -68,10 +68,11 @@ public final class SetOwnerCommand implements FppCommand {
         UUID uuid = target.getUniqueId();
         String name = target.getName() != null ? target.getName() : args[1];
         fp.setSpawnedBy(name, uuid);
-        for (UUID shared : fp.getSharedControllers()) fp.removeSharedController(shared);
+        fp.clearSharedControllers();
         if (Config.databaseEnabled() && plugin.getDatabaseManager() != null) {
             plugin.getDatabaseManager().updateBotOwner(fp.getUuid().toString(), name, uuid.toString());
         }
+        manager.persistBotSettings(fp);
         sender.sendMessage(Component.text("Set owner of " + fp.getName() + " to " + name + ".", NamedTextColor.YELLOW));
         return true;
     }

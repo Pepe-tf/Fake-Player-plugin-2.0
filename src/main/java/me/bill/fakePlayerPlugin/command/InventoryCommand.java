@@ -228,8 +228,6 @@ public class InventoryCommand implements FppCommand, Listener {
 
     private static final String SC_OFFHAND = "\u1D0F\uA730\uA730\u029C\u1D00\u0274\u1D05";
 
-    private static final String SC_ACCEPTS = "\u1D00\u1D04\u1D04\u1D07\u1D18\u1D1B\uA731";
-
     private static final String SC_ANY = "\u1D00\u0274\u028F";
 
     private static final String SC_OR = "\u1D0F\u0280";

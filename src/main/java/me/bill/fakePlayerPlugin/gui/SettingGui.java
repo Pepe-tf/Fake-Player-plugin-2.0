@@ -23,6 +23,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -263,6 +264,16 @@ public final class SettingGui implements Listener {
                 PlainTextComponentSerializer.plainText()
                         .serialize(event.message())
                         .trim());
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onLegacyPlayerChat(AsyncPlayerChatEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        ChatInputSession ses = chatSessions.remove(uuid);
+        if (ses == null) return;
+
+        event.setCancelled(true);
+        handleChatInput(uuid, ses, event.getMessage().trim());
     }
 
     private void handleChatInput(UUID uuid, ChatInputSession ses, String raw) {
@@ -1140,6 +1151,11 @@ public final class SettingGui implements Listener {
                                 "ɴᴍꜱ ᴄᴏɴɴᴇᴄᴛɪᴏɴ",
                                 "ɴᴍꜱ ᴄᴏɴɴᴇᴄᴛɪᴏɴ/ᴘᴀᴄᴋᴇᴛ ʟɪꜱᴛᴇɴᴇʀ ᴇᴠᴇɴᴛꜱ.",
                                 Material.REDSTONE),
+                        SettingEntry.debugToggle(
+                                "nms.damage",
+                                "ɴᴍꜱ ᴅᴀᴍᴀɢᴇ",
+                                "ʙᴏᴛ ᴅᴀᴍᴀɢᴇ ᴅᴇᴄɪꜱɪᴏɴꜱ ᴀɴᴅ ᴄᴀɴᴄᴇʟʟᴀᴛɪᴏɴꜱ.",
+                                Material.IRON_SWORD),
                         SettingEntry.debugToggle(
                                 "nms.physics", "ɴᴍꜱ ᴘʜʏꜱɪᴄꜱ", "ᴘʜʏꜱɪᴄꜱ ᴀɴᴅ ᴍᴏᴠᴇᴍᴇɴᴛ ᴛɪᴄᴋ ᴏᴘᴇʀᴀᴛɪᴏɴꜱ.", Material.ANVIL),
                         SettingEntry.debugToggle(

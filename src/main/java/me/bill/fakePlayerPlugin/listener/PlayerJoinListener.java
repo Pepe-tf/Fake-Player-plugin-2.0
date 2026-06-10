@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -16,6 +17,7 @@ import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
+import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.fakeplayer.PacketHelper;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
@@ -39,10 +41,18 @@ public class PlayerJoinListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onJoinEarly(PlayerJoinEvent event) {
 
-        FakePlayer fp = manager.getByUuid(event.getPlayer().getUniqueId());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Location requestedSpawn = NmsPlayerSpawner.consumePendingSpawnLocation(uuid);
+        if (requestedSpawn != null && requestedSpawn.getWorld() != null) {
+            NmsPlayerSpawner.correctPendingSpawnLocation(event.getPlayer(), requestedSpawn);
+        }
+
+        FakePlayer fp = manager.getByUuid(uuid);
         if (fp == null) return;
 
-        if (manager.isRenaming(fp.getUuid())) {
+        if (manager.suppressBodyTransitionMessage(fp.getUuid())) {
+            event.joinMessage(null);
+        } else if (manager.isRenaming(fp.getUuid())) {
             event.joinMessage(null);
         } else if (fp.isRespawning() || manager.isBodyTransitioning(fp.getUuid())) {
             event.joinMessage(null);
@@ -63,6 +73,11 @@ public class PlayerJoinListener implements Listener {
         UUID uuid = event.getPlayer().getUniqueId();
 
         if (manager.hasSyntheticQuit(uuid)) {
+            event.quitMessage(null);
+            return;
+        }
+
+        if (manager.suppressBodyTransitionMessage(uuid)) {
             event.quitMessage(null);
             return;
         }
@@ -251,6 +266,7 @@ public class PlayerJoinListener implements Listener {
         FakePlayer fp = manager.getByUuid(uuid);
         if (fp != null) {
             if (isServerStopping()) return;
+            if (manager.isBodyTransitioning(uuid)) return;
             manager.removeByName(fp.getName());
             return;
         }

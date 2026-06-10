@@ -310,7 +310,8 @@ public final class PacketHelper {
                 Object actions = buildActionSet();
                 packet = playerInfoUpdateCtor.newInstance(actions, buildSecondArg(entry));
                 tabAddPacketCache.put(
-                        fp.getUuid(), new TabAddPacketCacheEntry(profileName, dispStr, skinValue, skinSignature, latency, packet));
+                        fp.getUuid(),
+                        new TabAddPacketCacheEntry(profileName, dispStr, skinValue, skinSignature, latency, packet));
             }
 
             sendPacket(nms, packet);
@@ -358,7 +359,12 @@ public final class PacketHelper {
     }
 
     private record TabAddPacketCacheEntry(
-            String profileName, String displayName, String skinValue, String skinSignature, int latency, Object packet) {
+            String profileName,
+            String displayName,
+            String skinValue,
+            String skinSignature,
+            int latency,
+            Object packet) {
         boolean matches(String profileName, String displayName, String skinValue, String skinSignature, int latency) {
             return this.latency == latency
                     && java.util.Objects.equals(this.profileName, profileName)
@@ -825,12 +831,30 @@ public final class PacketHelper {
         try {
             Object nms = getHandle(receiver);
             ClassLoader cl = nms.getClass().getClassLoader();
-            Class<?> animClass = cl.loadClass("net.minecraft.network.protocol.game.ClientboundAnimatePacket");
-            for (Constructor<?> c : animClass.getDeclaredConstructors()) {
+            try {
+                Class<?> hurtClass = cl.loadClass("net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket");
+                for (Constructor<?> c : hurtClass.getDeclaredConstructors()) {
+                    c.setAccessible(true);
+                    Class<?>[] pt = c.getParameterTypes();
+                    if (pt.length == 2 && pt[0] == int.class && pt[1] == float.class) {
+                        Player bot = fp.getPlayer();
+                        float yaw = bot != null ? bot.getLocation().getYaw() : 0.0f;
+                        sendPacket(nms, c.newInstance(fp.getEntityId(), yaw));
+                        return;
+                    }
+                }
+            } catch (ClassNotFoundException ignored) {
+            }
+
+            Class<?> eventClass = cl.loadClass("net.minecraft.network.protocol.game.ClientboundEntityEventPacket");
+            Player bot = fp.getPlayer();
+            if (bot == null) return;
+            Object botNms = getHandle(bot);
+            for (Constructor<?> c : eventClass.getDeclaredConstructors()) {
                 c.setAccessible(true);
                 Class<?>[] pt = c.getParameterTypes();
-                if (pt.length == 2 && pt[0] == int.class && pt[1] == int.class) {
-                    sendPacket(nms, c.newInstance(fp.getEntityId(), 1));
+                if (pt.length == 2 && pt[1] == byte.class) {
+                    sendPacket(nms, c.newInstance(botNms, (byte) 2));
                     return;
                 }
             }

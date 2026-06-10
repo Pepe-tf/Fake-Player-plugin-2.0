@@ -19,6 +19,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import me.bill.fakePlayerPlugin.util.BotAccess;
 import me.bill.fakePlayerPlugin.util.TextUtil;
 
 import net.kyori.adventure.text.Component;
@@ -136,7 +137,9 @@ public class InfoCommand implements FppCommand {
     }
 
     private void showUserOwnBots(CommandSender sender, Player player) {
-        List<FakePlayer> owned = manager.getBotsOwnedBy(player.getUniqueId());
+        List<FakePlayer> owned = manager.getActivePlayers().stream()
+                .filter(fp -> BotAccess.canAdminister(player, fp))
+                .toList();
 
         sender.sendMessage(header("ʏᴏᴜʀ ʙᴏᴛꜱ"));
         if (owned.isEmpty()) {
@@ -168,7 +171,7 @@ public class InfoCommand implements FppCommand {
             return;
         }
 
-        if (!player.getUniqueId().equals(fp.getSpawnedByUuid())) {
+        if (!BotAccess.canAdminister(player, fp)) {
             sender.sendMessage(Lang.get("no-permission"));
             return;
         }
@@ -381,7 +384,8 @@ public class InfoCommand implements FppCommand {
                         .forEach(suggestions::add);
             } else if (sender instanceof Player player) {
 
-                manager.getBotsOwnedBy(player.getUniqueId()).stream()
+                manager.getActivePlayers().stream()
+                        .filter(fp -> BotAccess.canAdminister(player, fp))
                         .map(FakePlayer::getName)
                         .filter(n -> n.toLowerCase().startsWith(lower))
                         .forEach(suggestions::add);

@@ -302,13 +302,13 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
 
             List<String> names = commands.stream()
-                    .filter(cmd -> cmd.canUse(sender))
+                    .filter(cmd -> safeCanUse(cmd, sender))
                     .map(FppCommand::getName)
                     .filter(name -> name.startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toCollection(ArrayList::new));
             // Add matching addon command names.
             for (FppAddonCommand addon : addonByName.values()) {
-                if (addon.canUse(sender) && addon.getName().startsWith(args[0].toLowerCase())) {
+                if (safeCanUse(addon, sender) && addon.getName().startsWith(args[0].toLowerCase())) {
                     names.add(addon.getName());
                 }
             }
@@ -319,9 +319,9 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             String subName = args[0].toLowerCase(Locale.ROOT);
             FppCommand sub = byName.get(subName);
 
-            if (sub != null && sub.canUse(sender)) {
+            if (sub != null && safeCanUse(sub, sender)) {
                 String[] rawSubArgs = Arrays.copyOfRange(args, 1, args.length);
-                List<String> result = new ArrayList<>(sub.tabComplete(sender, rawSubArgs));
+                List<String> result = new ArrayList<>(safeTabComplete(sub, sender, rawSubArgs));
                 List<FppCommandExtension> extensions = commandExtensions.get(subName);
                 if (extensions != null) {
                     for (var extension : extensions) {
@@ -340,11 +340,43 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             // Check addon tab-complete.
             FppAddonCommand addon = addonByName.get(subName);
             if (addon != null) {
-                return addon.tabComplete(sender, Arrays.copyOfRange(args, 1, args.length));
+                return safeTabComplete(addon, sender, Arrays.copyOfRange(args, 1, args.length));
             }
         }
 
         return Collections.emptyList();
+    }
+
+    private boolean safeCanUse(FppCommand command, CommandSender sender) {
+        try {
+            return command.canUse(sender);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private boolean safeCanUse(FppAddonCommand command, CommandSender sender) {
+        try {
+            return command.canUse(sender);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private List<String> safeTabComplete(FppCommand command, CommandSender sender, String[] args) {
+        try {
+            return command.tabComplete(sender, args);
+        } catch (Throwable ignored) {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<String> safeTabComplete(FppAddonCommand command, CommandSender sender, String[] args) {
+        try {
+            return command.tabComplete(sender, args);
+        } catch (Throwable ignored) {
+            return Collections.emptyList();
+        }
     }
 
     private void sendHelpHint(CommandSender sender) {

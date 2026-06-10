@@ -1,5 +1,7 @@
 package me.bill.fakePlayerPlugin.config;
 
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +11,7 @@ import java.util.function.BooleanSupplier;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.util.FppLogger;
@@ -152,8 +155,13 @@ public final class Config {
                 Config.debugStartup("debug.yml created from template.");
             }
 
-            org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(debugFile);
-            debugCfg = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(debugFile);
+            debugCfg = YamlConfiguration.loadConfiguration(debugFile);
+            var defaultsStream = plugin.getResource("debug.yml");
+            if (defaultsStream != null) {
+                try (InputStreamReader reader = new InputStreamReader(defaultsStream, StandardCharsets.UTF_8)) {
+                    debugCfg.setDefaults(YamlConfiguration.loadConfiguration(reader));
+                }
+            }
             debugCfg.options().copyDefaults(true);
             Config.debugStartup("debug.yml loaded.");
         } catch (Exception e) {
@@ -193,6 +201,12 @@ public final class Config {
         if (isDebug()) return true;
         if (debugBool("nms.connection", false)) return true;
         return false;
+    }
+
+    public static boolean debugNmsDamage() {
+        if (isDebug()) return true;
+        if (debugNms()) return true;
+        return debugBool("nms.damage", false);
     }
 
     public static boolean debugLicense() {
@@ -615,7 +629,7 @@ public final class Config {
     }
 
     public static double fallDamageSafeDistance() {
-        return Math.max(0.0, cfg.getDouble("combat.fall-damage.safe-distance", 3.0));
+        return Math.max(3.0, cfg.getDouble("combat.fall-damage.safe-distance", 3.0));
     }
 
     public static double fallDamageMultiplier() {
@@ -1293,6 +1307,10 @@ public final class Config {
         FppLogger.debug("NMS-CONN", debugNmsConn(), message);
     }
 
+    public static void debugNmsDamage(String message) {
+        FppLogger.debug("NMS-DAMAGE", debugNmsDamage(), message);
+    }
+
     public static void debugLicense(String message) {
         FppLogger.debug("LICENSE", debugLicense(), message);
     }
@@ -1311,17 +1329,5 @@ public final class Config {
 
     public static String attackMobDefaultPriority() {
         return cfg.getString("attack-mob.default-priority", "nearest");
-    }
-
-    public static double attackMobSmoothRotationSpeed() {
-        return cfg.getDouble("attack-mob.smooth-rotation-speed", 12.0);
-    }
-
-    public static int attackMobRetargetInterval() {
-        return cfg.getInt("attack-mob.retarget-interval", 10);
-    }
-
-    public static boolean attackMobLineOfSight() {
-        return cfg.getBoolean("attack-mob.line-of-sight", true);
     }
 }

@@ -1,6 +1,10 @@
 package me.bill.fakePlayerPlugin.listener;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
+import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -39,13 +43,14 @@ import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.fakeplayer.PacketHelper;
 import me.bill.fakePlayerPlugin.util.AttributeCompat;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
-import me.bill.fakePlayerPlugin.util.WorldGuardHelper;
 
 public class FakePlayerEntityListener implements Listener {
 
     private final FakePlayerPlugin plugin;
     private final FakePlayerManager manager;
     private final ChunkLoader chunkLoader;
+    private final Map<UUID, Long> recentBotDeaths = new ConcurrentHashMap<>();
+    private final Map<EntityDamageEvent, Double> preDamageHealth = Collections.synchronizedMap(new WeakHashMap<>());
 
     public FakePlayerEntityListener(FakePlayerPlugin plugin, FakePlayerManager manager, ChunkLoader chunkLoader) {
         this.plugin = plugin;
@@ -53,68 +58,55 @@ public class FakePlayerEntityListener implements Listener {
         this.chunkLoader = chunkLoader;
     }
 
-    /**
-     * Suppress the vanilla death message when messages.death-message is false.
-     */
+    /** Keep one visible bot death line: vanilla death message or FPP custom kill message, not both. */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onBotDeathMessage(PlayerDeathEvent event) {
         if (!isFakeBotBody(event.getEntity())) return;
-        if (!Config.deathMessage()) {
-            event.deathMessage(null);
-        }
+        if (!Config.deathMessage() || Config.killMessage()) event.deathMessage(null);
     }
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = false)
     public void onEntityDamage(EntityDamageEvent event) {
-        if (!isFakeBotBody(event.getEntity())) return;
         if (!(event.getEntity() instanceof Player p)) return;
         FakePlayer fp = manager.getByEntity(p);
-        if (fp == null) return;
+        if (fp == null) {
+            FakePlayer byUuid = manager.getByUuid(p.getUniqueId());
+            if (byUuid == null) return;
+            manager.stampFakePlayerMarker(p, byUuid);
+            fp = byUuid;
+            Config.debugNmsDamage("recovered bot damage target by UUID after entity lookup miss: "
+                    + byUuid.getName()
+                    + " world="
+                    + p.getWorld().getName()
+                    + " entityId="
+                    + p.getEntityId());
+        }
+
+        preDamageHealth.put(event, p.getHealth());
+        if (event.isCancelled()) return;
 
         Entity damager = null;
         if (event instanceof EntityDamageByEntityEvent byEntity) {
             damager = byEntity.getDamager();
         }
 
-        var damageEvent = new FppBotDamageEvent(new FppBotImpl(fp), event.getFinalDamage(), event.getCause(), damager);
+        var damageEvent = new FppBotDamageEvent(new FppBotImpl(fp), event.getDamage(), event.getCause(), damager);
         Bukkit.getPluginManager().callEvent(damageEvent);
         if (damageEvent.isCancelled()) {
+            Config.debugNmsDamage("FPP API cancelled bot damage for " + fp.getName());
             event.setCancelled(true);
             return;
         }
-        if (damageEvent.getDamage() != event.getFinalDamage()) {
+        if (damageEvent.getDamage() != event.getDamage()) {
             event.setDamage(damageEvent.getDamage());
-        }
-
-        if (event instanceof EntityDamageByEntityEvent byEntity && byEntity.getDamager() instanceof Player attacker) {
-            if (plugin.isWorldGuardAvailable()
-                    && !WorldGuardHelper.isPvpAllowed(event.getEntity().getLocation())) {
-                event.setCancelled(true);
-                return;
-            }
         }
 
         if (!Config.bodyDamageable()) {
             if (event instanceof EntityDamageByEntityEvent) {
+                Config.debugNmsDamage("bodyDamageable=false cancelled entity damage for " + fp.getName());
                 event.setCancelled(true);
                 return;
             }
-        }
-
-        if (!event.isCancelled()) {
-            fp.addDamageTaken(event.getFinalDamage());
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onWorldGuardProtectedBotDamage(EntityDamageByEntityEvent event) {
-        if (!plugin.isWorldGuardAvailable()) return;
-        if (!(event.getDamager() instanceof Player)) return;
-        if (!isFakeBotBody(event.getEntity())) return;
-        if (!WorldGuardHelper.isPvpAllowed(event.getEntity().getLocation())) {
-            event.setCancelled(true);
-            Config.debugNms("BotDamage: blocked player damage in WorldGuard PvP-protected region for bot="
-                    + event.getEntity().getName());
         }
     }
 
@@ -128,12 +120,61 @@ public class FakePlayerEntityListener implements Listener {
         if (targetEvt.isCancelled()) event.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
     public void onEntityDamageConfirmed(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player bot)) return;
         FakePlayer fp = manager.getByEntity(bot);
-        if (fp == null) return;
-        manager.playHurtFeedback(fp, bot);
+        if (fp == null) {
+            fp = manager.getByUuid(bot.getUniqueId());
+            if (fp == null) return;
+            manager.stampFakePlayerMarker(bot, fp);
+        }
+        Double beforeHealth = preDamageHealth.remove(event);
+        if (event.isCancelled()) {
+            debugDamageDecision(bot, event, beforeHealth, "cancelled");
+            return;
+        }
+        double finalDamage = event.getFinalDamage();
+        if (finalDamage > 0.0) {
+            debugDamageDecision(bot, event, beforeHealth, "normal");
+            fp.addDamageTaken(finalDamage);
+        } else {
+            debugDamageDecision(bot, event, beforeHealth, "zero-final");
+        }
+    }
+
+    private void debugDamageDecision(Player bot, EntityDamageEvent event, Double beforeHealth, String decision) {
+        Entity damager = event instanceof EntityDamageByEntityEvent byEntity ? byEntity.getDamager() : null;
+        Config.debugNmsDamage("bot="
+                + bot.getName()
+                + " uuid="
+                + bot.getUniqueId()
+                + " entityId="
+                + bot.getEntityId()
+                + " world="
+                + bot.getWorld().getName()
+                + " decision="
+                + decision
+                + " cause="
+                + event.getCause()
+                + " cancelled="
+                + event.isCancelled()
+                + " raw="
+                + String.format("%.3f", event.getDamage())
+                + " final="
+                + String.format("%.3f", event.getFinalDamage())
+                + " healthBefore="
+                + (beforeHealth != null ? String.format("%.3f", beforeHealth) : "unknown")
+                + " healthNow="
+                + String.format("%.3f", bot.getHealth())
+                + " noDamageTicks="
+                + bot.getNoDamageTicks()
+                + " invulnerable="
+                + bot.isInvulnerable()
+                + " gameMode="
+                + bot.getGameMode()
+                + " damager="
+                + (damager != null ? damager.getType() + ":" + damager.getName() : "none"));
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -171,7 +212,9 @@ public class FakePlayerEntityListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerTeleport(PlayerTeleportEvent event) {
-        if (!isFakeBotBody(event.getPlayer())) return;
+        FakePlayer fp = manager.getByEntity(event.getPlayer());
+        if (fp == null) fp = manager.getByUuid(event.getPlayer().getUniqueId());
+        if (fp == null) return;
         Location from = event.getFrom();
         Location to = event.getTo();
         if (to == null || from.getWorld() == null || to.getWorld() == null) return;
@@ -185,24 +228,12 @@ public class FakePlayerEntityListener implements Listener {
                         + event.getPlayer().getName());
                 return;
             }
+
+            manager.refreshAfterTeleport(fp, event.getPlayer(), to.clone());
+            return;
         }
 
-        // Fire WorldGuard session re-initialisation whenever a bot teleports,
-        // regardless of whether it's same-world or cross-world, so that region
-        // flags (PVP, build, game-mode, etc.) are re-evaluated for the new location.
-        if (plugin.isWorldGuardAvailable()) {
-            Player bot = event.getPlayer();
-            // 1 tick delay lets the teleport finish so the position is committed.
-            FppScheduler.runSyncLater(
-                    plugin,
-                    () -> {
-                        if (bot.isOnline()) {
-                            WorldGuardHelper.refreshPlayerSession(bot);
-                            Config.debug("WorldGuardHelper: refreshed after teleport for bot " + bot.getName());
-                        }
-                    },
-                    1L);
-        }
+        manager.refreshAfterTeleport(fp, event.getPlayer(), to.clone());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -211,6 +242,12 @@ public class FakePlayerEntityListener implements Listener {
 
         FakePlayer fp = manager.getByEntity(event.getEntity());
         if (fp == null) return;
+        long now = System.currentTimeMillis();
+        Long lastDeath = recentBotDeaths.put(fp.getUuid(), now);
+        if (lastDeath != null && now - lastDeath < 1500L) {
+            Config.debugNmsBot("Ignored duplicate death event for bot '" + fp.getName() + "'");
+            return;
+        }
 
         if (Config.suppressDrops()) {
             event.getDrops().clear();
@@ -218,7 +255,7 @@ public class FakePlayerEntityListener implements Listener {
         }
 
         Player killer = event.getEntity().getKiller();
-        if (killer != null) {
+        if (killer != null && Config.killMessage()) {
 
             String displayName = fp.getRawDisplayName() != null ? fp.getRawDisplayName() : fp.getDisplayName();
             BotBroadcast.broadcastKill(killer.getName(), displayName);
@@ -253,6 +290,7 @@ public class FakePlayerEntityListener implements Listener {
                         if (deadPlayer == null || !deadPlayer.isOnline()) {
                             fp.setRespawning(false);
                             manager.removeByName(name);
+                            recentBotDeaths.remove(botUuid);
                             return;
                         }
 
@@ -266,11 +304,13 @@ public class FakePlayerEntityListener implements Listener {
 
                                         fp.setRespawning(false);
                                         if (newEntity == null) manager.removeByName(name);
+                                        recentBotDeaths.remove(botUuid);
                                         return;
                                     }
 
                                     fp.setPlayer(newEntity);
                                     fp.setAlive(true);
+                                    recentBotDeaths.remove(botUuid);
                                     manager.registerEntityIndex(newEntity.getEntityId(), fp);
 
                                     try {
@@ -351,6 +391,7 @@ public class FakePlayerEntityListener implements Listener {
                                 }
                             }
                             manager.removeByName(name);
+                            recentBotDeaths.remove(fp.getUuid());
                             Config.debugNmsBot("Removed bot '" + name + "' from manager after death");
                         });
                     },
@@ -365,31 +406,6 @@ public class FakePlayerEntityListener implements Listener {
         Location spawnLoc = fp.getSpawnLocation();
         if (spawnLoc != null && spawnLoc.getWorld() != null) {
             event.setRespawnLocation(spawnLoc);
-        }
-
-        // Re-evaluate WorldGuard session after respawn completes, because the
-        // respawn may place the bot in a different world (e.g. bed in another
-        // dimension) and WG handlers retain stale cached state from the old location.
-        if (plugin.isWorldGuardAvailable()) {
-            Player bot = event.getPlayer();
-            Location fromLoc = bot.getLocation(); // pre-respawn location
-            Location toLoc = event.getRespawnLocation(); // post-respawn location
-            boolean worldChanged = toLoc != null
-                    && toLoc.getWorld() != null
-                    && (fromLoc.getWorld() == null || !fromLoc.getWorld().equals(toLoc.getWorld()));
-            if (worldChanged) {
-                // Run after respawn completes so the entity is at the new location.
-                FppScheduler.runSyncLater(
-                        plugin,
-                        () -> {
-                            if (bot.isOnline()) {
-                                WorldGuardHelper.refreshPlayerSession(bot);
-                                Config.debug("WorldGuardHelper: refreshed after respawn world-change for bot "
-                                        + bot.getName());
-                            }
-                        },
-                        2L);
-            }
         }
     }
 
@@ -422,6 +438,6 @@ public class FakePlayerEntityListener implements Listener {
     private boolean isFakeBotBody(Entity entity) {
         if (!(entity instanceof Player)) return false;
 
-        return manager.getByEntityId(entity.getEntityId()) != null;
+        return manager.getByEntity(entity) != null;
     }
 }

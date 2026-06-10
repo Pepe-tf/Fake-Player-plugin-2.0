@@ -185,7 +185,6 @@ public final class FppLogger {
             boolean persistEnabled,
             boolean taskPersistEnabled,
             boolean luckPermsFound,
-            boolean worldGuardFound,
             boolean chunkLoading,
             int maxBots,
             boolean metricsActive,
@@ -212,7 +211,6 @@ public final class FppLogger {
 
         section("Integrations");
         stateRow(luckPermsFound ? RowState.OK : RowState.OFF, "LuckPerms", onOff(luckPermsFound));
-        stateRow(worldGuardFound ? RowState.OK : RowState.OFF, "WorldGuard", onOff(worldGuardFound));
         stateRow(metricsActive ? RowState.OK : RowState.OFF, "Metrics", onOff(metricsActive));
 
         section("Limits");

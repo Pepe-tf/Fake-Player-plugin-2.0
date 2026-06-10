@@ -15,7 +15,6 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
@@ -939,56 +938,6 @@ public final class FindCommand implements FppCommand {
         // Handled by the addon auto-equipment tick handler.
     }
 
-    private ToolClass determineToolClass(Material blockType) {
-        if (blockType == Material.COBWEB) return ToolClass.SWORD;
-        if (blockType.name().contains("LEAVES")
-                || blockType == Material.VINE
-                || blockType == Material.GLOW_LICHEN
-                || blockType.name().endsWith("_WOOL")) return ToolClass.SHEARS;
-        if (Tag.MINEABLE_PICKAXE.isTagged(blockType)) return ToolClass.PICKAXE;
-        if (Tag.MINEABLE_AXE.isTagged(blockType)) return ToolClass.AXE;
-        if (Tag.MINEABLE_SHOVEL.isTagged(blockType)) return ToolClass.SHOVEL;
-        if (Tag.MINEABLE_HOE.isTagged(blockType)) return ToolClass.HOE;
-        return ToolClass.NONE;
-    }
-
-    private int toolScore(ItemStack item, ToolClass preferred) {
-        if (item == null || item.getType() == Material.AIR) return Integer.MIN_VALUE;
-        Material type = item.getType();
-        ToolClass actual = classifyTool(type);
-        if (actual == ToolClass.NONE) return Integer.MIN_VALUE;
-        int score = toolTierScore(type);
-        if (actual == preferred) score += 10_000;
-        else if (preferred == ToolClass.SHEARS && type == Material.SHEARS) score += 10_000;
-        else if (preferred == ToolClass.NONE) score += 100;
-        else score += 1_000;
-        if (type == Material.SHEARS && preferred != ToolClass.SHEARS) score -= 500;
-        return score;
-    }
-
-    private ToolClass classifyTool(Material toolType) {
-        String name = toolType.name();
-        if (toolType == Material.SHEARS) return ToolClass.SHEARS;
-        if (name.endsWith("_PICKAXE")) return ToolClass.PICKAXE;
-        if (name.endsWith("_AXE")) return ToolClass.AXE;
-        if (name.endsWith("_SHOVEL")) return ToolClass.SHOVEL;
-        if (name.endsWith("_HOE")) return ToolClass.HOE;
-        if (name.endsWith("_SWORD")) return ToolClass.SWORD;
-        return ToolClass.NONE;
-    }
-
-    private int toolTierScore(Material toolType) {
-        String name = toolType.name();
-        if (toolType == Material.SHEARS) return 650;
-        if (name.startsWith("NETHERITE_")) return 900;
-        if (name.startsWith("DIAMOND_")) return 800;
-        if (name.startsWith("IRON_")) return 700;
-        if (name.startsWith("GOLDEN_")) return 600;
-        if (name.startsWith("STONE_")) return 500;
-        if (name.startsWith("WOODEN_")) return 400;
-        return 100;
-    }
-
     // ─────────────────────────────────────────────────────────────────────────────
     //  Lifecycle helpers
     // ─────────────────────────────────────────────────────────────────────────────
@@ -1141,15 +1090,5 @@ public final class FindCommand implements FppCommand {
             this.lockLoc = lockLoc.clone();
             this.countsTowardGoal = countsTowardGoal;
         }
-    }
-
-    private enum ToolClass {
-        PICKAXE,
-        AXE,
-        SHOVEL,
-        HOE,
-        SHEARS,
-        SWORD,
-        NONE
     }
 }

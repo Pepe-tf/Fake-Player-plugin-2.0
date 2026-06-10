@@ -90,7 +90,9 @@ public final class BotNavUtil {
             if (mat.isAir() || mat == Material.WATER) return true;
             if (mat == Material.LAVA || mat == Material.COBWEB) return false;
             if (block.getBlockData() instanceof Fence) return false;
-            if (mat.name().contains("_WALL") || mat == Material.COBBLESTONE_WALL || mat == Material.MOSSY_COBBLESTONE_WALL) {
+            if (mat.name().contains("_WALL")
+                    || mat == Material.COBBLESTONE_WALL
+                    || mat == Material.MOSSY_COBBLESTONE_WALL) {
                 return false;
             }
             if (block.getBlockData() instanceof org.bukkit.block.data.type.Door door) return door.isOpen();
@@ -115,8 +117,12 @@ public final class BotNavUtil {
             if (block.getBlockData() instanceof Slab) return true;
             if (mat.name().contains("STAIRS")) return true;
             if (block.getBlockData() instanceof Fence || mat.name().contains("WALL")) return false;
-            if (mat == Material.GLASS || mat.name().contains("STAINED_GLASS") && !mat.name().contains("PANE")) return true;
-            if (mat == Material.CHEST || mat == Material.TRAPPED_CHEST || mat == Material.ENDER_CHEST || mat == Material.BARREL) return true;
+            if (mat == Material.GLASS
+                    || mat.name().contains("STAINED_GLASS") && !mat.name().contains("PANE")) return true;
+            if (mat == Material.CHEST
+                    || mat == Material.TRAPPED_CHEST
+                    || mat == Material.ENDER_CHEST
+                    || mat == Material.BARREL) return true;
             if (mat.name().contains("LEAVES")) return true;
             if (mat == Material.FARMLAND || mat == Material.DIRT_PATH || mat == Material.SOUL_SAND) return true;
             if (mat == Material.HONEY_BLOCK || mat.name().contains("_BED") || mat == Material.SCAFFOLDING) return true;

@@ -13,7 +13,7 @@
 [![Patreon](https://img.shields.io/badge/Patreon-Support%20FPP-FF424D?style=flat-square&logo=patreon&logoColor=white)](https://www.patreon.com/c/F_PP?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)
 
 > **Advanced Fake Player Spoofer for Paper/Purpur/Folia 1.21+**
-> Create realistic fake players — full tab-list entries, physical in-world bodies, skins, combat, pathfinding, automation, and multi-server proxy support with **proxy-merged shared database**.
+> Create realistic fake players — full tab-list entries, physical in-world bodies, skins, basic combat input, and multi-server proxy support with **proxy-merged shared database**.
 
 ---
 
@@ -24,10 +24,11 @@
 - 🎭 **Realistic Fake Players** — Full tab-list integration, join/leave messages, server count spoofing
 - 🏃 **Physical Bodies** — NMS `ServerPlayer` entities with hitboxes, collision, damage, death & respawn
 - 🎨 **Skins** — Auto-resolve from Mojang, per-bot skin commands, custom pool support
-- 🧭 **Pathfinding & Automation** — A* navigation, follow, roam, find-and-mine, sleep, auto-eat, auto-place-bed
+- 🧭 **Movement & Automation Hooks** — Directional bot input, find-and-mine support, auto-eat, and extension-ready automation APIs
 - ⛏️ **Area Mining & Block Placing** — Cuboid region mining (`/fpp mine`) and placement (`/fpp place`) with supply-container restocking
-- ⚔️ **PvE Combat** — Per-bot attack settings, hunt mode, melee cooldowns
-- ⚙️ **Per-Bot Settings GUI** — Shift+right-click any bot for inventories, pathfinding toggles, PvE settings, automation overrides, and **debug category toggles**
+- ⚔️ **Basic Combat Input** — Bot swing/attack command support plus extension hooks for richer combat behavior
+- 🥷 **Sneaking** — Toggle bot sneak state with `/fpp sneak <bot> [on|off|toggle]`
+- ⚙️ **Per-Bot Settings GUI** — Shift+right-click any bot for inventories, body settings, automation toggles, and **debug category toggles**
 - 🐛 **Debug GUI & Chat** — Toggle every `debug.yml` category at runtime via `/fpp settings`, and broadcast debug output to **OP / notify** players as in-game chat
 - 💾 **Persistence** — Bot positions, tasks, and inventories survive restarts (YAML or database)
 - 🗄️ **Database** — SQLite (local) or MySQL (network / multi-server with proxy-merged shared tables)
@@ -37,9 +38,17 @@
 - 🔤 **Random Name Generator** — `bot-name.mode: random` generates realistic Minecraft-style usernames on the fly
 - 🚫 **Badword Filter** — Leet-speak normalization, auto-rename, remote word list
 - 📊 **PlaceholderAPI** — **80+ placeholders** for scoreboards, tab headers, cross-server counts, and more
-- 🧱 **WorldEdit & WorldGuard** — `--wesel` selection flag for mine/place; region-aware PvP protection
+- 🧱 **WorldEdit** — `--wesel` selection flag for compatible mine/place workflows
 - 📶 **Simulated Ping** — Tab-list latency display per bot
 - 🌀 **Folia Support** — Full compatibility with Folia's region-threaded architecture
+
+### Runtime Behavior Notes
+
+- Normal `/fpp spawn` uses the sender/requested location. Saved playerdata is prevented from redirecting fresh spawns unless last-location behavior is explicitly requested, and the requested position is re-applied during the fake-player join pipeline.
+- Bot bodies run manual NMS physics every tick while alive and not frozen, so gravity, fall movement, and fall tracking continue even when a bot is idle.
+- Damageable bot bodies use normal Bukkit/Paper damage semantics. Cancelled damage remains cancelled; protection plugins own their own PvP/god-mode decisions.
+- FPP applies explicit knockback for fake-player bodies when damage is allowed, because fake connections do not receive reliable vanilla player knockback.
+- Restart persistence snapshots active bots before delayed async writes, so shutdown/despawn timing should not serialize an empty active-bot list.
 
 ### Extension (`fpp-spoof.jar`)
 
@@ -64,7 +73,6 @@ Some advanced subsystems require the **`fpp-spoof.jar` extension**:
 ### Optional Dependencies
 - **PlaceholderAPI** — enables placeholder expansion (`%fpp_count%`, `%fpp_total%`, etc.)
 - **LuckPerms** — prefix/suffix support and bot group assignment
-- **WorldGuard** — bot PvP region protection
 - **WorldEdit** — `--wesel` flag for area mining/placing
 
 ---
@@ -84,8 +92,8 @@ shift+right-click the bot entity
 # Teleport it to you
 /fpp tph <bot>
 
-# Make it follow you
-/fpp follow <bot> <player>
+# Toggle sneaking
+/fpp sneak <bot> toggle
 ```
 
 ---
@@ -102,16 +110,17 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 | **tph** | `[botname\|all]` | Teleport bot(s) to you | `fpp.tph` |
 | **tp** | `[botname]` | Teleport to a bot | `fpp.tp` |
 | **xp** | `<bot>` | Collect XP from a bot | `fpp.xp` |
-| **move** | `<bot\|all> --to <player> \| --coords <x> <y> <z> \| --roam [x,y,z] [radius \| infinite \| forever \| unbounded] \| --stop` | Navigate bot | `fpp.move` |
+| **move** | `<bot\|all> --direction <forward\|backward\|left\|right> [--seconds <n>\|--ticks <n>] \| <bot\|all> --stop \| --stop` | Apply directional movement input | `fpp.move` |
+| **left-click** | `<bot> [--once\|--repeat\|--hold\|--stop] \| --stop` | Break targeted blocks or attack targeted entities | `fpp.left-click` |
+| **right-click** | `<bot> [--once\|--repeat\|--hold\|--stop] \| --stop` | Use items and interact with targeted blocks/entities | `fpp.right-click` |
 | **mine** | `<bot> [--once\|--stop\|--pos1\|--pos2\|--start\|--wesel] \| --stop` | Mine blocks | `fpp.mine` |
 | **place** | `<bot> [--once\|--stop\|--wesel] \| --stop` | Place blocks | `fpp.place` |
 | **use** | `<bot> [--once\|--stop] \| --stop` | Right-click automation | `fpp.use.cmd` |
-| **attack** | `<bot\|all> [--mob [type]] [--range <n>] [--type <mob>] [--priority nearest\|lowest-health] [--move] [--stop] \| --hunt [<mob>] [--range <n>] [--priority <mode>] [--stop]` | PvE attack / hunt | `fpp.attack` |
-| **follow** | `<bot\|all> <player\|--start> \| <bot\|all> --stop` | Follow a player | `fpp.follow` |
+| **attack** | `<bot\|all> [--once\|--stop] \| --stop` | Basic bot attack/swing input | `fpp.attack` |
 | **find** | `<bot> <block> [-r <n> \| --radius <n>] [-c <n> \| --count <n>] [--prefer-visible] \| <bot> --stop \| --stop` | Find and mine blocks | `fpp.find` |
-| **sleep** | `<bot\|all> <x y z> <radius> \| <bot\|all> --stop` | Auto-sleep at night | `fpp.sleep` |
 | **stop** | `[<bot>\|all]` | Cancel active tasks | `fpp.stop` |
 | **freeze** | `<bot\|all> [on\|off]` | Freeze/unfreeze | `fpp.freeze` |
+| **sneak** | `<bot> [on\|off\|toggle]` | Toggle bot sneaking | `fpp.sneak` |
 | **inventory** | `<bot>` (alias: `inv`) | Open bot inventory | `fpp.inventory` |
 | **storage** | `<bot> [storage_name\|--list\|--remove <name>\|--clear]` | Manage supply containers | `fpp.storage` |
 | **extension** | (bare) `\| --list` | Open marketplace link or list extensions | (implied admin) |
@@ -136,16 +145,19 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 /fpp spawn 3 afk                      # Spawn 3 bots with "afk" bot-type preset
 /fpp despawn all                      # Remove all bots
 /fpp despawn --random --count 3       # Remove 3 random bots
-/fpp move bot1 --to Notch             # Navigate to player
-/fpp move bot1 --roam 500,64,200 25   # Roam in 25-block radius
+/fpp move bot1 --direction forward    # Hold forward movement input
+/fpp move bot1 --direction forward --seconds 3
+/fpp move bot1 --direction left --ticks 40
+/fpp move bot1 --stop                 # Stop movement input
+/fpp left-click bot1 --once           # Break/attack target once
+/fpp right-click bot1 --repeat        # Repeat item/block/entity interaction
 /fpp mine bot1 diamond_ore --wesel    # Mine using WorldEdit selection
 /fpp place bot1 --once                # Place one block
-/fpp attack bot1 --hunt --range 16    # Hunt mobs
-/fpp follow bot1 Notch                # Follow a player
+/fpp attack bot1 --once               # Perform one attack/swing
 /fpp find bot1 diamond_ore --radius 64 --count 20
-/fpp sleep bot1 100 64 200 50         # Set sleep origin
 /fpp stop bot1                        # Stop all tasks
 /fpp freeze bot1 on                   # Freeze bot
+/fpp sneak bot1 on                    # Make bot sneak
 /fpp inv bot1                         # Open inventory
 /fpp storage bot1 chest1              # Register container
 /fpp rename bot1 builder_01           # Rename bot
@@ -170,11 +182,11 @@ FPP uses a two-tier permission system.
 
 - **Spawn:** `fpp.spawn`, `fpp.spawn.user`, `fpp.spawn.limit.1` through `fpp.spawn.limit.100`
 - **Despawn:** `fpp.despawn`, `fpp.despawn.bulk`, `fpp.despawn.own`
-- **Movement:** `fpp.move`, `fpp.move.to`, `fpp.move.stop`
-- **Automation:** `fpp.mine`, `fpp.place`, `fpp.use.cmd`, `fpp.attack`, `fpp.attack.hunt`, `fpp.find`, `fpp.follow`, `fpp.sleep`, `fpp.stop`
+- **Movement:** `fpp.move`, `fpp.move.stop`
+- **Automation:** `fpp.left-click`, `fpp.right-click`, `fpp.mine`, `fpp.place`, `fpp.use.cmd`, `fpp.attack`, `fpp.find`, `fpp.stop`
   - `fpp.mine.wesel` — WorldEdit selection for mining area
   - `fpp.place.wesel` — WorldEdit selection for placement area
-- **Management:** `fpp.freeze`, `fpp.rename`, `fpp.rename.own`, `fpp.inventory`, `fpp.storage`, `fpp.setowner`, `fpp.save`, `fpp.settings`
+- **Management:** `fpp.freeze`, `fpp.sneak`, `fpp.rename`, `fpp.rename.own`, `fpp.inventory`, `fpp.storage`, `fpp.setowner`, `fpp.save`, `fpp.settings`
 - **System:** `fpp.reload`, `fpp.migrate`, `fpp.badword`
 - **Bypass:** `fpp.bypass.max`, `fpp.bypass.cooldown`
 - **Notify:** `fpp.notify` — update notifications on join
@@ -293,14 +305,12 @@ Requires **PlaceholderAPI**. **80+ placeholders** — all prefixed with `%fpp_`.
 | `%fpp_health_max_<bot_name>%` | Bot's max health |
 | `%fpp_world_<bot_name>%` | Bot's current world |
 | `%fpp_loc_x_<bot_name>%` / `%fpp_loc_y_<bot_name>%` / `%fpp_loc_z_<bot_name>%` | Bot's coordinates |
-| `%fpp_frozen_<bot_name>%` / `%fpp_sleeping_<bot_name>%` | `yes` / `no` |
+| `%fpp_frozen_<bot_name>%` | `yes` / `no` |
 | `%fpp_owner_<bot_name>%` / `%fpp_spawned_by_<bot_name>%` | Who spawned the bot |
-| `%fpp_pve_<bot_name>%` | `yes` / `no` |
 | `%fpp_displayname_<bot_name>%` | Bot's display name |
 | `%fpp_uuid_<bot_name>%` | Bot's UUID |
 | `%fpp_spawn_time_<bot_name>%` | When bot was spawned (ISO format) |
 | `%fpp_task_<bot_name>%` | Current active task (mining, moving, etc.) or `idle` |
-| `%fpp_following_<bot_name>%` | Who the bot is following (if any) |
 | `%fpp_damage_<bot_name>%` | Total damage taken by bot |
 | `%fpp_deaths_<bot_name>%` | Bot's death count |
 | `%fpp_type_<bot_name>%` | Bot's type (AFK, MINER, BUILDER, etc.) |
@@ -338,14 +348,12 @@ Key sections:
 - `config-sync` — cross-server config push/pull
 - `performance` — position-sync distance tuning
 - `heartbeat` — network liveness publishing
-- `attack-mob` — default targeting range and priority
 - `logging.debug` — per-subsystem debug flags
 - `metrics` — FastStats usage statistics
-- `pathfinding` — A* tuning (gap walking, block break/place, node limits, stuck thresholds)
 - `skin` — mode, pool, overrides, mineskin integration
 - `ping` — random fake ping (requires `fpp-spoof.jar`)
 
-The plugin includes an **automatic config migrator** (current version: **73**). Do not edit `config-version` manually.
+The plugin includes an **automatic config migrator** (current version: **74**). Do not edit `config-version` manually.
 
 ---
 

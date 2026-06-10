@@ -1,207 +1,215 @@
-# ─────────────────────────────────────────────────────────────────────────────
-#  ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ ᴘʟᴜɢɪɴ  ·  config.yml  ·  v1.6.2
-#  Run /fpp reload to apply most changes without restarting the server.
-#  Colors use MiniMessage: <#0079FF>text</#0079FF>  or  <gray>text</gray>
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Internal — managed automatically. Do NOT edit.
+# ═══════════════════════════════════════════════════════════════════════════════
+#  FakePlayerPlugin - Main Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# This file controls normal runtime behavior: bot limits, naming, persistence,
+# physical body behavior, combat/damage settings, database storage, and metrics.
+# Debug logging is configured separately in debug.yml.
+#
+# Do not edit config-version manually. It is used by the automatic config
+# migrator to safely add new defaults during plugin upgrades.
+# ═══════════════════════════════════════════════════════════════════════════════
 config-version: 74
 language: en
 
-# ═════════════════════════════════════════════════════════════════════════════
-#  1 · SPAWNING
-# ═════════════════════════════════════════════════════════════════════════════
-
-# ── Bot Limits ────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# SPAWN LIMITS
+# ═══════════════════════════════════════════════════════════════════════════════
+# max-bots: Global active bot cap. Set to 0 for unlimited.
+# user-bot-limit: Default cap for players with user-spawn permission only.
+# spawn-presets: Tab-complete suggestions for /fpp spawn amounts.
+# spawn-cooldown: Seconds between spawn commands. Set to 0 to disable.
+# ═══════════════════════════════════════════════════════════════════════════════
 limits:
-  max-bots: 1000                    # Global cap across all spawners. 0 = unlimited.
-  user-bot-limit: 1                 # Personal limit for fpp.user.spawn players.
-  spawn-presets: [1, 5, 10, 15, 20] # Tab-complete count suggestions for /fpp spawn
+  max-bots: 1000
+  user-bot-limit: 1
+  spawn-presets: [1, 5, 10, 15, 20]
 
-# How many seconds a player must wait between /fpp spawn uses.
-# 0 = disabled. Players with fpp.bypass.cooldown are always exempt.
 spawn-cooldown: 0
 
-# ── Persistence ───────────────────────────────────────────────────────────────
-# Bots save their position on shutdown and rejoin at that location on restart.
-# Active tasks (mine/place/patrol) also survive restarts via the database.
+# ═══════════════════════════════════════════════════════════════════════════════
+# RESTART PERSISTENCE
+# ═══════════════════════════════════════════════════════════════════════════════
+# When enabled, active bots are saved and restored after server restart/reload.
+# restore-delay-ticks can delay restoration until worlds/plugins finish loading.
+# restore-batch-size controls how many bots are restored per batch.
+# ═══════════════════════════════════════════════════════════════════════════════
 persistence:
   enabled: true
   restore-delay-ticks: 0
   restore-batch-size: 1
 
-# ═════════════════════════════════════════════════════════════════════════════
-#  2 · APPEARANCE
-# ═════════════════════════════════════════════════════════════════════════════
-
-# ── Display Names ─────────────────────────────────────────────────────────────
-# Placeholders: {bot_name}  {spawner}  {num}
-# Colors:  <#0079FF>{bot_name}</#0079FF>  or  <gray>{bot_name}</gray>
+# ═══════════════════════════════════════════════════════════════════════════════
+# BOT NAMES
+# ═══════════════════════════════════════════════════════════════════════════════
+# mode: random uses generated names; pool uses the configured name pool.
+# admin-format and user-format control display names, not internal UUID identity.
+# Available placeholders: {bot_name}, {spawner}, {num}
+# ═══════════════════════════════════════════════════════════════════════════════
 bot-name:
-  # Name source for auto-generated bot names (no --name flag).
-  #   pool   — pick from bot-names.yml (requires names in the file)
-  #   random — generate a realistic Minecraft-style username on the fly (default)
   mode: random
+  admin-format: '{bot_name}'
+  user-format: 'bot-{spawner}-{num}'
 
-  admin-format: '{bot_name}'           # Used for /fpp spawn (admin)
-  user-format:  'bot-{spawner}-{num}'  # Used for /fpp spawn (user tier)
-
-# ── Badword Filter ────────────────────────────────────────────────────────────
-# Prevent bots from being spawned with names containing forbidden words.
-# Matching is case-insensitive and partial (e.g. if "hell" is forbidden, "hellish" is rejected).
-# Whitelist allows specific bot names even if they contain a badword.
+# ═══════════════════════════════════════════════════════════════════════════════
+# BAD WORD FILTER
+# ═══════════════════════════════════════════════════════════════════════════════
+# Blocks or renames custom bot names before spawn.
+# use-global-list downloads an external bad-word list at startup.
+# auto-rename: true prefixes/sanitizes blocked names; false rejects them.
+# auto-detection mode can be off, normal, or strict.
+# ═══════════════════════════════════════════════════════════════════════════════
 badword-filter:
-  enabled: true                     # true = enable badword filtering; false = allow all names
-  use-global-list: false             # true = fetch the remote global profanity list below
+  enabled: true
+  use-global-list: false
   global-list-url: "https://www.cs.cmu.edu/~biglou/resources/bad-words.txt"
-  global-list-timeout-ms: 5000      # Fetch timeout for the remote list (startup / reload)
-  words: []                         # Inline word list — merged with bad-words.yml
-  whitelist: []                     # Allowed names that contain badwords — e.g. ["HellaBot", "Helena"]
-  auto-rename: true                 # true  = bad names silently replaced with a random clean name from bot-names.yml
-                                    # false = bad names are hard-blocked and the spawn is refused
-
-  # ── Auto-Detection ────────────────────────────────────────────────────────
-  # Extends matching beyond the basic leet-speak substitutions to catch
-  # evasion attempts that use repetition, separators, and regex-detectable splits.
-  #
-  # What each mode adds on top of the always-on leet-speak normalization:
-  #   off      — only plain leet: 0→o  1→i  3→e  4→a  5→s  6→g  7→t  8→b  _→removed
-  #   normal   — leet + collapse consecutive repeated characters + regex checks for
-  #              repeated letters / separator insertions
-  #              e.g. "assshole", "aasshole" both collapse and match "asshole"
-  #   strict   — normal + single-gap regex matching for alternating filler chars
-  #              e.g. "fXuXcXk", "n1i1g1g1e1r" style evasion
-  #
-  # Increasing strictness may produce false positives on unusual bot names.
+  global-list-timeout-ms: 5000
+  words: []
+  whitelist: []
+  auto-rename: true
   auto-detection:
-    enabled: true                   # true  = enable auto-detection enhancements
-    mode: normal                    # off | normal | strict
+    enabled: true
+    mode: normal
 
-# ── Bot Interaction ───────────────────────────────────────────────────────────
-# Controls how players can interact with bot entities in-world.
+# ═══════════════════════════════════════════════════════════════════════════════
+# PLAYER INTERACTION
+# ═══════════════════════════════════════════════════════════════════════════════
+# right-click-enabled lets players interact with bot inventories/settings.
+# shift-right-click-settings opens the settings GUI when sneaking.
+# ═══════════════════════════════════════════════════════════════════════════════
 bot-interaction:
-  right-click-enabled: true         # true = right-click opens inventory/executes command
-                                    # false = bots ignore all right-click interactions
-  shift-right-click-settings: true  # true = shift+right-click opens bot settings GUI
-                                    # false = shift+right-click does nothing
+  right-click-enabled: true
+  shift-right-click-settings: true
 
-# ── Messages ──────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# BROADCAST MESSAGES
+# ═══════════════════════════════════════════════════════════════════════════════
+# Controls visible join/leave/death/kill announcements for fake players.
+# notify-admins-on-join sends an additional notification to staff/admin users.
+# ═══════════════════════════════════════════════════════════════════════════════
 messages:
-  join-message: true          # Broadcast "<Name> joined the game"
-  leave-message: true         # Broadcast "<Name> left the game"
-  death-message: true         # Broadcast the vanilla "X was slain by Y" death message when a bot dies
-  kill-message: false         # Broadcast when a real player kills a bot
-  notify-admins-on-join: true # Send compatibility warnings to online admins on join
+  join-message: true
+  leave-message: true
+  death-message: true
+  kill-message: false
+  notify-admins-on-join: true
 
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  3 · BODY & COMBAT
-# ═════════════════════════════════════════════════════════════════════════════
-
-# ── Bot Body ──────────────────────────────────────────────────────────────────
-# The physical entity that appears in the world.
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHYSICAL BOT BODY
+# ═══════════════════════════════════════════════════════════════════════════════
+# pushable controls collision/knockback behavior.
+# damageable false cancels player/entity damage to bot bodies.
+# drop-items-on-despawn false preserves inventory/XP for later respawn/restore.
+# ═══════════════════════════════════════════════════════════════════════════════
 body:
-  pushable:     true   # true = players and explosions can push the body
-  damageable:   true   # true = body can take ALL damage (player + environmental)
-                       # false = immune to player/entity damage only (fall, fire, etc. still apply)
-  pick-up-items: true  # true = bots pick up items from the ground like a real player
-  pick-up-xp:   true   # true = bots pick up XP orbs from the ground like a real player
-  drop-items-on-despawn: false  # false = bot remembers inventory + XP on despawn/respawn; true = drop everything to the ground
+  pushable: true
+  damageable: true
+  pick-up-items: true
+  pick-up-xp: true
+  drop-items-on-despawn: false
 
-# ── Combat ────────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMBAT AND DAMAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+# max-health is vanilla player health by default: 20.0 = 10 hearts.
+# hurt-sound controls player hurt audio for bot bodies.
+# fall-damage follows vanilla-style safe distance and multiplier behavior.
+# ═══════════════════════════════════════════════════════════════════════════════
 combat:
-  max-health: 20.0   # Bot max HP. 20.0 = standard player (2 HP = 1 heart).
-  hurt-sound: true   # Play the hurt sound when a bot takes damage.
+  max-health: 20.0
+  hurt-sound: true
   fall-damage:
-    enabled: true       # true = bots take vanilla-style fall damage when they land
-    safe-distance: 3.0  # Blocks a bot can fall before taking damage
-    multiplier: 1.0     # Damage scale after safe-distance. 1.0 = vanilla player damage
+    enabled: true
+    safe-distance: 3.0
+    multiplier: 1.0
 
-# ── Death & Respawn ───────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEATH BEHAVIOR
+# ═══════════════════════════════════════════════════════════════════════════════
+# respawn-on-death respawns bots automatically after death.
+# respawn-delay is measured in ticks. 20 ticks = 1 second.
+# suppress-drops clears drops/XP from bot death events.
+# ═══════════════════════════════════════════════════════════════════════════════
 death:
-  respawn-on-death: false   # true = bot respawns at its spawn location after dying
-  respawn-delay: 1          # Ticks before respawn (0 = immediate · 20 = 1 s)
-  suppress-drops: false     # false = bots drop items/xp on death like real players; true = suppress all drops
+  respawn-on-death: false
+  respawn-delay: 1
+  suppress-drops: false
 
-# ── Chunk Loading ─────────────────────────────────────────────────────────────
-# Bots keep surrounding chunks loaded exactly like a real player.
-# Mobs spawn, redstone ticks, and crops grow inside the loaded radius.
+# ═══════════════════════════════════════════════════════════════════════════════
+# CHUNK LOADING
+# ═══════════════════════════════════════════════════════════════════════════════
+# Keeps chunks around active bots loaded.
+# radius: auto uses the server simulation distance; 0 uses only the bot chunk.
+# mass-disable-threshold: 0 disables automatic mass-spawn ticket protection.
+# ═══════════════════════════════════════════════════════════════════════════════
 chunk-loading:
   enabled: true
-  radius: "auto"   # Chunk radius to keep loaded around each bot:
-                   #   "auto" = automatically match the server's simulation-distance (recommended)
-                   #      0   = bots load NO chunks at all (disables chunk loading via radius)
-                   #      N   = fixed radius of N chunks (e.g. 4, 6, 10)
-  update-interval: 20  # Ticks between position re-checks. 20 = 1 second.
-                       # Lower = more responsive, higher = less overhead.
-  mass-disable-threshold: 100  # 0 = never auto-disable. When active bots reach this count,
-                               # plugin chunk tickets are released to avoid mass-bot lag.
-                                # Pathfinding can still plan through unloaded chunks.
+  radius: "auto"
+  update-interval: 20
+  mass-disable-threshold: 100
 
-# ── Automation Defaults ───────────────────────────────────────────────────────
-# Defaults copied to newly spawned/restored bots. Existing bots keep per-bot values.
+# ═══════════════════════════════════════════════════════════════════════════════
+# BOT AUTOMATION DEFAULTS
+# ═══════════════════════════════════════════════════════════════════════════════
+# These defaults are copied to newly spawned/restored bots.
+# Extensions may add their own automation settings in extension config files.
+# ═══════════════════════════════════════════════════════════════════════════════
 automation:
-  auto-eat: true            # Bots eat food from inventory when hunger prevents sprinting.
-  auto-place-bed: true      # Bots may place a bed from inventory for auto-sleep, then break it after waking.
-  auto-milk: true           # Bots automatically drink milk to cure harmful potion effects (poison, wither, etc.).
-  prevent-bad-omen: true    # Prevent Bad Omen, Raid Omen, and Trial Omen effects (avoids triggering raids).
+  auto-eat: true
+  auto-place-bed: true
+  auto-milk: true
+  prevent-bad-omen: true
 
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  4 · AI & NAVIGATION
-#  AI behaviours shared across all bot systems: head tracking, swimming,
-#  collision physics, pathfinding, and the (coming soon) PVP combat engine.
-# ═════════════════════════════════════════════════════════════════════════════
-
-# ── Head AI ───────────────────────────────────────────────────────────────────
-# Bots smoothly rotate to look at the nearest visible player within range.
+# ═══════════════════════════════════════════════════════════════════════════════
+# HEAD AI
+# ═══════════════════════════════════════════════════════════════════════════════
+# Makes bots look at nearby players/entities.
+# turn-speed: 0.0 = frozen, 1.0 = instant snap.
+# tick-rate is the scan interval in server ticks.
+# ═══════════════════════════════════════════════════════════════════════════════
 head-ai:
   enabled: true
-  look-range: 8.0   # Detection radius in blocks
-  turn-speed: 0.3   # Rotation smoothing — 0.0 = frozen · 1.0 = instant snap
-  tick-rate: 3      # Run the scan + raycast every N ticks instead of every tick.
-                    # Higher = lower CPU cost. 3 ≈ 7 scans/s, imperceptible to players.
-                    # Range: 1 (every tick) to 20 (once per second).
+  look-range: 8.0
+  turn-speed: 0.3
+  tick-rate: 3
 
-# ── Swim AI ───────────────────────────────────────────────────────────────────
-# Bots automatically swim upward when submerged, mimicking a player holding Jump.
+# ═══════════════════════════════════════════════════════════════════════════════
+# SWIM AI
+# ═══════════════════════════════════════════════════════════════════════════════
+# Lets bots attempt basic swimming/surface movement when physics places them in
+# water. Advanced navigation is extension-owned.
+# ═══════════════════════════════════════════════════════════════════════════════
 swim-ai:
-  enabled: true  # controls passive upward swimming only; pathfinding water avoidance is enforced by default
+  enabled: true
 
-# ── Collision & Push ──────────────────────────────────────────────────────────
-# Controls how hard players push bots on contact and how bots separate from each other.
-# Defaults work well for most servers — only change if you notice stacking issues.
+# ═══════════════════════════════════════════════════════════════════════════════
+# COLLISION AND KNOCKBACK
+# ═══════════════════════════════════════════════════════════════════════════════
+# walk-* controls player walking collision impulses.
+# hit-* controls attack knockback impulses.
+# bot-* controls bot-to-bot separation.
+# max-horizontal-speed caps collision velocity so bots do not launch too far.
+# ═══════════════════════════════════════════════════════════════════════════════
 collision:
-  walk-radius: 0.85              # Radius (blocks) at which walking into a bot pushes it
-  walk-strength: 0.22            # Push force when a player walks into a bot
-  hit-strength: 0.45             # Knockback force on a direct hit
-  hit-max-horizontal-speed: 0.80 # Max horizontal speed from hit / explosion knockback
-  bot-radius: 0.90               # Radius for bot-vs-bot separation
-  bot-strength: 0.14             # Separation force applied between two bots
-  max-horizontal-speed: 0.30     # Push speed cap for walk and separation sources
+  walk-radius: 0.85
+  walk-strength: 0.22
+  hit-strength: 0.45
+  hit-max-horizontal-speed: 0.80
+  bot-radius: 0.90
+  bot-strength: 0.14
+  max-horizontal-speed: 0.30
 
-# ═════════════════════════════════════════════════════════════════════════════
-#  5 · DATABASE & NETWORK
-#  Records every bot session for auditing and /fpp info queries.
-#  SQLite: zero-config, stored at  plugins/FakePlayerPlugin/data/fpp.db
-#  MySQL:  required for multi-server (Velocity / BungeeCord) setups
-#
-#  mode: LOCAL   — single server. No cross-server filtering.
-#  mode: NETWORK — shared MySQL across multiple backend servers.
-#                  Each server tags its rows with server-id so bots stay isolated.
-#
-#  Quick proxy setup:
-#    1. Set mode: "NETWORK"
-#    2. Assign a unique server-id to each backend (e.g. "survival", "skyblock")
-#    3. Enable mysql-enabled and fill in credentials
-#    4. Velocity: set bungeecord-compat-mode: true in velocity.toml
-#    5. Run /fpp reload on every server
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
+# DATABASE
+# ═══════════════════════════════════════════════════════════════════════════════
+# mode LOCAL is for one server. NETWORK is for shared MySQL/proxy setups.
+# server-id must be unique per backend server when using NETWORK mode.
+# location-flush-interval controls how often live positions are written.
+# ═══════════════════════════════════════════════════════════════════════════════
 database:
-  enabled: true           # false = no DB I/O, no analytics, file-based persistence only
-  mode: "LOCAL"           # LOCAL or NETWORK
-  server-id: "default"    # Unique name for this server (only matters in NETWORK mode)
-
+  enabled: true
+  mode: "LOCAL"
+  server-id: "default"
   mysql-enabled: false
   mysql:
     host: "localhost"
@@ -212,60 +220,51 @@ database:
     use-ssl: false
     pool-size: 5
     connection-timeout: 30000
-
-  location-flush-interval: 30  # Seconds between bot-position flushes to the DB
+  location-flush-interval: 30
   session-history:
-    max-rows: 20               # Max rows returned per /fpp info query
+    max-rows: 20
 
-# ── Config Sync ───────────────────────────────────────────────────────────────
-# Push/pull config files across backend servers via the shared MySQL database.
-# Only active in NETWORK mode with database enabled.
-# DISABLED  — no syncing
-# MANUAL    — sync only when triggered by an integration or admin tooling
-# AUTO_PULL — pull the latest config on startup and /fpp reload
-# AUTO_PUSH — push config changes automatically
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFIG SYNC
+# ═══════════════════════════════════════════════════════════════════════════════
+# DISABLED: no sync. MANUAL: command-driven sync only.
+# AUTO_PULL/AUTO_PUSH are for coordinated multi-server setups.
+# ═══════════════════════════════════════════════════════════════════════════════
 config-sync:
   mode: "DISABLED"
 
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  9 · PERFORMANCE
-#  Tuning knobs for high-bot-count deployments.
-#  These do not affect gameplay correctness — only main-thread tick budget.
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
+# PERFORMANCE
+# ═══════════════════════════════════════════════════════════════════════════════
+# position-sync-distance limits visual position sync range in blocks.
+# Set to 0 to sync bot positions to all online players.
+# ═══════════════════════════════════════════════════════════════════════════════
 performance:
-  # Maximum distance (blocks) at which a moving bot sends per-tick position-sync
-  # packets to a real player. Players beyond this range cannot see the bot anyway.
-  # 0 = send to all online players regardless of distance (old behaviour).
-  # Recommended: 128 (matches the standard player entity-tracking range).
   position-sync-distance: 128.0
 
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  10 · DEBUG & LOGGING
-#  Debug configuration has been moved to debug.yml for better organization.
-#  Edit plugins/FakePlayerPlugin/debug.yml to control debug output.
-# ═════════════════════════════════════════════════════════════════════════════
-
-# ── Update Checker ────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# UPDATE CHECKER
+# ═══════════════════════════════════════════════════════════════════════════════
+# Checks for plugin updates asynchronously. Disable if your server blocks
+# outbound update-check requests or you manage updates externally.
+# ═══════════════════════════════════════════════════════════════════════════════
 update-checker:
-  enabled: true   # Check for new plugin versions on startup and /fpp reload
-
-# ── Attack Mob Targeting ──────────────────────────────────────────────────────
-# Defaults for /fpp attack --mob (PvE auto-targeting mode).
-attack-mob:
-  default-range: 8.0          # Detection radius in blocks (overridden with --range)
-  default-priority: nearest   # nearest | lowest-health
-  smooth-rotation-speed: 12.0 # Degrees per tick for head rotation toward target
-  retarget-interval: 10       # Ticks between scanning for a new target (when idle)
-  line-of-sight: true         # Require unobstructed line of sight to target
-
-# ── Metrics ───────────────────────────────────────────────────────────────────
-# Anonymous usage statistics via FastStats. No personal data collected.
-metrics:
   enabled: true
 
-# ── Debug Configuration ───────────────────────────────────────────────────────
-# Debug logging is now controlled by debug.yml
-# Run /fpp reload after editing debug.yml to apply changes.
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
+# LEGACY PVE DEFAULTS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Core /fpp attack is swing-only. These values are kept for saved legacy PvE bot
+# settings and compatibility with older data; richer combat belongs in extensions.
+# ═══════════════════════════════════════════════════════════════════════════════
+attack-mob:
+  default-range: 8.0
+  default-priority: nearest
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# METRICS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Sends anonymous usage statistics if enabled.
+# ═══════════════════════════════════════════════════════════════════════════════
+metrics:
+  enabled: true

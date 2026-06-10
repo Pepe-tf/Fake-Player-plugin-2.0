@@ -51,7 +51,10 @@ nms:
   
   # NMS connection/packet listener events
   connection: false
-  
+
+  # Bot damage event decisions, cancellation state, and final damage values
+  damage: false
+   
   # Physics and movement tick operations
   physics: false
   

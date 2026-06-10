@@ -28,6 +28,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -538,6 +539,21 @@ public final class BotSettingGui implements Listener {
                 .serialize(event.message())
                 .trim();
 
+        handleChatInput(uuid, ses, raw);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onLegacyPlayerChat(AsyncPlayerChatEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        ChatInputSes ses = chatSessions.remove(uuid);
+        if (ses == null) return;
+
+        event.setCancelled(true);
+        FppScheduler.cancelTask(ses.cleanupTaskId);
+        handleChatInput(uuid, ses, event.getMessage().trim());
+    }
+
+    private void handleChatInput(UUID uuid, ChatInputSes ses, String raw) {
         sessions.put(uuid, ses.guiState);
         FppScheduler.runSync(plugin, () -> {
             Player p = Bukkit.getPlayer(uuid);
@@ -771,36 +787,6 @@ public final class BotSettingGui implements Listener {
             }
             case "pve_enabled" -> bot.isPveEnabled();
             case "pve_move" -> bot.isPveMoveToTarget();
-            case "follow_player" -> {
-                var followCmd = plugin.getFollowCommand();
-                if (followCmd == null) yield false;
-                boolean old = followCmd.isFollowing(bot.getUuid());
-                if (old) {
-                    followCmd.stopFollowing(bot.getUuid());
-                    fireSettingChange(bot, "follow_player", old, false);
-                    yield false;
-                } else {
-
-                    UUID guiPlayerUuid = botSessions.entrySet().stream()
-                            .filter(e -> e.getValue().equals(bot.getUuid()))
-                            .map(Map.Entry::getKey)
-                            .findFirst()
-                            .orElse(null);
-                    if (guiPlayerUuid != null) {
-                        Player target = Bukkit.getPlayer(guiPlayerUuid);
-                        if (target != null && target.isOnline()) {
-                            Player botPlayer = bot.getPlayer();
-                            if (botPlayer != null && botPlayer.getWorld().equals(target.getWorld())) {
-                                followCmd.startFollowingFromSettings(bot, target);
-                                fireSettingChange(bot, "follow_player", old, true);
-                                yield true;
-                            }
-                        }
-                    }
-                    fireSettingChange(bot, "follow_player", old, false);
-                    yield false;
-                }
-            }
             default -> false;
         };
     }
@@ -820,11 +806,9 @@ public final class BotSettingGui implements Listener {
     }
 
     private void restartPveIfActive(FakePlayer bot) {
-        if (!bot.isPveEnabled()) return;
-        var attackCmd = plugin.getAttackCommand();
-        if (attackCmd != null && attackCmd.isAttacking(bot.getUuid())) {
-            attackCmd.startMobModeFromSettings(bot);
-        }
+        if (bot.isPveEnabled())
+            fireSettingChange(
+                    bot, "pve_restart", null, bot.getPveSmartAttackMode().name());
     }
 
     private void cyclePriority(FakePlayer bot) {
@@ -853,13 +837,7 @@ public final class BotSettingGui implements Listener {
         }
 
         var attackCmd = plugin.getAttackCommand();
-        if (attackCmd != null) {
-            if (bot.isPveEnabled()) {
-                attackCmd.startMobModeFromSettings(bot);
-            } else {
-                attackCmd.stopAttacking(bot.getUuid());
-            }
-        }
+        if (attackCmd != null && !bot.isPveEnabled()) attackCmd.stopAttacking(bot.getUuid());
     }
 
     private String pveModeLabel(FakePlayer bot) {
@@ -1598,10 +1576,6 @@ public final class BotSettingGui implements Listener {
             case "nav_place_blocks" -> bot.isNavPlaceBlocks() ? "✔ ᴇɴᴀʙʟᴇᴅ" : "✘ ᴅɪꜱᴀʙʟᴇᴅ";
             case "pve_enabled" -> pveModeLabel(bot);
             case "share_control" -> bot.getSharedControllers().size() + " ꜱʜᴀʀᴇᴅ";
-            case "follow_player" -> {
-                var followCmd = plugin.getFollowCommand();
-                yield (followCmd != null && followCmd.isFollowing(bot.getUuid())) ? "✔ ꜰᴏʟʟᴏᴡɪɴɢ" : "✘ ɪᴅʟᴇ";
-            }
             case "pve_range" -> (int) bot.getPveRange() + " ʙʟᴏᴄᴋꜱ";
             case "pve_priority" -> bot.getPvePriority() != null ? bot.getPvePriority() : "nearest";
             case "pve_mob_type" -> {
@@ -1644,10 +1618,6 @@ public final class BotSettingGui implements Listener {
             case "nav_place_blocks" -> bot.isNavPlaceBlocks();
             case "pve_enabled" -> bot.isPveEnabled();
             case "pve_move" -> bot.isPveMoveToTarget();
-            case "follow_player" -> {
-                var followCmd = plugin.getFollowCommand();
-                yield followCmd != null && followCmd.isFollowing(bot.getUuid());
-            }
             default -> false;
         };
     }
@@ -1672,10 +1642,6 @@ public final class BotSettingGui implements Listener {
                 case ON_MOVE -> Material.DIAMOND_SWORD;
             };
             case "share_control" -> Material.PLAYER_HEAD;
-            case "follow_player" -> {
-                var followCmd = plugin.getFollowCommand();
-                yield (followCmd != null && followCmd.isFollowing(bot.getUuid())) ? Material.LEAD : Material.STRING;
-            }
             case "pve_mob_type" -> {
                 Set<String> types = bot.getPveMobTypes();
                 if (types.isEmpty()) yield Material.ZOMBIE_HEAD;

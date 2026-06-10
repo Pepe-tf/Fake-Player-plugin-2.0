@@ -64,18 +64,9 @@ public final class PlaceCommand implements FppCommand {
     }
 
     private static final int CONTROLLER_PERIOD = 1;
-    private static final int PROGRESS_INTERVAL = 10;
-    private static final int SKIP_RETRY_LIMIT = 3;
 
     private static final double PLACE_REACH = 4.5;
     private static final int PLACE_COOLDOWN = 5;
-    private static final int SCAFFOLD_MAX_RETRIES = 4;
-
-    private static final Material[] SCAFFOLD_PREF = {
-        Material.DIRT, Material.COBBLESTONE, Material.STONE, Material.SAND,
-        Material.GRAVEL, Material.NETHERRACK, Material.DIORITE, Material.ANDESITE,
-        Material.GRANITE, Material.COBBLED_DEEPSLATE
-    };
 
     private final FakePlayerPlugin plugin;
     private final FakePlayerManager manager;

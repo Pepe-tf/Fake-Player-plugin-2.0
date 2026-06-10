@@ -321,45 +321,20 @@ peaks-transition:    "{prefix}<#0079FF>ᴘᴇᴀᴋ ᴡɪɴᴅᴏᴡ</#0079FF><g
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#  15.5 · MOVE COMMAND  (bot navigation to a player)
+#  15.5 · MOVE COMMAND  (directional bot movement input)
 # ═════════════════════════════════════════════════════════════════════════════
 
 # {name}   — bot display name
 # {player} — target player name
-move-usage:               "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp move <bot|all> <player></#0079FF> <gray>ᴏʀ <#0079FF>/fpp move <bot|all> --coords <x> <y> <z></#0079FF> <gray>ᴏʀ <#0079FF>/fpp move <bot|all> --roam [x,y,z] [radius]</#0079FF> <gray>ᴏʀ <#0079FF>--stop</#0079FF><gray>."
-move-coords-usage:        "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp move <bot|all> --coords <x> <y> <z></#0079FF><gray>."
-move-invalid-coords:      "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴄᴏᴏʀᴅɪɴᴀᴛᴇꜱ. ᴜꜱᴇ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀꜱ ᴏʀ ʀᴇʟᴀᴛɪᴠᴇ <white>~</white> ᴏꜰꜰꜱᴇᴛꜱ<red>."
-move-navigating-coords:   "{prefix}<gray>ɴᴀᴠɪɢᴀᴛɪɴɢ <#0079FF>{name}</#0079FF> <gray>ᴛᴏ <white>{x}, {y}, {z}</white><gray>."
-move-all-navigating-coords: "{prefix}<gray><white>{count}</white> <gray>ʙᴏᴛ(ꜱ) ɴᴀᴠɪɢᴀᴛɪɴɢ ᴛᴏ <white>{x}, {y}, {z}</white><gray>. <dark_gray>({skipped} ꜱᴋɪᴘᴘᴇᴅ)"
+move-usage:               "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp move <bot|all> --direction <forward|backward|left|right> [--seconds <n>|--ticks <n>]</#0079FF> <gray>ᴏʀ <#0079FF>/fpp move <bot|all> --stop</#0079FF><gray>."
 move-bot-not-found:       "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
 move-bot-not-online:      "{prefix}<red>ʙᴏᴛ <white>{name}<red> ɪꜱ ɴᴏᴛ ᴏɴʟɪɴᴇ ᴏʀ ʜᴀꜱ ɴᴏ ʙᴏᴅʏ."
-move-navigating:          "{prefix}<gray>ɴᴀᴠɪɢᴀᴛɪɴɢ <#0079FF>{name}</#0079FF> <gray>ᴛᴏᴡᴀʀᴅ <white>{player}<gray>."
-move-different-world:     "{prefix}<red><#0079FF>{name}</#0079FF> <red>ᴀɴᴅ <white>{player}<red> ᴀʀᴇ ɪɴ ᴅɪꜰꜰᴇʀᴇɴᴛ ᴡᴏʀʟᴅꜱ."
-move-stopped:             "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ɴᴀᴠɪɡᴀᴛɪᴏɴ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>."
-move-all-stopped:         "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ɴᴀᴠɪɡᴀᴛɪᴏɴ ꜰᴏʀ <white>{count}</white> <gray>ʙᴏᴛ(ꜱ)<gray>."
-move-all-navigating:      "{prefix}<gray><white>{count}</white> <gray>ʙᴏᴛ(ꜱ) ɴᴀᴠɪɡᴀᴛɪɴɢ ᴛᴏᴡᴀʀᴅ <white>{player}<gray>. <dark_gray>({skipped} ꜱᴋɪᴘᴘᴇᴅ)"
-move-not-navigating:      "{prefix}<red><#0079FF>{name}</#0079FF> <red>ɪꜱ ɴᴏᴛ ᴄᴜʀʀᴇɴᴛʟʏ ɴᴀᴠɪɡᴀᴛɪɴɢ."
-move-roam-started:        "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ɴᴏᴡ ʀᴏᴀᴍɪɴɢ ᴀʀᴏᴜɴᴅ <white>{x}, {y}, {z}</white> <gray>(ʀᴀᴅɪᴜꜱ <white>{radius}</white>)<gray>."
-move-all-roam-started:    "{prefix}<gray><white>{count}</white> <gray>ʙᴏᴛ(ꜱ) ɴᴏᴡ ʀᴏᴀᴍɪɴɢ (ʀᴀᴅɪᴜꜱ <white>{radius}</white>)<gray>. <dark_gray>({skipped} ꜱᴋɪᴘᴘᴇᴅ)"
-move-roam-invalid-coords: "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴄᴏᴏʀᴅɪɴᴀᴛᴇꜱ. ᴜꜱᴇ ꜰᴏʀᴍᴀᴛ <white>x,y,z</white> <red>(ᴇ.ɢ. <white>100,64,-200</white>)<red>."
-move-roam-invalid-radius: "{prefix}<red>ʀᴀᴅɪᴜꜱ ᴍᴜꜱᴛ ʙᴇ ʙᴇᴛᴡᴇᴇɴ <white>3</white> <red>ᴀɴᴅ <white>500</white><red>."
-move-roam-usage:          "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp move <bot> --roam [x,y,z] [radius]</#0079FF><gray>."
-move-coords-invalid:      "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴄᴏᴏʀᴅɪɴᴀᴛᴇꜱ. ᴜꜱᴇ ɴᴜᴍʙᴇʀꜱ ᴏʀ <white>~<red> ꜰᴏʀ ʀᴇʟᴀᴛɪᴠᴇ ᴏꜰꜰꜱᴇᴛ."
-move-coords-navigating:   "{prefix}<gray><#0079FF>{name}</#0079FF> <gray>ɪꜱ ɴᴀᴠɪɢᴀᴛɪɴɢ ᴛᴏ <white>{x}, {y}, {z}<gray>."
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  15.5b · FOLLOW COMMAND  (continuous follow)
-# ═════════════════════════════════════════════════════════════════════════════
-follow-usage:              "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp follow <bot|all> <player></#0079FF> <gray>ᴏʀ <#0079FF>/fpp follow <bot|all> --stop</#0079FF><gray>."
-follow-bot-not-found:      "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
-follow-bot-not-online:     "{prefix}<red>ʙᴏᴛ <white>{name}<red> ɪꜱ ɴᴏᴛ ᴏɴʟɪɴᴇ ᴏʀ ʜᴀꜱ ɴᴏ ʙᴏᴅʏ."
-follow-started:            "{prefix}<gray><#0079FF>{name}</#0079FF> <gray>ɪꜱ ɴᴏᴡ ꜰᴏʟʟᴏᴡɪɴɢ <white>{player}<gray>."
-follow-stopped:            "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ꜰᴏʟʟᴏᴡɪɴɢ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>."
-follow-not-following:      "{prefix}<red><#0079FF>{name}</#0079FF> <red>ɪꜱ ɴᴏᴛ ᴄᴜʀʀᴇɴᴛʟʏ ꜰᴏʟʟᴏᴡɪɴɢ ᴀɴʏᴏɴᴇ."
-follow-different-world:    "{prefix}<red><#0079FF>{name}</#0079FF> <red>ᴀɴᴅ <white>{player}<red> ᴀʀᴇ ɪɴ ᴅɪꜰꜰᴇʀᴇɴᴛ ᴡᴏʀʟᴅꜱ."
-follow-all-stopped:        "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ꜰᴏʟʟᴏᴡɪɴɢ ꜰᴏʀ <white>{count}</white> <gray>ʙᴏᴛ(ꜱ)<gray>."
-follow-all-started:        "{prefix}<gray><white>{count}</white> <gray>ʙᴏᴛ(ꜱ) ɴᴏᴡ ꜰᴏʟʟᴏᴡɪɴɢ <white>{player}<gray>. <dark_gray>({skipped} ꜱᴋɪᴘᴘᴇᴅ)"
-
+move-stopped:             "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴍᴏᴠᴇᴍᴇɴᴛ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>."
+move-all-stopped:         "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴍᴏᴠᴇᴍᴇɴᴛ ꜰᴏʀ <white>{count}</white> <gray>ʙᴏᴛ(ꜱ)<gray>."
+move-direction-started:   "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ᴍᴏᴠɪɴɢ <white>{direction}</white><gray>."
+move-all-direction-started: "{prefix}<gray><white>{count}</white> <gray>ʙᴏᴛ(ꜱ) ᴍᴏᴠɪɴɢ <white>{direction}</white><gray>. <dark_gray>({skipped} ꜱᴋɪᴘᴘᴇᴅ)"
+move-direction-invalid:   "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴅɪʀᴇᴄᴛɪᴏɴ. ᴜꜱᴇ <white>forward</white><red>, <white>backward</white><red>, <white>left</white><red>, ᴏʀ <white>right</white><red>."
+move-duration-invalid:    "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴍᴏᴠᴇᴍᴇɴᴛ ᴅᴜʀᴀᴛɪᴏɴ. ᴜꜱᴇ <white>--seconds <n></white><red> ᴏʀ <white>--ticks <n></white><red> with a positive number."
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  15.6 · INVENTORY COMMAND  (view/edit bot inventory)
@@ -425,6 +400,11 @@ freeze-frozen:        "{prefix}<gray><#0079FF>{name}</#0079FF> <gray>ɪꜱ ɴᴏ
 freeze-unfrozen:      "{prefix}<gray><#0079FF>{name}</#0079FF> <gray>ɪꜱ ɴᴏᴡ <white>ᴜɴꜰʀᴏᴢᴇɴ</white><gray>."
 freeze-all-frozen:    "{prefix}<gray><white>{count}</white> <gray>ʙᴏᴛ(ꜱ) ᴀʀᴇ ɴᴏᴡ <white>ꜰʀᴏᴢᴇɴ</white><gray>."
 freeze-all-unfrozen:  "{prefix}<gray><white>{count}</white> <gray>ʙᴏᴛ(ꜱ) ᴀʀᴇ ɴᴏᴡ <white>ᴜɴꜰʀᴏᴢᴇɴ</white><gray>."
+sneak-usage:          "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp sneak <bot> [on|off|toggle]</#0079FF><gray>."
+sneak-not-found:      "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
+sneak-bot-offline:    "{prefix}<red><#0079FF>{name}</#0079FF><red> ʜᴀꜱ ɴᴏ ᴀᴄᴛɪᴠᴇ ᴘʟᴀʏᴇʀ ʙᴏᴅʏ."
+sneak-enabled:        "{prefix}<gray><#0079FF>{name}</#0079FF> <gray>ɪꜱ ɴᴏᴡ <white>ꜱɴᴇᴀᴋɪɴɢ</white><gray>."
+sneak-disabled:       "{prefix}<gray><#0079FF>{name}</#0079FF> <gray>ɪꜱ <white>ɴᴏ ʟᴏɴɢᴇʀ ꜱɴᴇᴀᴋɪɴɢ</white><gray>."
 
 # ───────────────────────────────────────────────────────────────────────────────
 #  15.6 · FIND COMMAND
@@ -586,44 +566,15 @@ version-unsupported-admin: "<dark_gray><st>━━━━━━━━━</st> <bol
 # ═════════════════════════════════════════════════════════════════════════════
 
 # {name} — bot display name
-attack-usage:        "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp attack <bot|all> [--once|--stop|--mob]</#0079FF><gray> | <#0079FF>/fpp attack --stop</#0079FF><gray>."
+attack-usage:        "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp attack <bot|all> [--once|--stop]</#0079FF><gray> | <#0079FF>/fpp attack --stop</#0079FF><gray>."
 attack-not-found:    "{prefix}<red>ʙᴏᴛ <#0079FF>{name}</#0079FF><red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
 attack-bot-offline:  "{prefix}<red><#0079FF>{name}</#0079FF><red> ʜᴀꜱ ɴᴏ ᴀᴄᴛɪᴠᴇ ᴘʟᴀʏᴇʀ ʙᴏᴅʏ."
-attack-walking:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ᴡᴀʟᴋɪɴɢ ᴛᴏ ᴀᴛᴛᴀᴄᴋ ꜱᴘᴏᴛ..."
 attack-started:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴀʀᴛᴇᴅ ᴀᴛᴛᴀᴄᴋɪɴɢ ᴄᴏɴᴛɪɴᴜᴏᴜꜱʟʏ."
 attack-started-once: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ᴀᴛᴛᴀᴄᴋɪɴɢ ᴏɴᴄᴇ..."
 attack-stopped:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴏᴘᴘᴇᴅ ᴀᴛᴛᴀᴄᴋɪɴɢ."
 attack-stopped-all:  "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴀʟʟ ʙᴏᴛꜱ ꜰʀᴏᴍ ᴀᴛᴛᴀᴄᴋɪɴɢ."
 attack-no-bots:      "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛꜱ ꜰᴏᴜɴᴅ."
-attack-mob-started:  "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ᴇɴᴛᴇʀᴇᴅ ᴍᴏʙ ʜᴜɴᴛɪɴɢ ᴍᴏᴅᴇ <dark_gray>(<gray>ʀᴀɴɢᴇ<dark_gray>: <#0079FF>{range}</#0079FF><dark_gray>, <gray>ᴘʀɪᴏʀɪᴛʏ<dark_gray>: <#0079FF>{priority}</#0079FF><dark_gray>)."
-attack-mob-type:     "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ᴛᴀʀɢᴇᴛɪɴɢ ᴏɴʟʏ <#0079FF>{type}</#0079FF><gray> ᴍᴏʙꜱ."
-attack-mob-no-target: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴄᴀɴɴɪɴɢ ꜰᴏʀ ᴛᴀʀɢᴇᴛꜱ..."
-attack-mob-invalid-type: "{prefix}<red>ᴜɴᴋɴᴏᴡɴ ᴍᴏʙ ᴛʏᴘᴇ<dark_gray>: <#0079FF>{type}</#0079FF><dark_gray>."
-attack-mob-invalid-range: "{prefix}<red>ʀᴀɴɢᴇ ᴍᴜꜱᴛ ʙᴇ ʙᴇᴛᴡᴇᴇɴ <#0079FF>1</#0079FF> ᴀɴᴅ <#0079FF>64</#0079FF><red>."
-attack-hunt-started:  "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ɴᴏᴡ ʜᴜɴᴛɪɴɢ ᴍᴏʙꜱ <dark_gray>(<gray>ʀᴀɴɢᴇ<dark_gray>: <#0079FF>{range}</#0079FF><dark_gray>, <gray>ᴘʀɪᴏʀɪᴛʏ<dark_gray>: <#0079FF>{priority}</#0079FF><dark_gray>)."
-attack-hunt-started-all: "{prefix}<gray><#0079FF>{count}</#0079FF><gray> ʙᴏᴛꜱ ᴀʀᴇ ɴᴏᴡ ʜᴜɴᴛɪɴɢ ᴍᴏʙꜱ."
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  23 · SLEEP COMMAND  (/fpp sleep)
-# ═════════════════════════════════════════════════════════════════════════════
-
-# {name}   — bot display name
-# {x y z}  — origin coords
-# {radius} — bed-search radius in blocks
-# {count}  — number of bots configured / stopped
-
-sleep-usage:           "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp sleep <bot|all> <x y z> <radius></#0079FF><gray> | <#0079FF>/fpp sleep <bot|all> --stop</#0079FF><gray>."
-sleep-not-found:       "{prefix}<red>ʙᴏᴛ <#0079FF>{name}</#0079FF><red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
-sleep-bot-offline:     "{prefix}<red><#0079FF>{name}</#0079FF><red> ʜᴀꜱ ɴᴏ ᴀᴄᴛɪᴠᴇ ᴘʟᴀʏᴇʀ ʙᴏᴅʏ."
-sleep-invalid-args:    "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴀʀɢᴜᴍᴇɴᴛꜱ. <gray>ᴇxᴘᴇᴄᴛᴇᴅ<dark_gray>: <#0079FF><x> <y> <z> <radius></#0079FF><gray>."
-sleep-configured:      "{prefix}<gray>ꜱʟᴇᴇᴘ ᴄᴏɴꜰɪɢᴜʀᴇᴅ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray> ᴀʀᴏᴜɴᴅ <white>{x} {y} {z}<gray> ᴡɪᴛʜɪɴ <#0079FF>{radius}</#0079FF><gray> ʙʟᴏᴄᴋꜱ."
-sleep-all-configured:  "{prefix}<gray>ꜱʟᴇᴇᴘ ᴄᴏɴꜰɪɢᴜʀᴇᴅ ꜰᴏʀ <#0079FF>{count}</#0079FF><gray> ʙᴏᴛ(ꜱ) ᴡɪᴛʜɪɴ <#0079FF>{radius}</#0079FF><gray> ʙʟᴏᴄᴋꜱ <dark_gray>(<gray>ꜱᴋɪᴘᴘᴇᴅ<dark_gray>: <white>{skipped}<dark_gray>)<gray>."
-sleep-stopped:         "{prefix}<gray>ꜱʟᴇᴇᴘ ᴅɪꜱᴀʙʟᴇᴅ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>."
-sleep-all-stopped:     "{prefix}<gray>ꜱʟᴇᴇᴘ ᴅɪꜱᴀʙʟᴇᴅ ꜰᴏʀ <#0079FF>{count}</#0079FF><gray> ʙᴏᴛ(ꜱ)."
-sleep-no-bed:          "{prefix}<gray>ɴᴏ ʙᴇᴅ ꜰᴏᴜɴᴅ ɴᴇᴀʀ <#0079FF>{name}</#0079FF><gray> ᴡɪᴛʜɪɴ <#0079FF>{radius}</#0079FF><gray> ʙʟᴏᴄᴋꜱ."
-
-
+attack-started-all:  "{prefix}<gray><#0079FF>{count}</#0079FF><gray> ʙᴏᴛꜱ ꜱᴛᴀʀᴛᴇᴅ ᴀᴛᴛᴀᴄᴋɪɴɢ."
 # ═════════════════════════════════════════════════════════════════════════════
 #  24 · STOP COMMAND  (/fpp stop)
 # ═════════════════════════════════════════════════════════════════════════════

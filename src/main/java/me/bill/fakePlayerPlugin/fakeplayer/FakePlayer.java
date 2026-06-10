@@ -633,8 +633,9 @@ public final class FakePlayer {
     }
 
     public void setSpawnedBy(String name, UUID uuid) {
-        this.spawnedBy = name;
-        this.spawnedByUuid = uuid;
+        this.spawnedBy = name != null && !name.isBlank() ? name : "UNKNOWN";
+        this.spawnedByUuid = uuid != null ? uuid : new UUID(0, 0);
+        sharedControllers.remove(this.spawnedByUuid);
     }
 
     public void setDbRecord(BotRecord record) {
@@ -780,6 +781,10 @@ public final class FakePlayer {
 
     public boolean removeSharedController(UUID uuid) {
         return uuid != null && sharedControllers.remove(uuid);
+    }
+
+    public void clearSharedControllers() {
+        sharedControllers.clear();
     }
 
     public boolean isAutoEatEnabled() {

@@ -27,8 +27,6 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
 import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -65,7 +63,6 @@ import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.RandomNameGenerator;
 import me.bill.fakePlayerPlugin.util.TextUtil;
-import me.bill.fakePlayerPlugin.util.WorldGuardHelper;
 
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
@@ -75,6 +72,8 @@ import net.minecraft.server.level.ServerPlayer;
 public class FakePlayerManager {
 
     public static NamespacedKey FAKE_PLAYER_KEY;
+
+    private static final double MIN_FALL_DAMAGE_DISTANCE = 4.0;
 
     private final FakePlayerPlugin plugin;
     private final Map<UUID, FakePlayer> activePlayers = new ConcurrentHashMap<>();
@@ -111,6 +110,8 @@ public class FakePlayerManager {
     private volatile long visualSyncTickCounter = 0L;
 
     private final Set<UUID> bodyTransitionBots = new HashSet<>();
+
+    private final Set<UUID> bodyTransitionMessageSuppression = ConcurrentHashMap.newKeySet();
 
     private final Map<UUID, Integer> navJumpHolding = new ConcurrentHashMap<>();
 
@@ -341,7 +342,7 @@ public class FakePlayerManager {
                         Player bot = fp.getPlayer();
 
                         if (bot == null) continue;
-                        FppScheduler.runAtEntity(plugin, bot, () -> {
+                        Runnable botTick = () -> {
                             if (!activePlayers.containsKey(fp.getUuid())) return;
                             if (!bot.isValid() || bot.isDead()) return;
                             boolean isNavigating = plugin.getPathfindingService() != null
@@ -558,7 +559,12 @@ public class FakePlayerManager {
                                     }
                                 }
                             }
-                        });
+                        };
+                        if (foliaServer) {
+                            FppScheduler.runAtEntity(plugin, bot, botTick);
+                        } else {
+                            botTick.run();
+                        }
                     }
                 },
                 1L,
@@ -610,24 +616,11 @@ public class FakePlayerManager {
 
         double distance = Math.max(trackedFallDistance.getOrDefault(uuid, 0.0), bot.getFallDistance());
         double safeDistance = Config.fallDamageSafeDistance();
-        if (!wasOnGround.contains(uuid) && distance > safeDistance) {
+        if (!wasOnGround.contains(uuid) && distance >= MIN_FALL_DAMAGE_DISTANCE && distance > safeDistance) {
             double damage = Math.floor(
                     (distance - safeDistance) * Config.fallDamageMultiplier() * landingFallDamageMultiplier(bot));
             if (damage > 0.0) {
-                if (plugin.isWorldGuardAvailable() && !WorldGuardHelper.isPvpAllowed(bot.getLocation())) {
-                    Config.debugNms("FallDamage: blocked bot fall damage in WorldGuard PvP-protected region for bot="
-                            + bot.getName());
-                    trackedFallDistance.remove(uuid);
-                    lastFallY.remove(uuid);
-                    wasOnGround.add(uuid);
-                    return;
-                }
-                double beforeHealth = bot.getHealth();
                 bot.damage(damage);
-                if (!bot.isDead() && Math.abs(bot.getHealth() - beforeHealth) < 0.001) {
-                    bot.setHealth(Math.max(0.0, beforeHealth - damage));
-                    playHurtFeedback(fp, bot);
-                }
             }
         }
         trackedFallDistance.remove(uuid);
@@ -669,28 +662,6 @@ public class FakePlayerManager {
         return 1.0;
     }
 
-    public void playHurtFeedback(FakePlayer fp, Player bot) {
-        for (Player viewer : cachedOnlinePlayers) {
-            if (viewer == null
-                    || !viewer.isOnline()
-                    || !Bukkit.isOwnedByCurrentRegion(viewer)
-                    || viewer.getWorld() != bot.getWorld()
-                    || viewer.getLocation().distanceSquared(bot.getLocation()) > 256 * 256) {
-                continue;
-            }
-            PacketHelper.sendHurtAnimation(viewer, fp);
-        }
-
-        if (!Config.hurtSound()) {
-            return;
-        }
-
-        Location loc = bot.getLocation();
-        if (loc.getWorld() != null) {
-            loc.getWorld().playSound(loc, Sound.ENTITY_PLAYER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
-        }
-    }
-
     public boolean physicalBodiesEnabled() {
         return true;
     }
@@ -705,6 +676,10 @@ public class FakePlayerManager {
 
     public boolean isBodyTransitioning(UUID uuid) {
         return bodyTransitionBots.contains(uuid);
+    }
+
+    public boolean suppressBodyTransitionMessage(UUID uuid) {
+        return uuid != null && bodyTransitionMessageSuppression.contains(uuid);
     }
 
     public boolean isDespawning(UUID uuid) {
@@ -883,7 +858,7 @@ public class FakePlayerManager {
             fp.setRawDisplayName(rawUserName);
             String userDisplay = finalizeDisplayName(rawUserName, ubn.internalName());
             fp.setDisplayName(userDisplay);
-            fp.setSpawnLocation(location);
+            fp.setSpawnLocation(location.clone());
             fp.setSpawnedBy(spawnerName, spawnerUuid);
             fp.setSpawnTick(System.currentTimeMillis());
             activePlayers.put(uuid, fp);
@@ -1023,7 +998,7 @@ public class FakePlayerManager {
             fp.setRawDisplayName(rawAdminName);
             String displayName = finalizeDisplayName(rawAdminName, name);
             fp.setDisplayName(displayName);
-            fp.setSpawnLocation(location);
+            fp.setSpawnLocation(location.clone());
             fp.setSpawnedBy(spawnerName, spawnerUuid);
             fp.setSpawnTick(System.currentTimeMillis());
             usedNames.add(name);
@@ -1099,15 +1074,19 @@ public class FakePlayerManager {
         if (batch == null) return;
 
         boolean folia = NmsPlayerSpawner.isFoliaServer();
-        int batchSize = 1;
+        int batchSize = folia ? 2 : 6;
         int end = Math.min(batch.size(), index + batchSize);
         for (int i = index; i < end; i++) {
             FakePlayer fp = batch.get(i);
-            if (activePlayers.containsKey(fp.getUuid())) finishSpawn(fp, location);
+            if (activePlayers.containsKey(fp.getUuid())) {
+                Location spawnLoc =
+                        fp.getSpawnLocation() != null ? fp.getSpawnLocation().clone() : location.clone();
+                finishSpawn(fp, spawnLoc);
+            }
         }
         if (end < batch.size()) {
             int next = end;
-            long delay = 10L;
+            long delay = 1L;
             FppScheduler.runSyncLater(
                     plugin,
                     () -> {
@@ -1244,34 +1223,26 @@ public class FakePlayerManager {
                     if (!fp.isBodyless()) {
                         Player body = FakePlayerBody.spawn(fp, spawnLoc, initialPing);
                         if (body != null) {
-                            fp.setPhysicsEntity(body);
-                            entityIdIndex.put(body.getEntityId(), fp);
+                            stampFakePlayerMarker(body, fp);
+                            protectRequestedSpawnLocation(fp, body, spawnLoc.clone());
                             fp.setPacketProfileName(fp.getName());
                             // Ping was already set on the NMS ServerPlayer before placeNewPlayer,
                             // but update it again here in case the pre-spawn set didn't take effect.
                             NmsPlayerSpawner.setPing(body, fp.getEffectivePing());
 
-                            if (plugin.isWorldGuardAvailable() && !WorldGuardHelper.isPvpAllowed(spawnLoc)) {
-                                Config.debug("WorldGuard: bot '"
-                                        + fp.getName()
-                                        + "' spawned in a no-pvp region at "
-                                        + spawnLoc.getBlockX()
-                                        + ","
-                                        + spawnLoc.getBlockY()
-                                        + ","
-                                        + spawnLoc.getBlockZ());
-                            }
-
                             final Player savedBody = body;
                             final String savedName = fp.getName();
                             final UUID savedUuid = fp.getUuid();
-                            final boolean skipPlayerDataSave = isExplicitUuidSpawn(fp);
+                            final Path playerDataPath = explicitUuidPlayerDataFile(savedUuid);
+                            final boolean skipPlayerDataSave =
+                                    isExplicitUuidSpawn(fp) || (playerDataPath != null && Files.exists(playerDataPath));
                             if (wasExplicitUuidOp(fp)) {
                                 try {
                                     savedBody.setOp(true);
                                 } catch (Throwable ignored) {
                                 }
                             }
+                            long initialSaveDelay = 40L + Math.floorMod(savedUuid.hashCode(), 40);
                             FppScheduler.runAtEntityLaterWithId(
                                     plugin,
                                     savedBody,
@@ -1279,7 +1250,7 @@ public class FakePlayerManager {
                                         if (!savedBody.isOnline()) return;
                                         if (skipPlayerDataSave) {
                                             FppLogger.debug(
-                                                    "FakePlayerManager: skipped initial playerdata save for explicit UUID bot '"
+                                                    "FakePlayerManager: skipped initial playerdata save for bot '"
                                                             + savedName
                                                             + "' uuid="
                                                             + savedUuid);
@@ -1304,7 +1275,7 @@ public class FakePlayerManager {
                                                     + e.getMessage());
                                         }
                                     },
-                                    2L);
+                                    initialSaveDelay);
                         } else {
                             FppLogger.warn("finishSpawn: body spawn failed for '"
                                     + fp.getName()
@@ -1328,6 +1299,7 @@ public class FakePlayerManager {
                                 + "' nms="
                                 + isNmsPlayer);
 
+                        long tabAddDelay = 2L + Math.floorMod(fp.getUuid().hashCode(), 8);
                         FppScheduler.runSyncLater(
                                 plugin,
                                 () -> {
@@ -1339,7 +1311,7 @@ public class FakePlayerManager {
                                         }
                                     }
                                 },
-                                1L);
+                                tabAddDelay);
 
                         FppScheduler.runSyncLater(
                                 plugin,
@@ -1351,7 +1323,7 @@ public class FakePlayerManager {
                                     for (Player p : Bukkit.getOnlinePlayers())
                                         PacketHelper.sendTabListDisplayNameUpdate(p, fp);
                                 },
-                                3L);
+                                tabAddDelay + 8L);
 
                         FppScheduler.runSyncLater(
                                 plugin,
@@ -1362,7 +1334,7 @@ public class FakePlayerManager {
                                     var vc = plugin.getVelocityChannel();
                                     if (vc != null) vc.broadcastBotSpawn(fp);
                                 },
-                                20L);
+                                tabAddDelay + 20L);
                     } else {
                         Config.debug("Tab-list disabled - unlisting '" + fp.getName() + "'");
 
@@ -1434,6 +1406,33 @@ public class FakePlayerManager {
                 });
     }
 
+    private void protectRequestedSpawnLocation(FakePlayer fp, Player body, Location requested) {
+        if (fp == null || body == null || requested == null || requested.getWorld() == null) return;
+        for (long delay : new long[] {1L, 5L, 20L, 60L}) {
+            FppScheduler.runAtEntityLaterWithId(plugin, body, () -> reassertRequestedSpawnLocation(fp, body, requested), delay);
+        }
+    }
+
+    private void reassertRequestedSpawnLocation(FakePlayer fp, Player body, Location requested) {
+        Player currentBody = resolveCurrentBody(fp, body);
+        if (!activePlayers.containsKey(fp.getUuid()) || currentBody == null || !currentBody.isValid()) return;
+        Location current = currentBody.getLocation();
+        if (isAtTeleportDestination(current, requested)) {
+            fp.setSpawnLocation(current.clone());
+            return;
+        }
+
+        Config.debugNmsDamage("spawn location reassert: bot="
+                + fp.getName()
+                + " current="
+                + formatLocation(current)
+                + " requested="
+                + formatLocation(requested));
+        FppScheduler.teleportAsync(currentBody, requested.clone()).thenAccept(success -> {
+            if (Boolean.TRUE.equals(success)) refreshAfterTeleport(fp, currentBody, requested.clone());
+        });
+    }
+
     public void spawnRestored(
             String name, UUID uuid, String savedDisplayName, String spawnedBy, UUID spawnedByUuid, Location location) {
         spawnRestored(name, uuid, savedDisplayName, spawnedBy, spawnedByUuid, location, BotType.AFK);
@@ -1486,8 +1485,12 @@ public class FakePlayerManager {
 
         String effectiveSpawner = (spawnedBy != null && !spawnedBy.isBlank()) ? spawnedBy : "Unknown";
         String displayName;
+        String persistedDisplay = savedDisplayName != null && !savedDisplayName.isBlank() ? savedDisplayName : null;
 
-        if (isUserBot) {
+        if (persistedDisplay != null) {
+            fp.setRawDisplayName(persistedDisplay);
+            displayName = finalizeDisplayName(persistedDisplay, name);
+        } else if (isUserBot) {
             int lastUs = name.lastIndexOf('_');
             int botIdx = 1;
             if (lastUs > 0 && lastUs < name.length() - 1) {
@@ -2302,8 +2305,7 @@ public class FakePlayerManager {
                         FakePlayerBody.resolveAndFinish(plugin, fp, loc, () -> {
                             Player newBody = FakePlayerBody.spawn(fp, loc, fp.getEffectivePing());
                             if (newBody != null) {
-                                fp.setPhysicsEntity(newBody);
-                                entityIdIndex.put(newBody.getEntityId(), fp);
+                                stampFakePlayerMarker(newBody, fp);
                                 fp.setPacketProfileName(fp.getName());
 
                                 if (Config.tabListEnabled()) {
@@ -2406,10 +2408,6 @@ public class FakePlayerManager {
         if (leftClickCmd != null) leftClickCmd.stopClicking(uuid);
         var rightClickCmd = plugin.getRightClickCommand();
         if (rightClickCmd != null) rightClickCmd.stopClicking(uuid);
-        var followCmd = plugin.getFollowCommand();
-        if (followCmd != null) followCmd.cleanupBot(uuid);
-        var sleepCmd = plugin.getSleepCommand();
-        if (sleepCmd != null) sleepCmd.cleanupBot(uuid);
 
         if (chunkLoader != null) chunkLoader.releaseForBot(fp);
         if (db != null && removalReason != null) db.recordRemoval(uuid, removalReason);
@@ -2501,8 +2499,7 @@ public class FakePlayerManager {
                 Player newBody = FakePlayerBody.spawn(fp, loc, fp.getEffectivePing());
                 if (newBody == null) return;
 
-                fp.setPhysicsEntity(newBody);
-                entityIdIndex.put(newBody.getEntityId(), fp);
+                stampFakePlayerMarker(newBody, fp);
 
                 final FakePlayer target = fp;
                 FppScheduler.runSyncLater(
@@ -2531,11 +2528,18 @@ public class FakePlayerManager {
 
         if ((botName == null || botName.isBlank()) && entity instanceof Player player) {
             FakePlayer byUuid = getByUuid(player.getUniqueId());
-            if (byUuid != null && byUuid.getName().equalsIgnoreCase(player.getName())) {
+            if (byUuid != null) {
                 stampFakePlayerMarker(player, byUuid);
-                byUuid.setPhysicsEntity(player);
-                entityIdIndex.put(entity.getEntityId(), byUuid);
                 return byUuid;
+            }
+            FakePlayer byName = getByName(player.getName());
+            if (byName != null && byName.getUuid().equals(player.getUniqueId())) {
+                stampFakePlayerMarker(player, byName);
+                Config.debugNms("getByEntity: recovered '"
+                        + byName.getName()
+                        + "' by name/uuid after entity index miss - entityId="
+                        + entity.getEntityId());
+                return byName;
             }
         }
 
@@ -2550,8 +2554,6 @@ public class FakePlayerManager {
         }
 
         if (entity instanceof Player player) {
-            candidate.setPhysicsEntity(player);
-            entityIdIndex.put(entity.getEntityId(), candidate);
             stampFakePlayerMarker(player, candidate);
             Config.debug("getByEntity: recovered '"
                     + botName
@@ -2567,8 +2569,26 @@ public class FakePlayerManager {
     public void stampFakePlayerMarker(Player player, FakePlayer fp) {
         if (player == null || fp == null || FAKE_PLAYER_KEY == null) return;
         try {
+            Player oldBody = fp.getPhysicsEntity();
+            if (oldBody != null && oldBody.getEntityId() != player.getEntityId()) {
+                entityIdIndex.remove(oldBody.getEntityId(), fp);
+                String oldWorld =
+                        oldBody.getWorld() != null ? oldBody.getWorld().getName() : "null";
+                String newWorld = player.getWorld() != null ? player.getWorld().getName() : "null";
+                Config.debugNmsDamage("bot body registration moved: bot="
+                        + fp.getName()
+                        + " oldEntityId="
+                        + oldBody.getEntityId()
+                        + " oldWorld="
+                        + oldWorld
+                        + " newEntityId="
+                        + player.getEntityId()
+                        + " newWorld="
+                        + newWorld);
+            }
             fp.setPhysicsEntity(player);
             entityIdIndex.put(player.getEntityId(), fp);
+            player.getPersistentDataContainer().remove(new NamespacedKey(plugin, "npc"));
             player.getPersistentDataContainer()
                     .set(
                             FAKE_PLAYER_KEY,
@@ -2604,14 +2624,6 @@ public class FakePlayerManager {
             case ATTACK -> {
                 var cmd = plugin.getAttackCommand();
                 if (cmd != null) cmd.stopAttacking(botUuid);
-            }
-            case FOLLOW -> {
-                var cmd = plugin.getFollowCommand();
-                if (cmd != null) cmd.stopFollowing(botUuid);
-            }
-            case SLEEP -> {
-                var cmd = plugin.getSleepCommand();
-                if (cmd != null) cmd.cleanupBot(botUuid);
             }
             case SYSTEM -> {
                 var pathfinding = plugin.getPathfindingService();
@@ -2764,12 +2776,129 @@ public class FakePlayerManager {
         var event = new FppBotTeleportEvent(new FppBotImpl(fp), body.getLocation(), destination);
         Bukkit.getPluginManager().callEvent(event);
         if (event.isCancelled()) return false;
-        FppScheduler.teleportAsync(body, event.getTo());
-        fp.setSpawnLocation(event.getTo().clone());
-        // WorldGuard session refresh is handled centrally in
-        // FakePlayerEntityListener.onPlayerTeleport (MONITOR priority)
-        // so that all teleports (teleportBot, attack lock, etc.) trigger it.
+        Location target = event.getTo().clone();
+        FppScheduler.teleportAsync(body, target).thenAccept(success -> {
+            if (Boolean.TRUE.equals(success)) refreshAfterTeleport(fp, body, target);
+        });
         return true;
+    }
+
+    public void refreshAfterTeleport(FakePlayer fp, Player body, Location destination) {
+        if (fp == null || body == null || destination == null) return;
+        refreshAfterTeleport(fp, body, destination, 0);
+    }
+
+    private void refreshAfterTeleport(FakePlayer fp, Player body, Location destination, int attempt) {
+        Player scheduledBody = resolveCurrentBody(fp, body);
+        FppScheduler.runAtEntityLaterWithId(
+                plugin,
+                scheduledBody,
+                () -> {
+                    Player currentBody = resolveCurrentBody(fp, scheduledBody);
+                    if (!activePlayers.containsKey(fp.getUuid()) || currentBody == null || !currentBody.isValid())
+                        return;
+
+                    Location current = currentBody.getLocation();
+                    if (!isAtTeleportDestination(current, destination)) {
+                        if (attempt < 4) {
+                            Config.debugNmsDamage("bot teleport refresh delayed: bot="
+                                    + fp.getName()
+                                    + " attempt="
+                                    + attempt
+                                    + " entityId="
+                                    + currentBody.getEntityId()
+                                    + " current="
+                                    + formatLocation(current)
+                                    + " requested="
+                                    + formatLocation(destination));
+                            refreshAfterTeleport(fp, currentBody, destination, attempt + 1);
+                            return;
+                        }
+
+                        Config.debugNmsDamage("bot teleport correction: bot="
+                                + fp.getName()
+                                + " entityId="
+                                + currentBody.getEntityId()
+                                + " current="
+                                + formatLocation(current)
+                                + " requested="
+                                + formatLocation(destination));
+                        FppScheduler.teleportAsync(currentBody, destination.clone())
+                                .thenAccept(success -> {
+                                    if (Boolean.TRUE.equals(success))
+                                        refreshAfterTeleport(fp, currentBody, destination, 0);
+                                });
+                        return;
+                    }
+
+                    stampFakePlayerMarker(currentBody, fp);
+                    fp.setSpawnLocation(current.clone());
+                    String currentWorld =
+                            current.getWorld() != null ? current.getWorld().getName() : "null";
+                    Config.debugNmsDamage("bot teleport refresh: bot="
+                            + fp.getName()
+                            + " entityId="
+                            + currentBody.getEntityId()
+                            + " world="
+                            + currentWorld
+                            + " x="
+                            + String.format("%.3f", current.getX())
+                            + " y="
+                            + String.format("%.3f", current.getY())
+                            + " z="
+                            + String.format("%.3f", current.getZ())
+                            + " requestedWorld="
+                            + (destination.getWorld() != null
+                                    ? destination.getWorld().getName()
+                                    : "null"));
+                    NmsPlayerSpawner.refreshAfterTeleport(currentBody);
+                    resetTransientBodyStateAfterTeleport(fp, currentBody, current);
+                },
+                1L);
+    }
+
+    private Player resolveCurrentBody(FakePlayer fp, Player fallback) {
+        Player current = Bukkit.getPlayer(fp.getUuid());
+        if (current != null && current.isOnline()) return current;
+        return fallback;
+    }
+
+    private boolean isAtTeleportDestination(Location current, Location destination) {
+        if (current == null || destination == null) return false;
+        if (current.getWorld() == null || destination.getWorld() == null) return false;
+        if (!current.getWorld().equals(destination.getWorld())) return false;
+        return current.distanceSquared(destination) <= 1.0;
+    }
+
+    private String formatLocation(Location location) {
+        if (location == null) return "null";
+        String world = location.getWorld() != null ? location.getWorld().getName() : "null";
+        return world
+                + "@"
+                + String.format("%.3f", location.getX())
+                + ","
+                + String.format("%.3f", location.getY())
+                + ","
+                + String.format("%.3f", location.getZ());
+    }
+
+    private void resetTransientBodyStateAfterTeleport(FakePlayer fp, Player body, Location current) {
+        UUID uuid = fp.getUuid();
+        try {
+            body.setInvulnerable(false);
+            body.setNoDamageTicks(0);
+            body.setFallDistance(0.0f);
+            body.setVelocity(ZERO_VELOCITY);
+            NmsPlayerSpawner.setJumping(body, false);
+        } catch (Throwable ignored) {
+        }
+
+        trackedFallDistance.remove(uuid);
+        lastFallY.remove(uuid);
+        wasOnGround.remove(uuid);
+        navJumpHolding.remove(uuid);
+        botHeadRotation.put(uuid, new float[] {current.getYaw(), current.getPitch()});
+        botSpawnRotation.put(uuid, new float[] {current.getYaw(), current.getPitch()});
     }
 
     private String finalizeDisplayName(String rawName, String botName) {
@@ -2918,19 +3047,6 @@ public class FakePlayerManager {
         int cadence = behaviorUpdateCadenceTicks(fp);
         if (cadence <= 1) return true;
         long tick = visualSyncTickCounter;
-        int offset = Math.floorMod(fp.getUuid().hashCode(), cadence);
-        return Math.floorMod(tick, cadence) == offset;
-    }
-
-    private boolean shouldRunIdlePhysics(FakePlayer fp) {
-        long tick = visualSyncTickCounter;
-        int offset = Math.floorMod(fp.getUuid().hashCode(), 4);
-        return Math.floorMod(tick, 4) == offset;
-    }
-
-    private boolean shouldRunIdleMaintenance(FakePlayer fp) {
-        long tick = visualSyncTickCounter;
-        int cadence = 100;
         int offset = Math.floorMod(fp.getUuid().hashCode(), cadence);
         return Math.floorMod(tick, cadence) == offset;
     }

@@ -176,18 +176,15 @@ public final class RightClickCommand implements FppCommand {
         BlockFace targetFace = null;
         if (sender instanceof Player player) {
             target = rayTraceTargetPlayer(player);
+            if (isSelfTarget(bot, target)) {
+                target = null;
+            }
             if (target instanceof Block) {
                 org.bukkit.util.RayTraceResult ray = player.rayTraceBlocks(CLICK_REACH);
                 if (ray != null) targetFace = ray.getHitBlockFace();
             }
             if (Config.debugRightClickHead()) {
-                if (target != null
-                        && target instanceof Player p
-                        && p.getUniqueId().equals(bot.getUniqueId())) {
-                    FppLogger.debug("RIGHTCLICK-HEAD", true, bot.getName() + " player LOOKING AT BOT — target=null");
-                    target = null;
-                    targetFace = null;
-                } else if (target != null) {
+                if (target != null) {
                     String tStr = formatTarget(target);
                     FppLogger.debug(
                             "RIGHTCLICK-HEAD",
@@ -201,6 +198,9 @@ public final class RightClickCommand implements FppCommand {
         }
         if (target == null) {
             target = rayTraceTarget(bot);
+            if (isSelfTarget(bot, target)) {
+                target = null;
+            }
             if (target instanceof Block && bot instanceof Player) {
                 org.bukkit.util.RayTraceResult ray = bot.rayTraceBlocks(CLICK_REACH);
                 if (ray != null) targetFace = ray.getHitBlockFace();
@@ -279,6 +279,37 @@ public final class RightClickCommand implements FppCommand {
         return List.of();
     }
 
+    public boolean click(FakePlayer fp, ClickMode mode) {
+        Player bot = fp.getPlayer();
+        if (bot == null || !bot.isOnline()) return false;
+
+        cancelAll(fp.getUuid());
+        if (mode == ClickMode.STOP) return true;
+
+        Object target = null;
+        BlockFace targetFace = null;
+        target = rayTraceTarget(bot);
+        if (target instanceof Block) {
+            org.bukkit.util.RayTraceResult ray = bot.rayTraceBlocks(CLICK_REACH);
+            if (ray != null) targetFace = ray.getHitBlockFace();
+        }
+
+        if (target != null) {
+            Location targetLoc = getTargetLocation(bot, target);
+            if (targetLoc != null && bot.getLocation().distance(targetLoc) > CLICK_REACH) {
+                Location standLoc = findStandLocationNearTarget(bot.getWorld(), targetLoc);
+                if (standLoc == null) return false;
+                final Object finalTarget = target;
+                final BlockFace finalFace = targetFace;
+                startNavigation(fp, standLoc, () -> lockAndStartClicking(fp, mode, finalTarget, finalFace));
+                return true;
+            }
+        }
+
+        lockAndStartClicking(fp, mode, target, targetFace);
+        return true;
+    }
+
     private void startNavigation(FakePlayer fp, Location dest, Runnable onArrive) {
         BotPathfinder.PathOptions baseOpts = PathfindingService.resolvePathOptions(fp);
         BotPathfinder.PathOptions opts = new BotPathfinder.PathOptions(
@@ -303,6 +334,10 @@ public final class RightClickCommand implements FppCommand {
         UUID uuid = fp.getUuid();
         Player bot = fp.getPlayer();
         if (bot == null) return;
+
+        if (isSelfTarget(bot, target)) {
+            target = null;
+        }
 
         float startYaw = bot.getLocation().getYaw();
         float startPitch = bot.getLocation().getPitch();
@@ -547,7 +582,7 @@ public final class RightClickCommand implements FppCommand {
                         FluidCollisionMode.NEVER,
                         true,
                         0.1,
-                        entity -> entity != null && entity.isValid() && !entity.isDead() && entity != bot);
+                        entity -> entity != null && entity.isValid() && !entity.isDead() && !isSelfTarget(bot, entity));
 
         if (entityRay != null && entityRay.getHitEntity() != null) {
             Entity entity = entityRay.getHitEntity();
@@ -561,6 +596,12 @@ public final class RightClickCommand implements FppCommand {
             return true;
         }
         return false;
+    }
+
+    private static boolean isSelfTarget(Player bot, Object target) {
+        return bot != null
+                && target instanceof Entity entity
+                && entity.getUniqueId().equals(bot.getUniqueId());
     }
 
     private boolean tryUseItem(Player bot, ClickState state) {
@@ -811,17 +852,6 @@ public final class RightClickCommand implements FppCommand {
             return true;
         }
         return false;
-    }
-
-    private BlockFace getHorizontalBlockFace(float yaw) {
-        double rotation = (yaw - 90) % 360;
-        if (rotation < 0) rotation += 360;
-
-        if (0 <= rotation && rotation < 45) return BlockFace.WEST;
-        if (45 <= rotation && rotation < 135) return BlockFace.NORTH;
-        if (135 <= rotation && rotation < 225) return BlockFace.EAST;
-        if (225 <= rotation && rotation < 315) return BlockFace.SOUTH;
-        return BlockFace.WEST;
     }
 
     @Nullable

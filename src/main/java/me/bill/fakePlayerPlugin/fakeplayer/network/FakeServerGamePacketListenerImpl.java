@@ -5,7 +5,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -15,11 +14,9 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.util.FppLogger;
-import me.bill.fakePlayerPlugin.util.WorldGuardHelper;
 
 import net.minecraft.network.Connection;
 import net.minecraft.network.DisconnectionDetails;
@@ -146,26 +143,16 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
         int myId = this.player.getId();
         if (packetEntityId != -1 && packetEntityId != myId) return;
 
-        // Only allow player→bot knockback when PvP is enabled in the world
-        // (or allowed by WorldGuard). This prevents fake players from getting
-        // knocked around in no-PvP worlds/regions.
+        // Cancelled damage should suppress packet knockback, matching normal player behavior.
         try {
             Player bukkit = this.player.getBukkitEntity() instanceof Player p ? p : null;
             if (bukkit != null) {
-                if (isWorldGuardPvpProtected(bukkit)) {
-                    Config.debugNms("[KB-DEBUG] packet knockback blocked in PvP-protected region for bot="
-                            + bukkit.getName());
-                    return;
-                }
                 var last = bukkit.getLastDamageCause();
                 if (last instanceof EntityDamageByEntityEvent byEntity) {
                     Entity attacker = resolveKnockbackSource(byEntity.getDamager());
                     if (attacker instanceof Player && byEntity.isCancelled()) {
                         Config.debugNms("[KB-DEBUG] packet knockback blocked after cancelled player damage for bot="
                                 + bukkit.getName());
-                        return;
-                    }
-                    if (attacker instanceof Player && !isPvpEnabled(bukkit.getLocation())) {
                         return;
                     }
                 }
@@ -214,22 +201,6 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
         } catch (Exception e) {
             FppLogger.warn("Knockback apply failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
-    }
-
-    private static boolean isWorldGuardPvpProtected(Player bot) {
-        if (bot == null || !bot.isOnline()) return false;
-        FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
-        if (plugin == null || !plugin.isWorldGuardAvailable()) return false;
-        Location location = bot.getLocation();
-        return location != null && location.getWorld() != null && !WorldGuardHelper.isPvpAllowed(location);
-    }
-
-    @SuppressWarnings("deprecation")
-    private static boolean isPvpEnabled(Location location) {
-        if (location == null || location.getWorld() == null) return false;
-        FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
-        if (plugin != null && plugin.isWorldGuardAvailable()) return WorldGuardHelper.isPvpAllowed(location);
-        return location.getWorld().getPVP();
     }
 
     private static Entity resolveKnockbackSource(Entity damager) {

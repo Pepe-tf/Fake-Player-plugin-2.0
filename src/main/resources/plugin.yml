@@ -6,7 +6,7 @@ folia-supported: true
 authors: [ F_PP ]
 description: "Advanced Fake Player Spoofer for Paper 1.21+"
 website: "https://modrinth.com/plugin/fake-player-plugin-(fpp)"
-softdepend: [ PlaceholderAPI, WorldGuard, WorldEdit, CMI ]
+softdepend: [ PlaceholderAPI, WorldEdit ]
 
 commands:
   fpp:
@@ -86,11 +86,10 @@ permissions:
       fpp.migrate:              true
       fpp.stats:                true
       fpp.freeze:               true
+      fpp.sneak:                true
       fpp.settings:             true
       fpp.check:                true
       fpp.move:                 true
-      fpp.move.to:              true
-      fpp.move.stop:            true
       fpp.inventory:            true
       fpp.inventory.cmd:        true
       fpp.inventory.rightclick: true
@@ -125,8 +124,6 @@ permissions:
       fpp.useitem.stop:         true
       fpp.attack:               true
       fpp.find:                 true
-      fpp.follow:               true
-      fpp.sleep:                true
       fpp.stop:                 true
       fpp.badword:              true
       fpp.rename:               true
@@ -359,23 +356,12 @@ permissions:
     default: true
 
   # ════════════════════════════════════════════════════════════════════════════
-  #  MOVE  (granular sub-nodes)
+  #  MOVE
   # ════════════════════════════════════════════════════════════════════════════
 
   fpp.move:
     description: >
-      Navigate bots — grants fpp.move.to and fpp.move.stop.
-    default: op
-    children:
-      fpp.move.to:       true
-      fpp.move.stop:     true
-
-  fpp.move.to:
-    description: Send a bot to follow a player (--to <player>).
-    default: op
-
-  fpp.move.stop:
-    description: Stop a bot's navigation (--stop).
+      Directional bot movement input (/fpp move <bot|all> --direction ... [--seconds n|--ticks n]).
     default: op
 
   # ════════════════════════════════════════════════════════════════════════════
@@ -384,6 +370,10 @@ permissions:
 
   fpp.freeze:
     description: Freeze / unfreeze bots with /fpp freeze <bot|all> [on|off].
+    default: op
+
+  fpp.sneak:
+    description: Toggle bot sneaking with /fpp sneak <bot> [on|off|toggle].
     default: op
 
   # ════════════════════════════════════════════════════════════════════════════
@@ -537,22 +527,12 @@ permissions:
     default: op
 
   # ════════════════════════════════════════════════════════════════════════════
-  #  ATTACK  (PvE combat)
+  #  ATTACK
   # ════════════════════════════════════════════════════════════════════════════
 
   fpp.attack:
     description: >
-      Bot PvE attack — walk to sender, mirror look direction, attack entities.
-      Respects 1.9+ attack cooldown and item-specific cooldowns dynamically.
-      Grants fpp.attack.hunt automatically.
-    default: op
-    children:
-      fpp.attack.hunt: true
-
-  fpp.attack.hunt:
-    description: >
-      Roaming mob hunt mode (--hunt).  Bot navigates autonomously to the nearest
-      hostile mob (or a specific type) and attacks continuously.
+      Bot attack swing automation. PvE/pathfinding combat belongs in an extension.
     default: op
 
   # ════════════════════════════════════════════════════════════════════════════
@@ -566,19 +546,8 @@ permissions:
     default: op
 
   # ════════════════════════════════════════════════════════════════════════════
-  #  FOLLOW
-  # ════════════════════════════════════════════════════════════════════════════
-
-  fpp.follow:
-    description: Make a bot continuously follow a player using pathfinding.
-    default: op
-
-  fpp.sleep:
-    description: Set a sleep origin and radius for a bot — the bot auto-sleeps at night and wakes at dawn.
-    default: op
-
   fpp.stop:
-    description: Stop all active tasks (move/mine/use/place/attack/follow/find/sleep) for one or all bots.
+    description: Stop active core tasks (move/left-click/right-click/attack/find) for one or all bots.
     default: op
 
   fpp.setowner:

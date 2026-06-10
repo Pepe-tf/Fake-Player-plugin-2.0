@@ -10,6 +10,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import me.bill.fakePlayerPlugin.util.BotAccess;
 import me.bill.fakePlayerPlugin.util.BotRenameHelper;
 import me.bill.fakePlayerPlugin.util.TextUtil;
 
@@ -75,11 +76,11 @@ public class RenameCommand implements FppCommand {
         }
 
         if (!Perm.has(sender, Perm.RENAME) && sender instanceof Player player) {
-            if (!fp.getSpawnedByUuid().equals(player.getUniqueId())) {
+            if (!BotAccess.canAdminister(player, fp)) {
                 msg(
                         sender,
                         RED
-                                + "You can only rename bots you personally spawned."
+                                + "You can only rename bots you own or control."
                                 + " Ask an admin for "
                                 + ACCENT
                                 + "fpp.rename"
@@ -107,7 +108,7 @@ public class RenameCommand implements FppCommand {
                         if (canRenameAny) return true;
 
                         if (!(sender instanceof Player p)) return false;
-                        return fp.getSpawnedByUuid().equals(p.getUniqueId());
+                        return BotAccess.canAdminister(p, fp);
                     })
                     .map(FakePlayer::getName)
                     .filter(n -> n.toLowerCase().startsWith(lower))

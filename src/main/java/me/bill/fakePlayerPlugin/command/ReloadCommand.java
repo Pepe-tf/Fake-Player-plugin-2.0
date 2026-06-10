@@ -225,11 +225,4 @@ public class ReloadCommand implements FppCommand {
                 .append(Component.text("✓ ").color(GREEN))
                 .append(Component.text(message).color(GRAY)));
     }
-
-    private void sendWarn(CommandSender sender, String message) {
-        sender.sendMessage(Component.text("│  ")
-                .color(ACCENT)
-                .append(Component.text("⚠ ").color(YELLOW))
-                .append(Component.text(message).color(YELLOW)));
-    }
 }
