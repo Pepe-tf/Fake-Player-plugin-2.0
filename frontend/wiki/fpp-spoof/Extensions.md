@@ -7,7 +7,7 @@ This page documents the current first-party modules in `fpp-extensions/`.
 - Source folder: `fpp-extensions/`
 - Build system: Gradle multi-project
 - Modules: 13 first-party extension projects
-- Outputs: individual jars and `fpp-extensions-bundle.jar` copied to workspace `builds/`
+- Outputs: individual jars and `fpp-spoof.jar` copied to workspace `builds/`
 - Install path: `plugins/FakePlayerPlugin/extensions/`
 
 ```powershell

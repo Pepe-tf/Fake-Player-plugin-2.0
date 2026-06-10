@@ -43,20 +43,18 @@ FPP uses a two-tier permission system with granular sub-nodes.
 - `fpp.xp` — collect XP from own bots
 
 ### Movement
-- `fpp.move` — navigate bots
-  - `fpp.move.to` — `--to <player>`
-  - `fpp.move.stop` — `--stop`
+- `fpp.move` — directional movement input
+- `fpp.sneak` — toggle or set bot sneaking state
 
 ### Automation
 - `fpp.left-click` — left-click automation
   - `fpp.left-click.start`, `fpp.left-click.once`, `fpp.left-click.repeat`, `fpp.left-click.hold`, `fpp.left-click.stop`
 - `fpp.right-click` — right-click automation
   - `fpp.right-click.start`, `fpp.right-click.once`, `fpp.right-click.repeat`, `fpp.right-click.hold`, `fpp.right-click.stop`
-- `fpp.attack` — PvE attack
-  - `fpp.attack.hunt` — `--hunt` roaming mob hunt
-- `fpp.follow` — make bot follow a player
-- `fpp.sleep` — auto-sleep at night
+- `fpp.attack` — basic swing/attack
 - `fpp.stop` — cancel all active tasks
+
+> Rich pathfinding movement, follow, sleep, and advanced combat behavior are extension-owned. Their permissions are documented in the respective extension pages.
 
 ### Management
 - `fpp.freeze` — freeze/unfreeze bots
@@ -109,4 +107,4 @@ These still work and map to their modern equivalents:
 - `fpp.delete.all` → identical to `fpp.despawn.bulk`
 - `fpp.useitem` → identical to `fpp.use.cmd`
 
-> Some legacy automation permission nodes remain declared for compatibility, but the current registered core automation commands are `left-click`, `right-click`, `attack`, `follow`, `sleep`, and `stop`.
+> Some legacy automation permission nodes remain declared for compatibility, but the current registered core automation commands are `left-click`, `right-click`, `attack`, `sneak`, and `stop`.

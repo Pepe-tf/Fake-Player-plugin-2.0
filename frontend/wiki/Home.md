@@ -53,11 +53,11 @@ Some advanced subsystems are implemented as extensions and are not part of the b
 **Highlights:**
 - ✅ **System Check** — `/fpp check` runs targeted or full health checks for commands, listeners, NMS, database, Folia, world, config, extensions, and memory
 - 🖱️ **Left/Right Click Automation** — `/fpp left-click` and `/fpp right-click` replace older mine/use style automation with once, repeat, hold, and stop modes
+- 👁️ **Sneak Command** — `/fpp sneak` toggles or sets the sneaking state for a live bot body
 - ✅ **Debug GUI** — Toggle every debug category at runtime from `/fpp settings`
 - 💬 **Debug Chat** — Broadcast debug output to OP/notify players in-game
-- 🔧 **WorldGuard Refresh** — Stale region data fixed after teleports and respawns
-- 🛡️ **LuckPerms Warmup** — Pre-caches LP data before spawn to prevent Folia crashes
 - ✅ **Folia Support** — Full compatibility with Folia's region-threaded architecture
 - 🖱️ **Click Commands** — Unified left-click/right-click automation system
 - 🔇 **Silent License** — License verification runs silently without debug spam
 - 📊 **80+ Placeholders** — Extensive PlaceholderAPI integration
+- 🔒 **Extension Ownership** — Advanced movement, follow, sleep, and rich combat are now extension-owned responsibilities

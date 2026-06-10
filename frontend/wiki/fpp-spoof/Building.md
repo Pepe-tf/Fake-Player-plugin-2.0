@@ -36,7 +36,7 @@ builds/fpp-ping.jar
 builds/fpp-skin.jar
 builds/fpp-swap.jar
 builds/fpp-waypoints.jar
-builds/fpp-extensions-bundle.jar
+builds/fpp-spoof.jar
 ```
 
 Do not use `fake-player-plugin/build/extensions/` as the final extension output location.
@@ -85,7 +85,7 @@ The module build also runs its `copyExtension` finalizer and copies the jar to `
 
 ## Install
 
-Copy either individual jars or `fpp-extensions-bundle.jar` from `builds/` into:
+Copy either individual jars or `fpp-spoof.jar` from `builds/` into:
 
 ```text
 plugins/FakePlayerPlugin/extensions/

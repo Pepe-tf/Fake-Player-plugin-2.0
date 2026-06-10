@@ -7,7 +7,7 @@ FPP spawns server-side bot entities that behave like players — useful for **AF
 - **Server:** Paper/Purpur 1.21+ (up to `1.21.11`) or Folia 1.21+
 - **Java:** JDK 21+
 - **RAM:** 2GB+ recommended for optimal performance
-- **Optional:** PlaceholderAPI, LuckPerms, WorldGuard, WorldEdit
+- **Optional:** PlaceholderAPI, LuckPerms, WorldEdit
 
 ## Installation
 
@@ -44,4 +44,4 @@ The build depends on the **paperweight** Paper dev bundle (`paper-1.21.11-R0.1-S
 2. Spawn a bot: `/fpp spawn`
 3. Open its settings: shift+right-click the bot entity
 4. Teleport it to you: `/fpp tph <bot>`
-5. Make it follow you: `/fpp follow <bot> <player>`
+5. Make it move: `/fpp move <bot> --direction forward --seconds 3`

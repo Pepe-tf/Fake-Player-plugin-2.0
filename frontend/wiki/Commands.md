@@ -12,12 +12,11 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 | **tph** | `[botname\|all]` | Teleport your bot(s) to you | `fpp.tph` |
 | **tp** | `[botname]` | Teleport you to a bot | `fpp.tp` |
 | **xp** | `/fpp xp <bot>` | Collect XP from a bot | `fpp.xp` |
-| **move** | `<bot\|all> --to <player>  \|  <bot\|all> --coords <x> <y> <z> [alias: --pos]  \|  <bot\|all> --roam [x,y,z] [radius \| infinite \| forever \| unbounded]  \|  <bot\|all> --stop` | Navigate a bot to a player or roam randomly | `fpp.move` |
+| **move** | `<bot\|all> --direction <forward\|backward\|left\|right> [--seconds <n> \| --ticks <n>]  \|  <bot\|all> --stop` | Directional movement input for a bot | `fpp.move` |
 | **left-click** | `<bot> [--once\|--repeat\|--hold\|--stop]  \|  --stop` | Bot left-clicks: breaks targeted blocks or attacks targeted entities | `fpp.left-click` |
 | **right-click** | `<bot> [--once\|--repeat\|--hold\|--stop]  \|  --stop` | Bot right-clicks: uses held items and interacts with blocks/entities | `fpp.right-click` |
-| **attack** | `<bot\|all> [--mob [type]] [--range <n>] [--type <mob>] [--priority nearest\|lowest-health] [--move] [--stop]  \|  <bot\|all> --hunt [<mob>] [--range <n>] [--priority <mode>] [--stop]` | Attack nearby entities or hunt mobs | `fpp.attack` |
-| **follow** | `<bot\|all> <player\|--start>  \|  <bot\|all> --stop` | Make a bot continuously follow a player | `fpp.follow` |
-| **sleep** | `<bot\|all> <x y z> <radius>  \|  <bot\|all> --stop` | Set a sleep-origin for a bot so it auto-sleeps at night | `fpp.sleep` |
+| **attack** | `<bot\|all> [--once] [--stop]` | Basic swing/attack command | `fpp.attack` |
+| **sneak** | `<bot> [on\|off\|toggle]` | Toggle or set the sneaking state for a live bot body | `fpp.sneak` |
 | **stop** | `[<bot>\|all]` | Stop all active tasks for one bot or all bots | `fpp.stop` |
 | **freeze** | `<bot\|all> [on\|off]` | Freeze or unfreeze a bot in place | `fpp.freeze` |
 | **inventory** | `/fpp inventory <bot>` (alias: `inv`) | Open a bot's full inventory | `fpp.inventory` |
@@ -45,13 +44,11 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 /fpp despawn --all                    # remove all bots
 /fpp despawn --own                    # remove bots you spawned
 /fpp despawn --random --count 3       # remove 3 random bots
-/fpp move bot1 --to Notch             # navigate bot1 to Notch
-/fpp move bot1 --roam 500,64,200 25   # roam within 25 blocks of center
+/fpp move bot1 --direction forward --seconds 3  # move bot1 forward for 3 seconds
 /fpp left-click bot1 --once           # break/attack the target once
 /fpp right-click bot1 --repeat        # repeatedly use/interact with target
-/fpp attack bot1 --hunt --range 16   # hunt mobs in 16-block range
-/fpp follow bot1 Notch                # make bot1 follow Notch
-/fpp sleep bot1 100 64 200 50         # sleep within 50 blocks of origin
+/fpp attack bot1 --once               # perform one basic attack swing
+/fpp sneak bot1 toggle                # toggle sneak state
 /fpp stop bot1                        # stop all active tasks on bot1
 /fpp freeze bot1 on                   # freeze bot1
 /fpp inv bot1                         # open bot1 inventory
@@ -68,6 +65,6 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 - `--notp` spawns a bot at its last known persisted location instead of the sender's location.
 - `spawn` accepts an optional `BotType` token such as `afk` as the first positional argument.
 - `spawn` coordinates can be separate `x y z`, compact `x,y,z`, or relative values such as `~`, `~5`, and `~-3`.
-- `move --roam` accepts `infinite`/`forever`/`unbounded` as a radius keyword.
-- `attack --move` makes the bot chase its target in mob attack mode.
+- Core `/fpp move` is **directional input only** (`--direction forward|backward|left|right`). Pathfinding movement, follow, and roam behavior are provided by extensions.
+- Core `/fpp attack` is a **basic swing/attack** command only. Rich combat and hunting behavior are provided by extensions.
 - `left-click` and `right-click` are the current core click automation commands. Older mine/use/place-style automation has been moved out of the registered core command set.

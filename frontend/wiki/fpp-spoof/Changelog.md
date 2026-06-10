@@ -1,11 +1,11 @@
 # FPP First-Party Extensions Changelog
 
-## Current Wiki Sync - 2026-06-05
+## v1.6.6.12.5 (Core Scope Reduction & Click API)
 
 ### Build And Packaging
 
 - `fpp-extensions` is documented as the current Gradle multi-project build.
-- Individual jars and `fpp-extensions-bundle.jar` are copied directly to workspace `builds/`.
+- Individual jars and `fpp-spoof.jar` are copied directly to workspace `builds/`.
 - Removed stale combined-pack jar references from the main reference docs.
 
 ### Modules

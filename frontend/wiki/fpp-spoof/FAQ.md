@@ -6,7 +6,7 @@ Yes. This section documents first-party modules from `fpp-extensions/`.
 
 ## What Should I Install?
 
-Install `fpp-extensions-bundle.jar` if you want every first-party module, or install individual jars if you only need specific features.
+Install `fpp-spoof.jar` if you want every first-party module, or install individual jars if you only need specific features.
 
 ## Where Do I Put Extension Jars?
 

@@ -243,39 +243,6 @@ Debug logging is now controlled by `plugins/FakePlayerPlugin/debug.yml` for bett
 > You can toggle any of these at runtime via **`/fpp settings`** → the **🐛 ᴅᴇʙᴜɢ** category. Changes are saved to `debug.yml` immediately. Run `/fpp reload` after manual edits to `debug.yml`.
 ---
 
-## 10. Attack Mob Targeting
-
-### `attack-mob`
-- `default-range: 8.0`
-- `default-priority: nearest` — `nearest` or `lowest-health`
-- `smooth-rotation-speed: 12.0` — degrees per tick
-- `retarget-interval: 10` — ticks between scans
-- `line-of-sight: true`
-
----
-
-## Ping
-
-### `ping`
-> Ping editing and simulation are owned by the first-party `fpp-ping` extension. Its defaults live in `plugins/FakePlayerPlugin/extensions/fpp-ping/config.yml`.
-
-- `random.min: 20` — minimum random ping ms
-- `random.max: 200` — maximum random ping ms
-- `ping.enabled: false` — enable dynamic ping simulation
-- `ping.min: 20` — minimum simulated ping ms
-- `ping.max: 200` — maximum simulated ping ms
-- `variability: 8` — how much ping can swing per update
-- `update-interval: 40` — ticks between ping updates
-- `latency-effect: true` — ping influences other timing behavior
-- `behavior-effect: true` — ping influences bot AI reaction speed
-- `max-behavior-skip-ticks: 8` — max ticks to skip due to high ping
-- `spike-chance: 0.04` — chance for a ping spike
-- `spike-min: 200` — spike minimum ms
-- `spike-max: 600` — spike maximum ms
-- `join-ramp-ticks: 60` — ticks to ramp ping after bot join
-
----
-
 ## Extension-Only Settings
 
 The following systems are first-party extensions. Their current defaults live in each extension data folder under `plugins/FakePlayerPlugin/extensions/<extension-name>/config.yml`:

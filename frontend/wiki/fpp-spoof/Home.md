@@ -15,7 +15,7 @@ Official documentation for the first-party `fpp-extensions` modules.
 
 - Build system: Gradle multi-project under `fpp-extensions/`
 - Java: toolchain 25, release target 21
-- Output: individual module jars plus `fpp-extensions-bundle.jar` copied to workspace `builds/`
+- Output: individual module jars plus `fpp-spoof.jar` copied to workspace `builds/`
 - Runtime install path: `plugins/FakePlayerPlugin/extensions/`
 
 ## Modules

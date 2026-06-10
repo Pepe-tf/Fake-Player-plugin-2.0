@@ -1,15 +1,28 @@
 # Changelog
 
-## v1.6.6.12.5 (Health Check & Click Command Docs)
+## v1.6.6.12.5 (Core Scope Reduction & Click API)
 
 ### Core Updates
 - **Version bump** — plugin metadata and Gradle version are now `1.6.6.12.5`.
-- **System health checks** — `/fpp check` is registered with targeted flags for command, listener, NMS, database, Folia, world, config, extension, memory, and full/deep checks.
-- **Registered command sync** — current startup registration exposes `left-click` and `right-click` automation; older mine/use/place/find/storage command classes are not part of the registered core command set.
-- **Config defaults** — default `config.yml` is `config-version: 74`, includes persistence restore batching, uses `death.respawn-delay: 1`, and no longer includes `metrics.debug` or the old help-mode block.
+- **Core scope reduction** — advanced pathfinding movement, follow, sleep, and rich combat behavior moved out of core and into extension-owned systems.
+- **Directional move only** — core `/fpp move` now accepts `--direction forward|backward|left|right` with optional `--seconds` / `--ticks` and `--stop`.
+- **Basic attack only** — core `/fpp attack` reduced to `--once` / `--stop`. Rich hunting/mob targeting is extension-owned.
+- **Sneak command** — added core `/fpp sneak <bot> [on|off|toggle]` with `fpp.sneak` permission.
+- **Click API** — added public `FppClickMode` and `FppApi.leftClick/rightClick` overloads so extensions can trigger core click actions without dispatching commands.
+- **Tab completion hardening** — `CommandManager` now guards tab completion against exceptions from `canUse()` and `tabComplete()` in both core and addon commands.
+- **Spawn location correctness** — normal `/fpp spawn` reasserts requested spawn location after join/spawn redirects; early join handling consumes pending locations at LOWEST priority.
+- **Shutdown persistence** — non-destructive shutdown save: empty snapshots do not clear `persistence.active-bots`; addon shutdown runs before final bot persistence save.
+- **Inventory persistence fix** — empty inventories saved with `__empty` marker; restore clears slots before applying saved data so old items do not survive.
+- **Damage/knockback** — preserved Paper/Bukkit damage event semantics; explicit FPP knockback restored for allowed damage; suppressed for cancelled events; cross-world teleports reset transient damage state.
+- **Removed broad core protection gates** — WorldGuard helper removed from core; external protection plugins own cancellation decisions.
+- **Removed core commands** — `FollowCommand` and `SleepCommand` removed from core; follow/sleep are extension-owned.
+- **Build output** — `shadowJar` copies the shaded runnable jar to workspace root as `fake-player-plugin-1.6.6.12.5.jar`; plain `jar` refreshes `build/fpp.jar` without overwriting the deployable root jar.
+- **FastStats packaging** — `shadowJar` verifies FastStats classes are present; metrics initialization is fail-safe so a thin jar cannot break startup.
+- **Config** — `config-version` is `74`; reorganized and heavily documented; debug settings moved to `debug.yml`.
 
 ### First-Party Extensions
-- **Gradle extension build** — `fpp-extensions` is a Gradle multi-project that builds individual module jars and `fpp-extensions-bundle.jar` into workspace `builds/`.
+- **Gradle extension build** — `fpp-extensions` is a Gradle multi-project that builds individual module jars into workspace `builds/`.
+- **Bundle rename** — aggregate first-party bundle is now `fpp-spoof.jar` instead of `fpp-extensions-bundle.jar`.
 - **Current modules** — `fpp-aichat`, `fpp-chat`, `fpp-command`, `fpp-groups`, `fpp-list`, `fpp-luckperms`, `fpp-nametag`, `fpp-pathfinder`, `fpp-peaks`, `fpp-ping`, `fpp-skin`, `fpp-swap`, and `fpp-waypoints`.
 
 ---
@@ -149,7 +162,7 @@
 - General cleanup of dead code, unused fields, and redundant calls (`14d1803`)
 
 ### Documentation
-- Updated command reference with `extension --list`, `spawn --notp`, and `attack --move` flags
+- Updated command reference with `extension --list`, `spawn --notp`, and `attack --once` flags
 - Synced config docs with `pathfinding.*`, `skin.*`, `help.*`, `ping.*`, `metrics.debug`, and `heartbeat.enabled`
 
 ---
@@ -174,7 +187,7 @@
 
 ### Documentation
 - Full wiki sync: added missing `pathfinding.*`, `skin.*`, `help.*`, `ping.*`, `metrics.debug`, `heartbeat.enabled`, and `body.drop-items-on-despawn` config keys
-- Added missing commands (`extension`, `extension --list`) and flags (`spawn --notp`, `spawn <bottype>`, `attack --move`, `find --prefer-visible`, short flags `-r`/`-c`)
+- Added missing commands (`extension`, `extension --list`) and flags (`spawn --notp`, `spawn <bottype>`, `attack --once`, `find --prefer-visible`, short flags `-r`/`-c`)
 - Added missing permissions (`fpp.mine.wesel`, `fpp.place.wesel`)
 - Added extension-dependency notes for placeholders (`peak_hours`, `swap`, etc.) and config keys (`fake-chat`, `swap`, `peak-hours`)
 

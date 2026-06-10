@@ -26,10 +26,10 @@
 ## Bots & Spawning
 
 ### Q: Bots are not showing in the tab list.
-**A:** Check `config.yml` for tab-list settings. Ensure `body.enabled` and tab list debug are not conflicting. Also verify no other plugin is overriding tab list packets.
+**A:** Verify no other plugin is overriding tab list packets. The `fpp-list` extension handles tab-list team management if installed.
 
 ### Q: Bots appear but have no skin.
-**A:** Check `config.yml` skin settings. If `skin.mode` is `off`, skins are disabled. Set to `auto` or `player`. The Mojang API can also rate-limit; try again later.
+**A:** Check `config.yml` skin settings. If `skin.mode` is `none`, skins are disabled. Set to `player` or `random`. The user-facing `/fpp skin` command is provided by the `fpp-skin` extension. The Mojang API can also rate-limit; try again later.
 
 ### Q: Spawn cooldown is blocking players.
 **A:** Set `spawn-cooldown: 0` in `config.yml` or grant `fpp.bypass.cooldown`.
@@ -39,23 +39,14 @@
 
 ## Tasks & Pathfinding
 
-### Q: What's the difference between `attack --mob` and `attack --hunt`?
-**A:** `--mob` attacks nearby mobs within range from the bot's current position (static guard). `--hunt` makes the bot roam autonomously to find and continuously attack the nearest hostile mob. `--hunt` also accepts an optional mob type filter.
+### Q: What's the difference between core `/fpp attack` and extension combat?
+**A:** Core `/fpp attack` is a basic swing/attack command only (`--once`, `--stop`). Rich PvE/PvP combat with hunting, mob targeting, priority, range, and movement is extension-owned (e.g., `fpp-spoof` or other combat extensions).
 
-### Q: Bot stopped mining halfway through.
-**A:** The bot may have run out of tools or encountered an unbreakable block. Use `/fpp storage` to set a supply container for restocking.
+### Q: Can I make bots pathfind to coordinates or follow players?
+**A:** Core `/fpp move` is directional input only (`--direction forward|backward|left|right`). Pathfinding to coordinates, roaming, and following players are extension-owned behaviors.
 
 ### Q: Bot is stuck and won't move.
-**A:** Try `/fpp stop <bot>` then re-issue the task. Check the pathfinding debug log if enabled. Bots may also get stuck in unloaded chunks; chunk-loading helps but is not guaranteed.
-
-### Q: `/fpp mine --wesel` does nothing.
-**A:** WorldEdit must be installed. The sender must have an active WorldEdit selection.
-
-### Q: What does `find --prefer-visible` do?
-**A:** When scanning for blocks, it prioritizes blocks the bot has direct line-of-sight to (and ignores blocks hidden behind walls). Without the flag, the bot may mine blocks behind obstacles.
-
-### Q: Follow command stops after a restart.
-**A:** Tasks are persisted when `persistence.enabled: true` and the database is active. If using YAML-only persistence, tasks may not survive restarts.
+**A:** Try `/fpp stop <bot>` then re-issue the task. Bots may also get stuck in unloaded chunks; chunk-loading helps but is not guaranteed.
 
 ## Database
 
@@ -71,7 +62,7 @@
 **A:** `plugins/FakePlayerPlugin/extensions/`. Create the folder if it doesn't exist, then `/fpp reload`.
 
 ### Q: Where are the old spoof/chat/ping/skin features?
-**A:** They are first-party extensions now. Install the relevant individual jar or `fpp-extensions-bundle.jar` from the first-party `fpp-extensions` build.
+**A:** They are first-party extensions now. Install the relevant individual jar or `fpp-spoof.jar` from the first-party `fpp-extensions` build.
 
 ### Q: Why do some config keys (fake-chat, swap, peak-hours, ping) not do anything?
 **A:** Those systems are owned by first-party extensions such as `fpp-chat`, `fpp-swap`, `fpp-peaks`, and `fpp-ping`. Check the extension's own config under `plugins/FakePlayerPlugin/extensions/<extension-name>/config.yml`.

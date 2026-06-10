@@ -18,7 +18,7 @@ From the workspace root, make sure `fake-player-plugin/build/fpp.jar` exists, th
 cmd /c "fake-player-plugin\\gradlew.bat -p fpp-extensions build"
 ```
 
-The build writes individual jars and `fpp-extensions-bundle.jar` to workspace `builds/`.
+The build writes individual jars and `fpp-spoof.jar` to workspace `builds/`.
 
 ## Install
 

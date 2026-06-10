@@ -19,7 +19,7 @@ All commands are registered as `/fpp` addon commands by first-party modules in `
 ## Command Hooks
 
 - `fpp-skin` extends `/fpp spawn` and `/fpp sp` with `--skin <username|url>`.
-- `fpp-groups` adds `--group <group>` hooks to supported task commands such as `move`, `attack`, `follow`, `sleep`, `stop`, and older task command hooks when those commands exist.
+- `fpp-groups` adds `--group <group>` hooks to supported task commands such as `move`, `attack`, `stop`, `left-click`, `right-click`, and extension-provided task commands where present.
 - `fpp-list`, `fpp-nametag`, and `fpp-pathfinder` do not add `/fpp` subcommands; they work through services, listeners, or settings tabs.
 
 ## Examples

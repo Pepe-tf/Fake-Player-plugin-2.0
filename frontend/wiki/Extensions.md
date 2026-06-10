@@ -558,7 +558,7 @@ api.saveDefaultExtensionConfig("OtherExtension");
 
 Multiple extension JARs can be packaged into a single "bundle" JAR for distribution.
 
-The first-party `fpp-extensions` Gradle build currently creates `fpp-extensions-bundle.jar` with all official modules embedded under `extensions/<module>.jar` and copies it to workspace `builds/`.
+The first-party `fpp-extensions` Gradle build currently creates `fpp-spoof.jar` with all official modules embedded under `extensions/<module>.jar` and copies it to workspace `builds/`.
 
 ### Manifest Format
 
@@ -854,7 +854,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 ### First-Party Extension Bundle
 
-The following features are **not in core** and are currently implemented as first-party `fpp-extensions` modules. Install the relevant individual jar or `fpp-extensions-bundle.jar`:
+The following features are **not in core** and are currently implemented as first-party `fpp-extensions` modules. Install the relevant individual jar or `fpp-spoof.jar`:
 
 - AI conversations and personalities (`fpp-aichat`)
 - Fake chat / broadcast messaging (`fpp-chat`)

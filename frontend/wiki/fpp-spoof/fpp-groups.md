@@ -34,7 +34,7 @@ messages:
 
 ## Group Task Hooks
 
-The extension registers `--group <group>` hooks for supported task commands. Current source hooks include `move`, `mine`, `find`, `place`, `use`, `attack`, `follow`, `sleep`, `stop`, and `storage`; only hooks for commands present on your installed FPP build can run.
+The extension registers `--group <group>` hooks for supported task commands. Current source hooks include `move`, `attack`, `stop`, `left-click`, `right-click`, and extension-provided task commands where present; only hooks for commands present on your installed FPP build can run.
 
 ## Permissions
 
@@ -59,5 +59,5 @@ Groups are owner-scoped, so players manage their own group sets.
 /fpp groups add guards GuardBot1
 /fpp groups add guards GuardBot2
 /fpp groups list
-/fpp attack --group guards --hunt zombie
+/fpp attack --group guards --once
 ```

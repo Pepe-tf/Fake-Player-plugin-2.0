@@ -28,7 +28,7 @@ Run `/fpp reload extensions` after editing extension configs, or restart the ser
 
 ## Build Config
 
-`fpp-extensions/build.gradle.kts` builds these modules as a Gradle multi-project. Each module jar and the aggregate `fpp-extensions-bundle.jar` are copied to workspace `builds/` by the build.
+`fpp-extensions/build.gradle.kts` builds these modules as a Gradle multi-project. Each module jar and the aggregate `fpp-spoof.jar` are copied to workspace `builds/` by the build.
 
 ```powershell
 cmd /c "fake-player-plugin\\gradlew.bat -p fpp-extensions build"
