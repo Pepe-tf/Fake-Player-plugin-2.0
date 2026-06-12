@@ -542,6 +542,7 @@ public final class BotSettingGui implements Listener {
         handleChatInput(uuid, ses, raw);
     }
 
+    @SuppressWarnings("deprecation")
     @EventHandler(priority = EventPriority.LOWEST)
     public void onLegacyPlayerChat(AsyncPlayerChatEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();

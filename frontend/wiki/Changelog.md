@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.6.6.12.7 (nLogin Compatibility & Heavy Listener Suppression)
+
+### Core Updates
+- **nLogin compatibility** — `NmsPlayerSpawner` now suppresses nLogin (`com.nickuc.*`) `PlayerJoinEvent` listeners for fake players alongside the existing SimpleVoiceChat suppression. Auth plugins that expect normal client login pipelines no longer kick/despawn FPP bots during spawn.
+
+---
+
 ## v1.6.6.12.6 (Synthetic Quit Kick Fix)
 
 ### Core Updates

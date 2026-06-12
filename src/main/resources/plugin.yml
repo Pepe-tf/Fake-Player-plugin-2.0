@@ -1,5 +1,5 @@
 name: FakePlayerPlugin
-version: '1.6.6.12.6'
+version: '1.6.6.12.7'
 main: me.bill.fakePlayerPlugin.FakePlayerPlugin
 api-version: '1.21'
 folia-supported: true

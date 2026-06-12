@@ -266,6 +266,7 @@ public final class SettingGui implements Listener {
                         .trim());
     }
 
+    @SuppressWarnings("deprecation")
     @EventHandler(priority = EventPriority.LOWEST)
     public void onLegacyPlayerChat(AsyncPlayerChatEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();

@@ -1607,7 +1607,9 @@ public final class NmsPlayerSpawner {
         String listenerClass = registered.getListener().getClass().getName();
         return "voicechat".equalsIgnoreCase(pluginName)
                 || "SimpleVoiceChat".equalsIgnoreCase(pluginName)
-                || listenerClass.startsWith("de.maxhenkel.voicechat.");
+                || listenerClass.startsWith("de.maxhenkel.voicechat.")
+                || "nLogin".equalsIgnoreCase(pluginName)
+                || listenerClass.startsWith("com.nickuc.");
     }
 
     private static boolean isWorldDataNotReadyFailure(Throwable cause) {
