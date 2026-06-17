@@ -26,6 +26,14 @@ FPP Extensions follow a specific lifecycle:
 5. **Runtime** - Extension runs and handles events/commands
 6. **Disable** - `onDisable()` is called on reload/shutdown
 
+### Classloader Isolation
+
+Each extension JAR gets its own `URLClassLoader` with the core plugin as parent. This means:
+
+- **Extensions cannot see each other's classes at runtime.** Only classes from the core plugin (parent classloader) are visible to all extensions.
+- **Shared API classes must live in the core plugin.** The personality API (`BotProfile`, `Personality`, `ProfileService`, etc.) was moved from the `fpp-personality` extension into `me.bill.fakePlayerPlugin.api.personality` in the core plugin for this reason.
+- **Use the FPP API for cross-extension communication.** The `ProfileApi` static accessor and the core API's `registerService`/`getService` methods provide safe cross-extension access without direct classloader dependency.
+
 ### Required Interface
 
 All extensions must implement `FppExtension`:
@@ -479,16 +487,18 @@ bot.setAiPersonality("friendly");
 
 ### 1. Extension Loading Order
 
-Use priority to control load order:
+Use priority to control load order. Lower values load earlier.
 
 ```java
 @Override
 public int getPriority() {
     return 100; // Default
-    // Lower = earlier (0-50 for core extensions)
+    // Lower = earlier (0-50 for service providers)
     // Higher = later (150-200 for dependent extensions)
 }
 ```
+
+For example, `FPP-Personality` uses priority 0 so its `ProfileService` is registered before dependent extensions like `FPP-Chat` and `FPP-Swap` attempt to use it during their `onEnable`.
 
 ### 2. Configuration Management
 

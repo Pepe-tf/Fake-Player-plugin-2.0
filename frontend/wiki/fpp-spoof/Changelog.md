@@ -1,5 +1,24 @@
 # FPP First-Party Extensions Changelog
 
+## v1.2.1
+
+### Architecture: Shared API Classes Moved To Core
+
+- Moved `BotProfile`, `Personality`, `ActivityLevel`, `ChatFrequency`, `SleepSchedule`, `ProfileApi`, and `ProfileService` into the core plugin at `me.bill.fakePlayerPlugin.api.personality` to fix `NoClassDefFoundError` caused by per-extension classloader isolation.
+- `fpp-personality` extension retains only the implementation (`ProfileServiceImpl`, `ProfileStorage`, Bukkit events).
+- All dependent extensions import from the core API package instead of the extension.
+
+### Fixes
+
+- **Build output**: Jars now land in `fpp-extensions/builds/` (was `../builds/`).
+- **Load ordering**: `FPP-Personality` loads first (priority 0) so dependents (`FPP-AIChat`, `FPP-Chat`, `FPP-Peaks`, `FPP-Skin`, `FPP-Swap`) find it at registration time.
+- **Build reliability**: Root `:build` now explicitly depends on all extension `:build` tasks so `copyExtension` finalizers always run.
+- `cleanAll` no longer races with `copySpoof` across project boundaries.
+
+### Dead Modules Removed From Source
+
+The following modules are no longer built or shipped: `fpp-command`, `fpp-groups`, `fpp-list`, `fpp-nametag`, `fpp-waypoints`. Corresponding wiki pages have been removed.
+
 ## v1.6.6.12.8 (No Extension Changes)
 - Bumped to match core `1.6.6.12.8`. No first-party extension changes in this release.
 

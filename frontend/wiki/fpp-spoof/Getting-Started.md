@@ -8,17 +8,16 @@ This guide covers installing the current first-party modules from `fpp-extension
 - Java 21 runtime
 - Paper/Purpur/Folia 1.21+
 - Optional: LuckPerms for `fpp-luckperms`
-- Optional: NameTag plugin for `fpp-nametag`
 
 ## Build From Source
 
-From the workspace root, make sure `fake-player-plugin/build/fpp.jar` exists, then run:
+Make sure the core plugin is built first, then from `fpp-extensions/`:
 
 ```powershell
-cmd /c "fake-player-plugin\\gradlew.bat -p fpp-extensions build"
+cmd /c "..\\fake-player-plugin\\gradlew.bat -p . build"
 ```
 
-The build writes individual jars and `fpp-spoof.jar` to workspace `builds/`.
+The build writes individual jars and `fpp-spoof-1.2.1.jar` to `fpp-extensions/builds/`.
 
 ## Install
 
@@ -49,7 +48,6 @@ You should see the loaded first-party extensions in the extension list.
 /fpp skin <bot> Notch
 /fpp chat status
 /fpp personality list
-/fpp wp list
 ```
 
 Only commands from installed extension jars will be available.
@@ -62,6 +60,7 @@ Each extension creates its own data folder:
 plugins/FakePlayerPlugin/extensions/fpp-ping/config.yml
 plugins/FakePlayerPlugin/extensions/fpp-skin/config.yml
 plugins/FakePlayerPlugin/extensions/fpp-chat/config.yml
+plugins/FakePlayerPlugin/extensions/fpp-personality/config.yml
 ```
 
 See [Configuration](Configuration) for the current config highlights.

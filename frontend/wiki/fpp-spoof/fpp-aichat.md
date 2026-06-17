@@ -1,6 +1,12 @@
 # fpp-aichat - AI Chat Extension
 
-AI personalities and conversation support for FPP bots.
+Provider-backed AI direct messages and public chat reactions for FPP bots.
+
+## Overview
+
+fpp-aichat enables bots to have AI-powered conversations with players. Bots can respond to direct messages and optionally react to public chat with context-aware AI replies.
+
+**Note:** The personality/profile system previously documented under fpp-aichat has been moved to the separate [fpp-personality](fpp-personality) extension. Shared API classes (`BotProfile`, `Personality`, `ProfileService`) live in the core plugin at `me.bill.fakePlayerPlugin.api.personality`.
 
 ## Providers
 
@@ -13,10 +19,6 @@ File: `plugins/FakePlayerPlugin/extensions/fpp-aichat/config.yml`
 ```yaml
 enabled: true
 debug: false
-
-personality:
-  default: "default"
-  auto-assign-on-spawn: true
 
 direct-messages:
   enabled: true
@@ -42,27 +44,13 @@ public-chat:
 
 Provider secrets are generated from extension resources under the extension data folder.
 
-## Commands
-
-`/fpp personality` aliases: `/fpp persona`, `/fpp aipersonality`
-
-```text
-/fpp personality list
-/fpp personality reload
-/fpp personality providers
-/fpp personality <bot> set <name>
-/fpp personality <bot> reset
-/fpp personality <bot> show
-```
-
 ## Permissions
 
 | Permission | Description |
 |------------|-------------|
-| `fpp.aichat.personality` | Use `/fpp personality` |
+| `fpp.aichat` | Use AI chat features |
 
-## Notes
+## Integration
 
-- Direct-message replies are controlled by `direct-messages.enabled`.
-- Public chat reactions are disabled by default through `public-chat.enabled: false`.
-- Personality prompts are loaded from extension resource personality files and can use `{bot_name}`.
+- Reads `BotProfile` via `ProfileApi` to access personality traits, interests, and chat frequency settings.
+- The `fpp-personality` extension must be loaded for profile-aware AI behavior.
