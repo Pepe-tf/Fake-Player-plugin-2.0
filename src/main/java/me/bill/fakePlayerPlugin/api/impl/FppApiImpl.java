@@ -490,7 +490,9 @@ public final class FppApiImpl implements FppApi {
     @Override
     public boolean leftClick(@NotNull FppBot bot, @NotNull FppClickMode mode) {
         FakePlayer fp = manager.getByUuid(bot.getUuid());
-        return fp != null && plugin.getLeftClickCommand() != null && plugin.getLeftClickCommand().click(fp, toLeftClickMode(mode));
+        return fp != null
+                && plugin.getLeftClickCommand() != null
+                && plugin.getLeftClickCommand().click(fp, toLeftClickMode(mode));
     }
 
     @Override
@@ -501,7 +503,9 @@ public final class FppApiImpl implements FppApi {
     @Override
     public boolean rightClick(@NotNull FppBot bot, @NotNull FppClickMode mode) {
         FakePlayer fp = manager.getByUuid(bot.getUuid());
-        return fp != null && plugin.getRightClickCommand() != null && plugin.getRightClickCommand().click(fp, toRightClickMode(mode));
+        return fp != null
+                && plugin.getRightClickCommand() != null
+                && plugin.getRightClickCommand().click(fp, toRightClickMode(mode));
     }
 
     private static me.bill.fakePlayerPlugin.command.LeftClickCommand.ClickMode toLeftClickMode(FppClickMode mode) {

@@ -25,6 +25,7 @@ public final class FakeChannelPipeline implements ChannelPipeline {
 
     private final Channel channel;
     private final Map<String, ChannelHandler> handlers = new LinkedHashMap<>();
+    private final Object handlersLock = new Object();
 
     public FakeChannelPipeline(Channel channel) {
         this.channel = channel;
@@ -32,97 +33,129 @@ public final class FakeChannelPipeline implements ChannelPipeline {
 
     @Override
     public ChannelPipeline addFirst(String name, ChannelHandler handler) {
-        putFirst(name, handler);
+        synchronized (handlersLock) {
+            putFirst(name, handler);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline addFirst(EventExecutorGroup group, String name, ChannelHandler handler) {
-        putFirst(name, handler);
+        synchronized (handlersLock) {
+            putFirst(name, handler);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline addLast(String name, ChannelHandler handler) {
-        putLast(name, handler);
+        synchronized (handlersLock) {
+            putLast(name, handler);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
-        putLast(name, handler);
+        synchronized (handlersLock) {
+            putLast(name, handler);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline addBefore(String baseName, String name, ChannelHandler handler) {
-        putNear(baseName, name, handler, false);
+        synchronized (handlersLock) {
+            putNear(baseName, name, handler, false);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline addBefore(EventExecutorGroup group, String baseName, String name, ChannelHandler handler) {
-        putNear(baseName, name, handler, false);
+        synchronized (handlersLock) {
+            putNear(baseName, name, handler, false);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline addAfter(String baseName, String name, ChannelHandler handler) {
-        putNear(baseName, name, handler, true);
+        synchronized (handlersLock) {
+            putNear(baseName, name, handler, true);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline addAfter(EventExecutorGroup group, String baseName, String name, ChannelHandler handler) {
-        putNear(baseName, name, handler, true);
+        synchronized (handlersLock) {
+            putNear(baseName, name, handler, true);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline addFirst(ChannelHandler... handlers) {
-        for (int i = handlers.length - 1; i >= 0; i--) putFirst(null, handlers[i]);
+        synchronized (handlersLock) {
+            for (int i = handlers.length - 1; i >= 0; i--) putFirst(null, handlers[i]);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline addFirst(EventExecutorGroup group, ChannelHandler... handlers) {
-        for (int i = handlers.length - 1; i >= 0; i--) putFirst(null, handlers[i]);
+        synchronized (handlersLock) {
+            for (int i = handlers.length - 1; i >= 0; i--) putFirst(null, handlers[i]);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline addLast(ChannelHandler... handlers) {
-        for (ChannelHandler handler : handlers) putLast(null, handler);
+        synchronized (handlersLock) {
+            for (ChannelHandler handler : handlers) putLast(null, handler);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline addLast(EventExecutorGroup group, ChannelHandler... handlers) {
-        for (ChannelHandler handler : handlers) putLast(null, handler);
+        synchronized (handlersLock) {
+            for (ChannelHandler handler : handlers) putLast(null, handler);
+        }
         return this;
     }
 
     @Override
     public ChannelPipeline remove(ChannelHandler handler) {
-        if (handler != null) handlers.values().removeIf(existing -> existing == handler);
+        if (handler != null) {
+            synchronized (handlersLock) {
+                handlers.values().removeIf(existing -> existing == handler);
+            }
+        }
         return this;
     }
 
     @Override
     public ChannelHandler remove(String name) {
-        return name != null ? handlers.remove(name) : null;
+        synchronized (handlersLock) {
+            return name != null ? handlers.remove(name) : null;
+        }
     }
 
     @Override
     public <T extends ChannelHandler> T remove(Class<T> handlerType) {
         if (handlerType == null) return null;
-        for (Iterator<Map.Entry<String, ChannelHandler>> it =
-                        handlers.entrySet().iterator();
-                it.hasNext(); ) {
-            Map.Entry<String, ChannelHandler> entry = it.next();
-            if (handlerType.isInstance(entry.getValue())) {
-                it.remove();
-                return handlerType.cast(entry.getValue());
+        synchronized (handlersLock) {
+            for (Iterator<Map.Entry<String, ChannelHandler>> it =
+                            handlers.entrySet().iterator();
+                    it.hasNext(); ) {
+                Map.Entry<String, ChannelHandler> entry = it.next();
+                if (handlerType.isInstance(entry.getValue())) {
+                    it.remove();
+                    return handlerType.cast(entry.getValue());
+                }
             }
         }
         return null;
@@ -130,28 +163,34 @@ public final class FakeChannelPipeline implements ChannelPipeline {
 
     @Override
     public ChannelHandler removeFirst() {
-        Iterator<Map.Entry<String, ChannelHandler>> it = handlers.entrySet().iterator();
-        if (!it.hasNext()) return null;
-        ChannelHandler handler = it.next().getValue();
-        it.remove();
-        return handler;
+        synchronized (handlersLock) {
+            Iterator<Map.Entry<String, ChannelHandler>> it = handlers.entrySet().iterator();
+            if (!it.hasNext()) return null;
+            ChannelHandler handler = it.next().getValue();
+            it.remove();
+            return handler;
+        }
     }
 
     @Override
     public ChannelHandler removeLast() {
-        String last = null;
-        for (String name : handlers.keySet()) last = name;
-        return last != null ? handlers.remove(last) : null;
+        synchronized (handlersLock) {
+            String last = null;
+            for (String name : handlers.keySet()) last = name;
+            return last != null ? handlers.remove(last) : null;
+        }
     }
 
     @Override
     public ChannelPipeline replace(ChannelHandler old, String name, ChannelHandler handler) {
         if (old != null) {
-            for (String key : List.copyOf(handlers.keySet())) {
-                if (handlers.get(key) == old) {
-                    handlers.remove(key);
-                    handlers.put(resolveName(name, handler), handler);
-                    break;
+            synchronized (handlersLock) {
+                for (String key : List.copyOf(handlers.keySet())) {
+                    if (handlers.get(key) == old) {
+                        handlers.remove(key);
+                        handlers.put(resolveName(name, handler), handler);
+                        break;
+                    }
                 }
             }
         }
@@ -160,21 +199,27 @@ public final class FakeChannelPipeline implements ChannelPipeline {
 
     @Override
     public ChannelHandler replace(String old, String name, ChannelHandler handler) {
-        ChannelHandler removed = old != null ? handlers.remove(old) : null;
-        if (handler != null) handlers.put(resolveName(name, handler), handler);
-        return removed;
+        synchronized (handlersLock) {
+            ChannelHandler removed = old != null ? handlers.remove(old) : null;
+            if (handler != null) handlers.put(resolveName(name, handler), handler);
+            return removed;
+        }
     }
 
     @Override
     public <T extends ChannelHandler> T replace(Class<T> old, String name, ChannelHandler handler) {
-        T removed = remove(old);
-        if (handler != null) handlers.put(resolveName(name, handler), handler);
-        return removed;
+        synchronized (handlersLock) {
+            T removed = remove(old);
+            if (handler != null) handlers.put(resolveName(name, handler), handler);
+            return removed;
+        }
     }
 
     @Override
     public ChannelHandler first() {
-        return handlers.isEmpty() ? null : handlers.values().iterator().next();
+        synchronized (handlersLock) {
+            return handlers.isEmpty() ? null : handlers.values().iterator().next();
+        }
     }
 
     @Override
@@ -184,9 +229,11 @@ public final class FakeChannelPipeline implements ChannelPipeline {
 
     @Override
     public ChannelHandler last() {
-        ChannelHandler last = null;
-        for (ChannelHandler handler : handlers.values()) last = handler;
-        return last;
+        synchronized (handlersLock) {
+            ChannelHandler last = null;
+            for (ChannelHandler handler : handlers.values()) last = handler;
+            return last;
+        }
     }
 
     @Override
@@ -196,14 +243,18 @@ public final class FakeChannelPipeline implements ChannelPipeline {
 
     @Override
     public ChannelHandler get(String name) {
-        return name != null ? handlers.get(name) : null;
+        synchronized (handlersLock) {
+            return name != null ? handlers.get(name) : null;
+        }
     }
 
     @Override
     public <T extends ChannelHandler> T get(Class<T> handlerType) {
         if (handlerType == null) return null;
-        for (ChannelHandler handler : handlers.values()) {
-            if (handlerType.isInstance(handler)) return handlerType.cast(handler);
+        synchronized (handlersLock) {
+            for (ChannelHandler handler : handlers.values()) {
+                if (handlerType.isInstance(handler)) return handlerType.cast(handler);
+            }
         }
         return null;
     }
@@ -230,12 +281,16 @@ public final class FakeChannelPipeline implements ChannelPipeline {
 
     @Override
     public List<String> names() {
-        return List.copyOf(handlers.keySet());
+        synchronized (handlersLock) {
+            return List.copyOf(handlers.keySet());
+        }
     }
 
     @Override
     public Map<String, ChannelHandler> toMap() {
-        return Map.copyOf(handlers);
+        synchronized (handlersLock) {
+            return Map.copyOf(handlers);
+        }
     }
 
     @Override
@@ -430,7 +485,9 @@ public final class FakeChannelPipeline implements ChannelPipeline {
 
     @Override
     public Iterator<Map.Entry<String, ChannelHandler>> iterator() {
-        return Collections.unmodifiableMap(handlers).entrySet().iterator();
+        synchronized (handlersLock) {
+            return Collections.unmodifiableMap(handlers).entrySet().iterator();
+        }
     }
 
     private void putFirst(String name, ChannelHandler handler) {

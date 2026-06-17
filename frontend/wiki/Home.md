@@ -48,7 +48,7 @@ Some advanced subsystems are implemented as extensions and are not part of the b
 
 ---
 
-## Latest Version: v1.6.6.12.7
+## Latest Version: v1.6.6.12.8
 
 **Highlights:**
 - 🚪 **nLogin Compatibility** — `NmsPlayerSpawner` suppresses nLogin `PlayerJoinEvent` listeners for fake players, preventing auth plugins from kicking/despawning bots during spawn

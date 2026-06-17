@@ -240,6 +240,20 @@ config-sync:
 # Set to 0 to sync bot positions to all online players.
 # ═══════════════════════════════════════════════════════════════════════════════
 performance:
+  enabled: true
+  spark-enabled: true
+  placeholders: true
+  sample-interval-ticks: 20
+  history-minutes: 15
+  warn-mspt: 60.0
+  warn-tps: 18.0
+  warn-consecutive-samples: 3
+  warn-cooldown-minutes: 5
+  auto-profiler-timeout-seconds: 60
+  self-profiler:
+    enabled: false
+    method-level: false
+    export-on-warning: true
   position-sync-distance: 128.0
 
 # ═══════════════════════════════════════════════════════════════════════════════

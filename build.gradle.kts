@@ -16,10 +16,11 @@ configurations.compileClasspath {
 
 tasks.compileJava {
     options.release.set(21)
+    options.compilerArgs.add("-Xlint:deprecation")
 }
 
 group = "me.bill.fpp"
-version = "1.6.6.12.7"
+version = "1.6.6.12.8"
 
 repositories {
     mavenCentral()
@@ -27,6 +28,7 @@ repositories {
     maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     maven("https://repo.faststats.dev/releases")
     maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://repo.lucko.me/")
 }
 
 dependencies {
@@ -41,6 +43,7 @@ dependencies {
         exclude("com.google.guava", "guava")
         exclude("it.unimi.dsi", "fastutil")
     }
+    compileOnly("me.lucko:spark-api:0.1-SNAPSHOT")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

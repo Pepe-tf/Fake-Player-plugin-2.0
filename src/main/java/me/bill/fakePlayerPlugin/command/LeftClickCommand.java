@@ -352,8 +352,10 @@ public final class LeftClickCommand implements FppCommand {
                 final BlockPos finalBlockTarget = blockTarget;
                 final Entity finalEntity = finalEntityTarget;
                 final BlockFace finalFace = targetFace;
-                startNavigation(fp, standLoc, () -> lockAndStartClicking(
-                        fp, mode, finalTarget, finalBlockTarget, finalEntity, finalFace));
+                startNavigation(
+                        fp,
+                        standLoc,
+                        () -> lockAndStartClicking(fp, mode, finalTarget, finalBlockTarget, finalEntity, finalFace));
                 return true;
             }
         }

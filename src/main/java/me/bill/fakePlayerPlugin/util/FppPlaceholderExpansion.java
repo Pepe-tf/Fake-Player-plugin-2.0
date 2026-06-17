@@ -25,6 +25,7 @@ import me.bill.fakePlayerPlugin.extension.ExtensionLoader;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry;
+import me.bill.fakePlayerPlugin.perf.PerfSnapshot;
 import me.bill.fakePlayerPlugin.permission.Perm;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
@@ -173,6 +174,14 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
             case "badword_filter" -> onOff(Config.isBadwordFilterEnabled());
             case "database" -> onOff(Config.databaseEnabled());
             case "database_mode" -> Config.databaseMode();
+
+            case "perf_tps" -> perfValue("tps");
+            case "perf_mspt" -> perfValue("mspt");
+            case "perf_cpu_process" -> perfValue("cpu_process");
+            case "perf_cpu_system" -> perfValue("cpu_system");
+            case "perf_gc_avg_time" -> perfValue("gc_time");
+            case "perf_gc_avg_frequency" -> perfValue("gc_freq");
+            case "perf_health" -> perfHealth();
 
             case "ping_all" -> {
                 if (player == null || !player.isOnline()) yield "-1";
@@ -381,6 +390,35 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
         }
 
         return null;
+    }
+
+    private String perfValue(String metric) {
+        if (!Config.performancePlaceholdersEnabled()) return "N/A";
+        var monitor = plugin.getPerformanceMonitor();
+        if (monitor == null) return "N/A";
+        PerfSnapshot snap = monitor.latest();
+        return switch (metric) {
+            case "tps" -> formatDouble(snap.tps());
+            case "mspt" -> formatDouble(snap.msptMean());
+            case "cpu_process" -> formatDouble(snap.cpuProcess());
+            case "cpu_system" -> formatDouble(snap.cpuSystem());
+            case "gc_time" -> formatDouble(snap.gcAvgTime());
+            case "gc_freq" -> snap.gcAvgFrequency() < 0 ? "N/A" : String.valueOf(snap.gcAvgFrequency());
+            default -> "N/A";
+        };
+    }
+
+    private String perfHealth() {
+        if (!Config.performancePlaceholdersEnabled()) return "N/A";
+        var monitor = plugin.getPerformanceMonitor();
+        if (monitor == null) return "N/A";
+        PerfSnapshot snap = monitor.latest();
+        return snap.healthScore() + "/" + snap.healthLabel();
+    }
+
+    private String formatDouble(double value) {
+        if (value < 0 || Double.isNaN(value) || Double.isInfinite(value)) return "N/A";
+        return String.format(java.util.Locale.US, "%.2f", value);
     }
 
     private int countBotsInWorld(String worldName) {

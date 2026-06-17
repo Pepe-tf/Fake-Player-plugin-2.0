@@ -110,6 +110,8 @@ public final class Perm {
 
     public static final String FIND = "fpp.find";
 
+    public static final String PERF = "fpp.perf";
+
     public static final String FARM = "fpp.farm";
 
     public static final String STOP = "fpp.stop";

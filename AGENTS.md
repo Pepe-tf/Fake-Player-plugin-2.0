@@ -2,17 +2,17 @@
 
 ## Build
 ```bash
-./gradlew shadowJar           # Build fat plugin JAR (build/libs/fake-player-plugin-*.jar)
+./gradlew shadowJar           # Build fat plugin JAR (build/libs/fake-player-plugin-<version>-all.jar)
 ./gradlew test                # Only 2 string-assertion JUnit tests; do not rely on coverage
 ./gradlew runServer           # Paper 1.21.11 dev server
 ./gradlew runFolia            # Folia 1.21.11 dev server
 ./gradlew runDevBundleServer  # Mojang-mapped dev server (paperweight)
 ./gradlew spotlessApply       # Auto-format Java + Gradle KTS
+./gradlew spotlessCheck       # Verify formatting before CI
 ```
 
 **Important:**
 - Use `shadowJar`, not `build` or `jar`, to produce the runnable plugin JAR.
-- `shadowJar` also copies the runnable jar to the workspace root as `fake-player-plugin-<version>.jar`.
 - Java toolchain is **25** but release target is **21**. Paper dev bundle `26.1.2.build.65-stable`.
 - Spotless uses `palantirJavaFormat("2.56.0")` with import order: `java, javax, org, com, me.bill`.
 - CI runs `test` then `shadowJar` on Java 21 Temurin; Qodana (`qodana.starter` profile, JDK 25) runs on push to `master`/`Dev` and PRs.
@@ -21,28 +21,58 @@
 
 ## Critical Dev Gotchas
 
-### License Check Blocks Startup
-`FakePlayerPlugin.onEnable()` (lines ~184-198) fetches credentials from `fpp.wtf` and **disables the plugin** if unreachable.
+### License/Attribution Check Blocks Startup
+`FakePlayerPlugin.onEnable()` fetches credentials from `fpp.wtf` and **disables the plugin** if the license check throws.
 - **Internet is required for local dev/testing.**
 - The check runs before most initialization.
+- If `fpp.wtf` is unreachable, the code falls back to offline credentials and continues, but any exception in `licenseManager.verify()` still disables the plugin.
 
 ### Command Registration
-Commands are instantiated and registered in `FakePlayerPlugin.onEnable()` through `CommandManager.register(...)` (lines ~300-350). Also add permissions to `Perm.java`, `plugin.yml`, and language keys when the command needs user-facing messages.
+Commands are instantiated and registered in `FakePlayerPlugin.onEnable()` through `CommandManager.register(...)`. Also add permissions to `Perm.java`, `plugin.yml`, and language keys when the command needs user-facing messages.
 
 ### Core vs Extension Command Ownership
 - Core `/fpp move` is **directional input only**: `MoveCommand.java` accepts `--direction forward|backward|left|right`, optional duration flags `--seconds <n>` / `--ticks <n>`, and `--stop`. Do not re-add core `--to`, `--coords`, `--pos`, or `--roam`; pathfinding movement belongs in an extension.
-- Core no longer registers `/fpp follow` or `/fpp sleep`. Follow/pathfinding behavior and sleep automation should be extension-owned if needed.
+- Core no longer registers `/fpp follow` or `/fpp sleep`. Follow/pathfinding behavior and sleep automation should be extension-owned if needed. (These names are only referenced in ownership/tab-complete lists in `CommandManager` to keep extension hook points clear.)
 - Core `/fpp attack` is the basic swing/attack command only (`--once`, `--stop`). Do not re-add `--mob`, `--hunt`, `--move`, `--range`, `--type`, or `--priority` to core; richer combat belongs in an extension.
 - Core `/fpp sneak <bot> [on|off|toggle]` is registered in core and owns the `fpp.sneak` permission.
 
 ### Config Migration
-`ConfigMigrator` auto-runs on startup. The current `config-version` is **74** (in `src/main/resources/config.yml`). **Do not edit `config-version` manually.**
+`ConfigMigrator` auto-runs on startup. The current `config-version` is **76** (in `src/main/resources/config.yml`). **Do not edit `config-version` manually.**
+
+---
+
+## Performance Monitoring (`/fpp perf`)
+
+Added in v1.6.6.12.7/12.8. A lightweight performance subsystem designed to make FPP self-diagnosing:
+
+- **Provider interface:** `PerfDataProvider` in `src/main/java/me/bill/fakePlayerPlugin/perf/`; current implementations are `SparkPerfProvider` (preferred) and `BuiltinPerfProvider` (fallback).
+- **Spark integration:** `me.lucko:spark-api:0.1-SNAPSHOT` is a `compileOnly` dependency. If Spark is installed, FPP reads TPS/MSPT/CPU/GC from Spark; otherwise it falls back to Bukkit/JMX.
+- **Command:** `/fpp perf [check|top|report|history [1|5|15]|spark]`
+  - `check`/`top`: live TPS, MSPT, CPU, GC, memory, players, bots, entities, health score.
+  - `report`: logs the same to console and broadcasts to online staff with `fpp.perf`.
+  - `history [1|5|15]`: rolling min/max/avg for that window.
+  - `spark`: dispatches `/spark profiler --thread "Server Thread" --timeout <auto-profiler-timeout-seconds>`.
+- **Background monitor:** samples every `performance.sample-interval-ticks` (default 20), keeps `performance.history-minutes` (default 15) of history, and warns after `performance.warn-consecutive-samples` consecutive threshold breaches (MSPT ≥ `warn-mspt`, TPS ≤ `warn-tps`) with a `warn-cooldown-minutes` suppression.
+- **Placeholders:** `%fpp_perf_tps%`, `%fpp_perf_mspt%`, `%fpp_perf_cpu_process%`, `%fpp_perf_cpu_system%`, `%fpp_perf_gc_avg_time%`, `%fpp_perf_gc_avg_frequency%`, `%fpp_perf_health%`.
+- **Config block:** under `performance:`; keys include `enabled`, `spark-enabled`, `placeholders`, `sample-interval-ticks`, `history-minutes`, `warn-mspt`, `warn-tps`, `warn-consecutive-samples`, `warn-cooldown-minutes`, `auto-profiler-timeout-seconds`.
+- **Self-profiler (v1.6.6.12.8+):**
+  - API: `FppProfiler` + `ProfilerToken`; use `try (ProfilerToken token = plugin.getProfiler().enter("MySection")) { ... }` or `PacketHelper.profile("...")` / `FakePlayerPlugin.profile("...")`.
+  - Implementation: `BuiltinFppProfiler` with lock-free `LongAdder`, concurrent sample deque, thread-local call stack, and adaptive detail reduction (method-level disabled when MSPT ≥ 100 or single sample > 150 ms).
+  - Reports: `PerformanceReportExporter` writes plain UTF-8 `.txt` to `plugins/FakePlayerPlugin/performance-report/` (`latest.txt` + timestamped + archive).
+  - Benchmark session: `/fpp perf report` starts a 10-minute method-level benchmark, clears prior samples, reminds every 2 minutes, and auto-exports a Spark-style call tree. `/fpp perf report stop` ends early.
+  - Triggers: manual `/fpp perf report` (benchmark), threshold warnings when `self-profiler.export-on-warning: true`, plugin disable, and fatal exceptions.
+  - Config keys under `performance.self-profiler`: `enabled` (default `false`), `method-level` (default `false`), `export-on-warning` (default `false`).
+  - Window defaults: rolling 1/5/15/60 minutes; report export uses configured `performance.history-minutes`.
+- **Permission:** `fpp.perf`; added to `fpp.op` children in `plugin.yml`.
+- **Lifecycle:** created and started in `FakePlayerPlugin.onEnable()` after FastStats; stopped in `onDisable()`. `BuiltinFppProfiler` is created immediately after `PerformanceMonitor` and stopped before monitor shutdown.
+
+**Important:** Do not call Spark APIs on threads other than documented; the provider always reads from the server-thread-safe snapshot tick.
 
 ---
 
 ## Architecture
 
-- **Entry:** `FakePlayerPlugin.java:89` — standard Bukkit `JavaPlugin` extending `JavaPlugin`
+- **Entry:** `FakePlayerPlugin.java` — standard Bukkit `JavaPlugin`
 - **Main shadow JAR manifest:** `Main-Class = me.bill.fakePlayerPlugin.Launcher` (for standalone launcher), but Bukkit loads via `plugin.yml` → `FakePlayerPlugin`
 - **Bot lifecycle:** `FakePlayerManager` owns spawn/despawn/tick loop and `actingBots` action-lock set
 - **Pathfinding:** `PathfindingService` + `BotPathfinder` remain available to internal legacy services, but user-facing pathfinding movement commands (`move --to/--coords/--roam`, follow, sleep navigation) are no longer core-owned.
@@ -84,3 +114,6 @@ There is **no integration test harness**; Minecraft-specific logic is untested i
 - LuckPerms API (`5.5`)
 - PlaceholderAPI (`2.12.2`)
 - WorldEdit Bukkit (`7.3.0`) — used for compatible selection helpers
+- Spark API (`0.1-SNAPSHOT`) — used for `/fpp perf` metrics and Spark profiler integration
+
+(WorldGuard is also declared `compileOnly` but the plugin README describes WorldEdit as the optional dependency; the build file excludes Gson/Guava/FastUtil from the WorldGuard artifact to avoid Paper bundle conflicts.)

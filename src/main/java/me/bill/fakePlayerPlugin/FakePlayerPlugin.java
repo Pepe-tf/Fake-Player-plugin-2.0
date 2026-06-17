@@ -24,6 +24,7 @@ import me.bill.fakePlayerPlugin.command.LeftClickCommand;
 import me.bill.fakePlayerPlugin.command.ListCommand;
 import me.bill.fakePlayerPlugin.command.MigrateCommand;
 import me.bill.fakePlayerPlugin.command.MoveCommand;
+import me.bill.fakePlayerPlugin.command.PerfCommand;
 import me.bill.fakePlayerPlugin.command.ReloadCommand;
 import me.bill.fakePlayerPlugin.command.RenameCommand;
 import me.bill.fakePlayerPlugin.command.RightClickCommand;
@@ -67,6 +68,10 @@ import me.bill.fakePlayerPlugin.listener.PlayerJoinListener;
 import me.bill.fakePlayerPlugin.listener.PlayerWorldChangeListener;
 import me.bill.fakePlayerPlugin.messaging.VelocityChannel;
 import me.bill.fakePlayerPlugin.network.NetworkHeartbeatManager;
+import me.bill.fakePlayerPlugin.perf.BuiltinFppProfiler;
+import me.bill.fakePlayerPlugin.perf.FppProfiler;
+import me.bill.fakePlayerPlugin.perf.PerformanceMonitor;
+import me.bill.fakePlayerPlugin.perf.PerformanceReportExporter;
 import me.bill.fakePlayerPlugin.sync.ConfigSyncManager;
 import me.bill.fakePlayerPlugin.util.AttributionApiManager;
 import me.bill.fakePlayerPlugin.util.AttributionManager;
@@ -122,9 +127,11 @@ public final class FakePlayerPlugin extends JavaPlugin {
     private SkinFetchService skinFetchService = SkinFetchService.NOOP;
     private HeartbeatSender heartbeatSender;
     private LicenseManager licenseManager;
+    private PerformanceMonitor performanceMonitor;
 
     private FppApiImpl fppApi;
     private ExtensionLoader extensionLoader;
+    private BuiltinFppProfiler profiler;
 
     private Component updateNotificationMessage = null;
 
@@ -132,6 +139,10 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     public boolean isWorldEditAvailable() {
         return worldEditAvailable;
+    }
+
+    public BuiltinFppProfiler getBuiltinProfiler() {
+        return profiler;
     }
 
     private boolean versionUnsupported = false;
@@ -170,6 +181,9 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
         Config.init(this);
         Config.debugStartup("config.yml loaded.");
+
+        profiler = new BuiltinFppProfiler(Config.performanceSelfProfilerMethodLevel());
+        if (Config.performanceSelfProfilerEnabled()) profiler.start();
 
         // ── License Verification ─────────────────────────────────────────────────
         LicenseCredentialsApi.Credentials credentials = LicenseCredentialsApi.fetch(this);
@@ -316,6 +330,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
         commandManager.register(new FreezeCommand(fakePlayerManager));
         commandManager.register(new SneakCommand(fakePlayerManager));
         commandManager.register(new RenameCommand(this, fakePlayerManager));
+        commandManager.register(new PerfCommand(this, fakePlayerManager));
         moveCommand = new MoveCommand(fakePlayerManager);
         storageStore = new StorageStore(this);
         storageStore.load();
@@ -428,6 +443,13 @@ public final class FakePlayerPlugin extends JavaPlugin {
             Config.debugStartup("Metrics disabled in config.yml - skipping FastStats init.");
         }
 
+        performanceMonitor = new PerformanceMonitor(this, fakePlayerManager);
+        performanceMonitor.start();
+
+        if (Config.performanceSelfProfilerExportOnWarning()) {
+            performanceMonitor.setReportExporter(new PerformanceReportExporter(this, performanceMonitor, profiler));
+        }
+
         String dbLabel = databaseManager == null ? "none" : Config.mysqlEnabled() ? "MySQL" : "SQLite (local)";
         String dbState = !Config.databaseEnabled() ? "disabled" : (dbOk ? dbLabel : dbLabel + " (failed)");
         int dbSchemaVersion = databaseManager != null ? DatabaseManager.getCurrentSchemaVersion() : 0;
@@ -504,6 +526,8 @@ public final class FakePlayerPlugin extends JavaPlugin {
         if (licenseManager != null) licenseManager.shutdown();
 
         if (fppMetrics != null) fppMetrics.shutdown();
+        if (performanceMonitor != null) performanceMonitor.stop();
+        if (profiler != null) profiler.stop();
 
         getServer().getMessenger().unregisterIncomingPluginChannel(this, VelocityChannel.CHANNEL);
         getServer().getMessenger().unregisterIncomingPluginChannel(this, VelocityChannel.PROXY_CHANNEL);
@@ -513,6 +537,16 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
         long uptimeMs = System.currentTimeMillis() - enabledAt;
         FppLogger.printShutdownBanner(botsRemoved, uptimeMs);
+    }
+
+    @SuppressWarnings("unused")
+    public FppProfiler getProfiler() {
+        return profiler;
+    }
+
+    @SuppressWarnings("unused")
+    public PerformanceMonitor getPerformanceMonitor() {
+        return performanceMonitor;
     }
 
     @SuppressWarnings("unused")

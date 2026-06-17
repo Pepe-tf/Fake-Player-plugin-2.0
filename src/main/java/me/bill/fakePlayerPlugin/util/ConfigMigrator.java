@@ -15,7 +15,7 @@ import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 
 public final class ConfigMigrator {
 
-    public static final int CURRENT_VERSION = 75;
+    public static final int CURRENT_VERSION = 77;
 
     private static boolean rawDebug = false;
 
@@ -140,6 +140,8 @@ public final class ConfigMigrator {
         if (stored < 73) anyChange |= v72to73(cfg);
         if (stored < 74) anyChange |= v73to74(cfg);
         if (stored < 75) anyChange |= v74to75(cfg);
+        if (stored < 76) anyChange |= v75to76(cfg);
+        if (stored < 77) anyChange |= v76to77(cfg);
 
         fillDefaults(plugin, cfg);
 
@@ -1050,6 +1052,68 @@ public final class ConfigMigrator {
         }
         if (changed) {
             log("v74→v75", "removed logging.debug.* keys (moved to debug.yml)");
+        }
+        return changed;
+    }
+
+    private static boolean v75to76(YamlConfiguration cfg) {
+        boolean changed = false;
+        if (setIfMissing(cfg, "performance.enabled", true)) {
+            log("v75→v76", "added performance.enabled = true");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "performance.spark-enabled", true)) {
+            log("v75→v76", "added performance.spark-enabled = true");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "performance.placeholders", true)) {
+            log("v75→v76", "added performance.placeholders = true");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "performance.sample-interval-ticks", 20)) {
+            log("v75→v76", "added performance.sample-interval-ticks = 20");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "performance.history-minutes", 15)) {
+            log("v75→v76", "added performance.history-minutes = 15");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "performance.warn-mspt", 60.0)) {
+            log("v75→v76", "added performance.warn-mspt = 60.0");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "performance.warn-tps", 18.0)) {
+            log("v75→v76", "added performance.warn-tps = 18.0");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "performance.warn-consecutive-samples", 3)) {
+            log("v75→v76", "added performance.warn-consecutive-samples = 3");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "performance.warn-cooldown-minutes", 5)) {
+            log("v75→v76", "added performance.warn-cooldown-minutes = 5");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "performance.auto-profiler-timeout-seconds", 60)) {
+            log("v75→v76", "added performance.auto-profiler-timeout-seconds = 60");
+            changed = true;
+        }
+        return changed;
+    }
+
+    private static boolean v76to77(YamlConfiguration cfg) {
+        boolean changed = false;
+        if (setIfMissing(cfg, "performance.self-profiler.enabled", false)) {
+            log("v76→v77", "added performance.self-profiler.enabled = false");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "performance.self-profiler.method-level", false)) {
+            log("v76→v77", "added performance.self-profiler.method-level = false");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "performance.self-profiler.export-on-warning", true)) {
+            log("v76→v77", "added performance.self-profiler.export-on-warning = true");
+            changed = true;
         }
         return changed;
     }

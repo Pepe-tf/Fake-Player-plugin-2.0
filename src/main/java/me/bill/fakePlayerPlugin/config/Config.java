@@ -568,6 +568,26 @@ public final class Config {
         return integer("swap.retry-delay", 60);
     }
 
+    public static boolean swapPlayerAwareEnabled() {
+        return bool("swap.player-aware.enabled", false);
+    }
+
+    public static double swapPlayerAwareNearbyRadius() {
+        return decimal("swap.player-aware.nearby-radius", 48.0);
+    }
+
+    public static int swapPlayerAwareIdleThresholdSeconds() {
+        return integer("swap.player-aware.idle-threshold-seconds", 120);
+    }
+
+    public static double swapPlayerAwareIdleBonusPercent() {
+        return decimal("swap.player-aware.idle-bonus-percent", 35.0);
+    }
+
+    public static double swapPlayerAwareActivePenaltyPercent() {
+        return decimal("swap.player-aware.active-penalty-percent", 25.0);
+    }
+
     public static boolean peakHoursEnabled() {
         return bool("peak-hours.enabled", false);
     }
@@ -1329,5 +1349,57 @@ public final class Config {
 
     public static String attackMobDefaultPriority() {
         return cfg.getString("attack-mob.default-priority", "nearest");
+    }
+
+    public static boolean performanceEnabled() {
+        return cfg.getBoolean("performance.enabled", true);
+    }
+
+    public static boolean performanceSparkEnabled() {
+        return cfg.getBoolean("performance.spark-enabled", true);
+    }
+
+    public static boolean performancePlaceholdersEnabled() {
+        return cfg.getBoolean("performance.placeholders", true);
+    }
+
+    public static int performanceSampleIntervalTicks() {
+        return Math.max(1, cfg.getInt("performance.sample-interval-ticks", 20));
+    }
+
+    public static int performanceHistoryMinutes() {
+        return Math.max(1, cfg.getInt("performance.history-minutes", 15));
+    }
+
+    public static double performanceWarnMspt() {
+        return cfg.getDouble("performance.warn-mspt", 60.0);
+    }
+
+    public static double performanceWarnTps() {
+        return cfg.getDouble("performance.warn-tps", 18.0);
+    }
+
+    public static int performanceWarnConsecutiveSamples() {
+        return Math.max(1, cfg.getInt("performance.warn-consecutive-samples", 3));
+    }
+
+    public static int performanceWarnCooldownMinutes() {
+        return Math.max(0, cfg.getInt("performance.warn-cooldown-minutes", 5));
+    }
+
+    public static int performanceAutoProfilerTimeoutSeconds() {
+        return Math.max(10, cfg.getInt("performance.auto-profiler-timeout-seconds", 60));
+    }
+
+    public static boolean performanceSelfProfilerEnabled() {
+        return cfg.getBoolean("performance.self-profiler.enabled", false);
+    }
+
+    public static boolean performanceSelfProfilerMethodLevel() {
+        return cfg.getBoolean("performance.self-profiler.method-level", false);
+    }
+
+    public static boolean performanceSelfProfilerExportOnWarning() {
+        return cfg.getBoolean("performance.self-profiler.export-on-warning", true);
     }
 }

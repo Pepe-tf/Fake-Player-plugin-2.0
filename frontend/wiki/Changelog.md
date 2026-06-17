@@ -1,5 +1,49 @@
 # Changelog
 
+## v1.6.6.12.8 (Performance Optimization)
+
+### Performance Optimizations
+- **Rotation broadcast cache** — `lastSentVisualRotation` map caches last broadcast yaw/pitch per bot; rotation packets dropped when delta < 0.5°, eliminating redundant head-rotation broadcasts under heavy load.
+- **Direct NMS fast-paths** — `sendRotationDirect()` and `sendPositionSync()` call `PacketSendListener` directly on the NMS `ServerGamePacketListenerImpl` instead of Bukkit's `sendPacket(Player)` wrapper.
+- **Tab-list batching** — `broadcastTabListRemove()` sends a single `ClientboundPlayerInfoRemovePacket` per bot instead of N individual packet sends. Applied to all despawn paths.
+- **Frozen bot early return** — Skips all per-bot work (AI, physics, handlers, fall damage, position sync) for frozen bots at the top of the tick lambda.
+- **Location reuse** — `before` Location captured once per tick and reused across head-AI target distance, mining-lock check, gaze vector, fall-damage delta, and position-sync threshold — eliminates redundant `bot.getLocation()` calls.
+- **Throttled subsystems** — Auto-eat runs every ~4 ticks per bot. Fall damage runs every other tick (accumulated fall distance is still tracked via NMS `getFallDistance()`).
+- **Active-bot UUID snapshot** — `activeBotUuids` set built once per tick for O(1) `contains()` in head-AI filtering and tab-list remove.
+- **Mining-lock optimization** — Reuses `before` Location for `distanceSquared` check instead of calling `bot.getLocation()` again.
+
+### Bugfixes
+- **Position sync dependency on Head AI** — `onlineSnapshot` and player-position arrays now always populated regardless of `doHeadAi`. Previously, when Head AI was disabled, position sync packets were never sent — bots appeared frozen on other clients.
+- **Swim AI jumping-field reset** — Removed incorrect `&& (isNavigating || isInWaterOrBubbleColumn(bot))` guard that skipped `tickSwimAi()`. The `jumping` field stuck at `true` after a bot exited water because `setJumping(bot, false)` was never called.
+- **Ground detection for partial blocks** — `isBotOnGround()` restored to `loc.clone().subtract(0, 0.08, 0).getBlock().isPassable()`. The `getBlockAt(getBlockX(), getBlockY()-1, ...)` replacement misdetected slabs and stairs.
+- **`isInBubbleColumn()` deprecation** — Replaced deprecated `Player.isInBubbleColumn()` with block-type check. `-Xlint:deprecation` added to `compileJava`.
+
+### Performance Subsystem
+- **`/fpp perf` command** — `check`/`top`/`report`/`history`/`spark` subcommands. Background monitor samples TPS, MSPT, CPU, GC, memory every `sample-interval-ticks`, keeps rolling `history-minutes`, warns on consecutive threshold breaches.
+- **Built-in self-profiler** — `BuiltinFppProfiler` with lock-free `LongAdder` sampling, thread-local call stack, adaptive detail reduction. Enabled via `performance.self-profiler.enabled`.
+- **Benchmark sessions** — `/fpp perf report` starts a 10-minute method-level benchmark, reminds every 2 minutes, exports Spark-style call tree to `plugins/FakePlayerPlugin/performance-report/`.
+- **Perf providers** — `SparkPerfProvider` (preferred, reads Spark-API snapshots) and `BuiltinPerfProvider` (fallback via CraftServer + JMX).
+- **Auto-export** — `PerformanceReportExporter` writes `.txt` reports on: benchmark finish, threshold warning (`export-on-warning: true`), plugin disable, and fatal exceptions.
+- **Perf placeholders** — `%fpp_perf_tps%`, `%fpp_perf_mspt%`, `%fpp_perf_cpu_process%`, `%fpp_perf_cpu_system%`, `%fpp_perf_gc_avg_time%`, `%fpp_perf_gc_avg_frequency%`, `%fpp_perf_health%`.
+- **Profiling instrumentation** — Hot paths in `FakePlayerManager.tick()`, `NmsPlayerSpawner.tickPhysics()`, `PacketHelper`, `tickSwimAi()`, `tickAutoEat()`, `fireTickHandlers()`, `tickFallDamage()` profiled when self-profiler is active.
+- **Language keys** — Full `perf-*` set in `en.yml` for all `/fpp perf` output.
+
+### Config
+- **New `performance:` block** — `enabled`, `spark-enabled`, `placeholders`, `sample-interval-ticks`, `history-minutes`, `warn-mspt`, `warn-tps`, `warn-consecutive-samples`, `warn-cooldown-minutes`, `auto-profiler-timeout-seconds`, `self-profiler.enabled`, `self-profiler.method-level`, `self-profiler.export-on-warning`.
+- **Swap player-aware settings** — New `swap.player-aware.*` keys for nearby-player detection radius, idle threshold, idle bonus percent, active penalty percent.
+- **`ConfigMigrator`** — Updated for config-version 76 to handle new keys.
+- **`FppMetrics` integration** — FastStats metrics startup with graceful fallback when FastStats is unavailable.
+
+### API & Internal
+- **`FppApi`** — Added `getOnlineCount()`, `removePlayerBody(UUID)` (shutdown-safe), `disableAllAddons()`.
+- **`FppScheduler`** — `runAtEntityRepeatingWithId()` returns `int taskId` for per-entity repeating tasks.
+- **`CommandManager`** — `/fpp perf` registered with `fpp.perf` permission (child of `fpp.op` in `plugin.yml`).
+- **`NmsPlayerSpawner`** — `tickPhysics()` reverted to original `doTickMethod.invoke()` via reflection; guard restored to `|| doTickMethod == null`.
+- **`FakePlayerEntityListener`** — Removed exact damage-canceller detector/tracer in favor of simpler `body.damageable` switch.
+- **`FakeChannelPipeline`** — Handler insertion refactored for channel-active vs connection-set path.
+- **`BotPersistence`** — `saveForShutdown()` saves snapshot without clearing `active-bots` to prevent destructive overwrite on restart.
+- **Shutdown lifecycle** — Profiler stopped before monitor; extension class loaders closed; `disableAllAddons()` called; `saveForShutdown()` runs before body removal.
+
 ## v1.6.6.12.7 (nLogin Compatibility & Heavy Listener Suppression)
 
 ### Core Updates

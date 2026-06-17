@@ -99,6 +99,8 @@ public class FakePlayerManager {
 
     private final Map<UUID, float[]> botSpawnRotation = new ConcurrentHashMap<>();
 
+    private final Map<UUID, float[]> lastSentVisualRotation = new ConcurrentHashMap<>();
+
     private volatile boolean restorationInProgress = false;
 
     private volatile List<String> cleanNamePool = Collections.emptyList();
@@ -336,7 +338,7 @@ public class FakePlayerManager {
                     final double posSyncDistSq = psd > 0 ? psd * psd : -1;
                     visualSyncTickCounter++;
 
-                    final List<Player> onlineSnapshot = doHeadAi ? currentOnlineSnapshot() : List.of();
+                    final List<Player> onlineSnapshot = currentOnlineSnapshot();
 
                     for (FakePlayer fp : activePlayers.values()) {
                         Player bot = fp.getPlayer();
@@ -345,11 +347,13 @@ public class FakePlayerManager {
                         Runnable botTick = () -> {
                             if (!activePlayers.containsKey(fp.getUuid())) return;
                             if (!bot.isValid() || bot.isDead()) return;
+                            if (fp.isFrozen()) return;
+                            UUID uuid = fp.getUuid();
                             boolean isNavigating = plugin.getPathfindingService() != null
-                                    && plugin.getPathfindingService().isNavigating(fp.getUuid());
-                            boolean isActing = actingBots.contains(fp.getUuid());
-                            boolean isNavLocked = navLockedBots.contains(fp.getUuid());
-                            boolean hasMiningLock = actionLockedBots.containsKey(fp.getUuid());
+                                    && plugin.getPathfindingService().isNavigating(uuid);
+                            boolean isActing = actingBots.contains(uuid);
+                            boolean isNavLocked = navLockedBots.contains(uuid);
+                            boolean hasMiningLock = actionLockedBots.containsKey(uuid);
                             boolean sendVisualSyncThisTick = shouldSendLaggedVisualUpdate(fp);
                             boolean runBehaviorThisTick = shouldRunLaggedBehaviorUpdate(fp);
                             Location before = bot.getLocation();
@@ -359,30 +363,34 @@ public class FakePlayerManager {
                             final double[] playerY = new double[onlineCount];
                             final double[] playerZ = new double[onlineCount];
                             final World[] playerWorld = new World[onlineCount];
-                            if (doHeadAi) {
-                                for (int pi = 0; pi < onlineCount; pi++) {
-                                    Player p = onlineSnapshot.get(pi);
-                                    if (p == null || !p.isValid()) continue;
-                                    Location pl = p.getLocation();
-                                    playerX[pi] = pl.getX();
-                                    playerY[pi] = pl.getY();
-                                    playerZ[pi] = pl.getZ();
-                                    playerWorld[pi] = pl.getWorld();
-                                }
+                            for (int pi = 0; pi < onlineCount; pi++) {
+                                Player p = onlineSnapshot.get(pi);
+                                if (p == null || !p.isValid()) continue;
+                                Location pl = p.getLocation();
+                                playerX[pi] = pl.getX();
+                                playerY[pi] = pl.getY();
+                                playerZ[pi] = pl.getZ();
+                                playerWorld[pi] = pl.getWorld();
                             }
 
                             if (!fp.isFrozen()) {
 
                                 if (runBehaviorThisTick && fp.isSwimAiEnabled()) {
-                                    boolean navJump = isNavigating && navJumpHolding.getOrDefault(fp.getUuid(), 0) > 0;
-                                    PathfindingService.tickSwimAi(bot, navJump, isNavigating);
+                                    boolean navJump = isNavigating && navJumpHolding.getOrDefault(uuid, 0) > 0;
+                                    try (var t = PacketHelper.profile("PathfindingService.tickSwimAi")) {
+                                        PathfindingService.tickSwimAi(bot, navJump, isNavigating);
+                                    }
                                 }
                                 if (runBehaviorThisTick) {
-                                    navJumpHolding.computeIfPresent(fp.getUuid(), (k, v) -> v > 1 ? v - 1 : null);
+                                    navJumpHolding.computeIfPresent(uuid, (k, v) -> v > 1 ? v - 1 : null);
                                 }
 
-                                if (runBehaviorThisTick && fp.isAutoEatEnabled()) {
-                                    tickAutoEat(bot);
+                                if (runBehaviorThisTick
+                                        && fp.isAutoEatEnabled()
+                                        && (visualSyncTickCounter & 3) == (uuid.hashCode() & 3)) {
+                                    try (var t = PacketHelper.profile("FakePlayerManager.tickAutoEat")) {
+                                        tickAutoEat(bot);
+                                    }
                                 }
 
                                 // Sleeping bots: check every tick whether NMS has woken the bot
@@ -394,7 +402,7 @@ public class FakePlayerManager {
                                     if (!nmsBot.isSleeping()) {
                                         // NMS already woke the bot — clear flag and fall through to normal tick.
                                         fp.setSleeping(false);
-                                        actionLockedBots.remove(fp.getUuid());
+                                        actionLockedBots.remove(uuid);
                                         // fall through — bot immediately resumes normal physics/AI below
                                     } else {
                                         // Still genuinely sleeping: zero velocity, tick physics so that
@@ -408,7 +416,9 @@ public class FakePlayerManager {
                                     }
                                 }
 
-                                NmsPlayerSpawner.tickPhysics(bot);
+                                try (var t = PacketHelper.profile("NmsPlayerSpawner.tickPhysics")) {
+                                    NmsPlayerSpawner.tickPhysics(bot);
+                                }
                                 if (Config.debugHeadAi()) {
                                     if (isActing) {
                                         Config.debug(
@@ -427,7 +437,8 @@ public class FakePlayerManager {
                                         && doHeadAi
                                         && fp.isHeadAiEnabled()
                                         && !isNavLocked
-                                        && !isActing) {
+                                        && !isActing
+                                        && onlineCount > 0) {
 
                                     // Head-AI target selection: only track a player who is actively
                                     // looking at this bot (eye-contact model). Conditions:
@@ -471,9 +482,8 @@ public class FakePlayerManager {
                                         target = p;
                                     }
 
-                                    final Location beforeCapture = before;
-                                    float[] rot = botHeadRotation.computeIfAbsent(fp.getUuid(), k ->
-                                            new float[] {beforeCapture.getYaw(), beforeCapture.getPitch()});
+                                    float[] rot = botHeadRotation.computeIfAbsent(
+                                            uuid, k -> new float[] {before.getYaw(), before.getPitch()});
 
                                     float prevYaw = rot[0];
                                     float prevPitch = rot[1];
@@ -496,43 +506,53 @@ public class FakePlayerManager {
                                         bot.setRotation(rot[0], rot[1]);
                                         NmsPlayerSpawner.setHeadYaw(bot, rot[0]);
                                         if (sendVisualSyncThisTick) {
-                                            for (int pi2 = 0; pi2 < onlineCount; pi2++) {
-                                                Player p = onlineSnapshot.get(pi2);
-                                                if (p.getUniqueId().equals(fp.getUuid())) continue;
-                                                if (playerWorld[pi2] != before.getWorld()) continue;
-                                                if (posSyncDistSq > 0) {
-                                                    double ddx = playerX[pi2] - before.getX();
-                                                    double ddz = playerZ[pi2] - before.getZ();
-                                                    if (ddx * ddx + ddz * ddz > posSyncDistSq) continue;
+                                            float[] lastSent = lastSentVisualRotation.get(uuid);
+                                            boolean shouldBroadcast = lastSent == null
+                                                    || Math.abs(rot[0] - lastSent[0]) > 0.5f
+                                                    || Math.abs(rot[1] - lastSent[1]) > 0.5f;
+                                            if (shouldBroadcast) {
+                                                lastSentVisualRotation.put(uuid, new float[] {rot[0], rot[1]});
+                                                for (int pi2 = 0; pi2 < onlineCount; pi2++) {
+                                                    Player p = onlineSnapshot.get(pi2);
+                                                    if (p.getUniqueId().equals(uuid)) continue;
+                                                    if (playerWorld[pi2] != before.getWorld()) continue;
+                                                    if (posSyncDistSq > 0) {
+                                                        double ddx = playerX[pi2] - before.getX();
+                                                        double ddz = playerZ[pi2] - before.getZ();
+                                                        if (ddx * ddx + ddz * ddz > posSyncDistSq) continue;
+                                                    }
+                                                    PacketHelper.sendRotationDirect(
+                                                            p, fp, rot[0], rot[1], rot[0], false);
                                                 }
-                                                PacketHelper.sendRotation(p, fp, rot[0], rot[1], rot[0]);
                                             }
                                         }
                                     }
                                 }
 
-                                Location miningLock = hasMiningLock ? actionLockedBots.get(fp.getUuid()) : null;
+                                Location miningLock = hasMiningLock ? actionLockedBots.get(uuid) : null;
                                 if (runBehaviorThisTick && miningLock != null) {
-                                    Location cur = bot.getLocation();
-                                    boolean outOfPlace = !cur.getWorld().equals(miningLock.getWorld())
-                                            || cur.distanceSquared(miningLock) > 0.0001;
+                                    boolean sameWorld = before.getWorld() == miningLock.getWorld();
+                                    boolean outOfPlace = !sameWorld || before.distanceSquared(miningLock) > 0.0001;
                                     if (outOfPlace) {
                                         FppScheduler.teleportAsync(bot, miningLock);
                                     }
-
                                     bot.setVelocity(ZERO_VELOCITY);
                                 }
 
-                                if (runBehaviorThisTick) {
-                                    // Tick handlers represent bot input/AI. Under simulated latency they are delayed,
-                                    // while entity physics still runs every tick so the server body remains valid.
-                                    var fppApiTick = plugin.getFppApiImpl();
-                                    if (fppApiTick != null) fppApiTick.fireTickHandlers(fp, bot);
+                                var fppApiTick = plugin.getFppApiImpl();
+                                if (runBehaviorThisTick && fppApiTick != null) {
+                                    try (var t = PacketHelper.profile("FppApi.fireTickHandlers")) {
+                                        fppApiTick.fireTickHandlers(fp, bot);
+                                    }
                                 }
                             }
 
                             Location after = bot.getLocation();
-                            tickFallDamage(fp, bot, before, after);
+                            if (Config.fallDamageEnabled() && (visualSyncTickCounter & 1) == 0) {
+                                try (var t = PacketHelper.profile("FakePlayerManager.tickFallDamage")) {
+                                    tickFallDamage(fp, bot, before, after);
+                                }
+                            }
                             double dxM = before.getX() - after.getX();
                             double dyM = before.getY() - after.getY();
                             double dzM = before.getZ() - after.getZ();
@@ -584,7 +604,7 @@ public class FakePlayerManager {
             return;
         }
 
-        boolean onGround = isBotOnGround(bot);
+        boolean onGround = isBotOnGround(bot, after);
         if (!before.getWorld().equals(after.getWorld())) {
             trackedFallDistance.remove(uuid);
             lastFallY.remove(uuid);
@@ -593,7 +613,7 @@ public class FakePlayerManager {
             return;
         }
 
-        if (!onGround && isFallDamageResetByCurrentBlock(bot)) {
+        if (!onGround && isFallDamageResetByCurrentBlock(bot, after)) {
             trackedFallDistance.remove(uuid);
             lastFallY.put(uuid, after.getY());
             wasOnGround.remove(uuid);
@@ -617,8 +637,9 @@ public class FakePlayerManager {
         double distance = Math.max(trackedFallDistance.getOrDefault(uuid, 0.0), bot.getFallDistance());
         double safeDistance = Config.fallDamageSafeDistance();
         if (!wasOnGround.contains(uuid) && distance >= MIN_FALL_DAMAGE_DISTANCE && distance > safeDistance) {
-            double damage = Math.floor(
-                    (distance - safeDistance) * Config.fallDamageMultiplier() * landingFallDamageMultiplier(bot));
+            double damage = Math.floor((distance - safeDistance)
+                    * Config.fallDamageMultiplier()
+                    * landingFallDamageMultiplier(bot, after));
             if (damage > 0.0) {
                 bot.damage(damage);
             }
@@ -634,14 +655,18 @@ public class FakePlayerManager {
         trackedFallDistance.put(uuid, Math.max(distance, bukkitFallDistance));
     }
 
-    private boolean isBotOnGround(Player bot) {
-        return !bot.getLocation().clone().subtract(0, 0.08, 0).getBlock().isPassable();
+    private boolean isBotOnGround(Player bot, Location loc) {
+        return !loc.clone().subtract(0, 0.08, 0).getBlock().isPassable();
     }
 
-    private boolean isFallDamageResetByCurrentBlock(Player bot) {
+    private boolean isFallDamageResetByCurrentBlock(Player bot, Location loc) {
         if (bot.isInWater() || bot.isInLava()) return true;
-        Material feet = bot.getLocation().getBlock().getType();
-        Material below = bot.getLocation().clone().subtract(0, 1, 0).getBlock().getType();
+        int x = loc.getBlockX();
+        int y = loc.getBlockY();
+        int z = loc.getBlockZ();
+        World world = loc.getWorld();
+        Material feet = world.getBlockAt(x, y, z).getType();
+        Material below = world.getBlockAt(x, y - 1, z).getType();
         return isFallDamageResetBlock(feet) || isFallDamageResetBlock(below);
     }
 
@@ -653,10 +678,14 @@ public class FakePlayerManager {
                 || material == Material.SLIME_BLOCK;
     }
 
-    private double landingFallDamageMultiplier(Player bot) {
-        if (isFallDamageResetByCurrentBlock(bot)) return 0.0;
-        Material feet = bot.getLocation().getBlock().getType();
-        Material below = bot.getLocation().clone().subtract(0, 1, 0).getBlock().getType();
+    private double landingFallDamageMultiplier(Player bot, Location loc) {
+        if (isFallDamageResetByCurrentBlock(bot, loc)) return 0.0;
+        int x = loc.getBlockX();
+        int y = loc.getBlockY();
+        int z = loc.getBlockZ();
+        World world = loc.getWorld();
+        Material feet = world.getBlockAt(x, y, z).getType();
+        Material below = world.getBlockAt(x, y - 1, z).getType();
         if (feet == Material.HAY_BLOCK || below == Material.HAY_BLOCK) return 0.2;
         if (feet.name().endsWith("_BED") || below.name().endsWith("_BED")) return 0.5;
         return 1.0;
@@ -1413,7 +1442,8 @@ public class FakePlayerManager {
     private void protectRequestedSpawnLocation(FakePlayer fp, Player body, Location requested) {
         if (fp == null || body == null || requested == null || requested.getWorld() == null) return;
         for (long delay : new long[] {1L, 5L, 20L, 60L}) {
-            FppScheduler.runAtEntityLaterWithId(plugin, body, () -> reassertRequestedSpawnLocation(fp, body, requested), delay);
+            FppScheduler.runAtEntityLaterWithId(
+                    plugin, body, () -> reassertRequestedSpawnLocation(fp, body, requested), delay);
         }
     }
 
@@ -1704,7 +1734,7 @@ public class FakePlayerManager {
                 }
 
                 List<Player> snapshot = new ArrayList<>(Bukkit.getOnlinePlayers());
-                for (Player online : snapshot) PacketHelper.sendTabListRemove(online, target);
+                PacketHelper.broadcastTabListRemove(target, snapshot);
 
                 var vc2 = plugin.getVelocityChannel();
                 if (vc2 != null) vc2.broadcastBotDespawn(target.getUuid());
@@ -2132,7 +2162,7 @@ public class FakePlayerManager {
                 }
 
                 List<Player> snapshot = new ArrayList<>(Bukkit.getOnlinePlayers());
-                for (Player online : snapshot) PacketHelper.sendTabListRemove(online, target);
+                PacketHelper.broadcastTabListRemove(target, snapshot);
                 FppLogger.debug(
                         "NMS-BOT",
                         Config.debugNmsBot(),
@@ -2207,6 +2237,7 @@ public class FakePlayerManager {
 
         botHeadRotation.clear();
         botSpawnRotation.clear();
+        lastSentVisualRotation.clear();
 
         List<Player> snapshot = new ArrayList<>(Bukkit.getOnlinePlayers());
         int removedCount = 0;
@@ -2231,7 +2262,7 @@ public class FakePlayerManager {
             }
             if (chunkLoader != null) chunkLoader.releaseForBot(fp);
 
-            for (Player online : snapshot) PacketHelper.sendTabListRemove(online, fp);
+            PacketHelper.broadcastTabListRemove(fp, snapshot);
 
             despawningBotIds.remove(fp.getUuid());
             syntheticQuitBotIds.remove(fp.getUuid());
@@ -2396,6 +2427,7 @@ public class FakePlayerManager {
 
         botHeadRotation.remove(uuid);
         botSpawnRotation.remove(uuid);
+        lastSentVisualRotation.remove(uuid);
         actionLockedBots.remove(uuid);
         navLockedBots.remove(uuid);
         trackedFallDistance.remove(uuid);

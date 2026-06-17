@@ -25,6 +25,7 @@ import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -520,7 +521,7 @@ public final class NmsPlayerSpawner {
     }
 
     public static void tickPhysics(Player bot) {
-        if (!initialized || doTickMethod == null || craftPlayerGetHandleMethod == null) return;
+        if (!initialized || doTickMethod == null) return;
         if (!bot.isOnline() || !bot.isValid() || bot.isDead()) return;
 
         if (dispatchTickPhysicsToRegionThread(bot)) {
@@ -531,10 +532,10 @@ public final class NmsPlayerSpawner {
     }
 
     private static void tickPhysicsInternal(Player bot) {
-        if (!initialized || doTickMethod == null || craftPlayerGetHandleMethod == null) return;
+        if (!initialized || doTickMethod == null) return;
         if (!bot.isOnline() || !bot.isValid() || bot.isDead()) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
 
             if (firstTickSet.remove(bot.getUniqueId())) {
 
@@ -1628,13 +1629,19 @@ public final class NmsPlayerSpawner {
         return matches;
     }
 
-    public static boolean isFoliaServer() {
+    private static final Boolean FOLIA = initializeFolia();
+
+    private static boolean initializeFolia() {
         try {
             Class.forName("io.papermc.paper.threadedregions.ThreadedRegionizer");
             return true;
         } catch (ClassNotFoundException e) {
             return false;
         }
+    }
+
+    public static boolean isFoliaServer() {
+        return FOLIA;
     }
 
     private static void cleanupFailedSpawn(Object minecraftServer, Object serverPlayer, String name) {

@@ -1,5 +1,8 @@
 # FPP First-Party Extensions Changelog
 
+## v1.6.6.12.8 (No Extension Changes)
+- Bumped to match core `1.6.6.12.8`. No first-party extension changes in this release.
+
 ## v1.6.6.12.7 (No Extension Changes)
 
 - Bumped to match core `1.6.6.12.7`. No first-party extension changes in this release.

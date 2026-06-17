@@ -5,6 +5,8 @@
 /build/
 dist/
 
+run/
+
 # Extensions
 velocity-companion/
 bungee-companion/

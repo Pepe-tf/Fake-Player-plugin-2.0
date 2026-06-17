@@ -589,3 +589,49 @@ stop-done:        "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ <#0079FF>{tasks}</#0079FF
 stop-nothing:     "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʜᴀᴅ ɴᴏ ᴀᴄᴛɪᴠᴇ ᴛᴀꜱᴋꜱ."
 stop-all-done:    "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴀʟʟ ᴛᴀꜱᴋꜱ ᴀᴄʀᴏꜱꜱ <#0079FF>{count}</#0079FF><gray> ʙᴏᴛ(ꜱ)."
 stop-all-nothing: "{prefix}<gray>ɴᴏ ᴀᴄᴛɪᴠᴇ ᴛᴀꜱᴋꜱ ꜰᴏᴜɴᴅ."
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  25 · PERF COMMAND  (/fpp perf)
+# ═════════════════════════════════════════════════════════════════════════════
+
+# {provider} — metrics provider name (spark, builtin)
+perf-provider: "{prefix}<gray>Provider: <#0079FF>{provider}</#0079FF><gray>."
+
+# {status} — enabled/disabled
+perf-monitor-status: "{prefix}<gray>Background monitor: <#0079FF>{status}</#0079FF><gray>."
+
+# {tps}, {mspt}, {cpu_process}, {cpu_system}, {memory_used}, {memory_committed}
+# {players}, {bots}, {entities}, {score}, {health}
+perf-top-header: "<dark_gray><st>━━━━━</st> <#0079FF><bold>ꜰᴘᴘ ᴘᴇʀꜰᴏʀᴍᴀɴᴄᴇ</#0079FF> <dark_gray><st>━━━━━</st>"
+perf-top-tps:      "  <gray>TPS: <#0079FF>{tps}</#0079FF>"
+perf-top-mspt:     "  <gray>MSPT: <#0079FF>{mspt}</#0079FF> <dark_gray>(p95 <#0079FF>{mspt95}</#0079FF><dark_gray>)"
+perf-top-cpu:      "  <gray>CPU: process <#0079FF>{cpu_process}%</#0079FF><gray>, system <#0079FF>{cpu_system}%</#0079FF>"
+perf-top-gc:       "  <gray>GC: avg <#0079FF>{gc_time}ms</#0079FF><gray>, freq <#0079FF>{gc_freq}ms</#0079FF>"
+perf-top-memory:   "  <gray>Memory: <#0079FF>{memory_used}MB</#0079FF><gray> / <#0079FF>{memory_committed}MB</#0079FF>"
+perf-top-world:    "  <gray>Players: <#0079FF>{players}</#0079FF><gray> | Bots: <#0079FF>{bots}</#0079FF><gray> | Entities: <#0079FF>{entities}</#0079FF>"
+perf-top-score:    "  <gray>Score: <#0079FF>{score}/100</#0079FF> <gray>(<#0079FF>{health}</#0079FF><gray>)"
+perf-top-footer:   "<dark_gray><st>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</st>"
+
+# {minutes}, {samples}, {avg_tps}, {min_tps}, {max_tps}, {avg_mspt}, {min_mspt}, {max_mspt}, {avg_cpu}
+perf-history: "{prefix}<gray>Last <#0079FF>{minutes}</#0079FF><gray>m (<#0079FF>{samples}</#0079FF><gray> samples): TPS <#0079FF>{min_tps}</#0079FF><dark_gray>-<#0079FF>{max_tps}</#0079FF><gray> avg <#0079FF>{avg_tps}</#0079FF><gray>; MSPT <#0079FF>{min_mspt}</#0079FF><dark_gray>-<#0079FF>{max_mspt}</#0079FF><gray> avg <#0079FF>{avg_mspt}</#0079FF><gray>; CPU avg <#0079FF>{avg_cpu}%</#0079FF><gray>."
+
+# Spark subcommand
+perf-spark-started: "{prefix}<gray>Started Spark profiler for <#0079FF>{seconds}</#0079FF><gray>s. A link will be printed to console."
+perf-spark-disabled: "{prefix}<red>Spark profiler integration is disabled in config.yml."
+perf-spark-missing: "{prefix}<red>Spark is not installed. <gray>Download from <click:open_url:'https://spark.lucko.me/'><#0079FF><underlined>spark.lucko.me</underlined></#0079FF></click><gray>."
+perf-spark-manual: "{prefix}<gray>Run manually: <#0079FF>/spark profiler --thread \"Server Thread\" --timeout {seconds}</#0079FF>"
+
+# Generic usage / status
+perf-usage: "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp perf [check|top|report|report stop|history|spark]</#0079FF><gray>."
+perf-disabled: "{prefix}<red>Performance monitoring is disabled in config.yml."
+
+# Benchmark session
+# {minutes}
+perf-benchmark-started: "{prefix}<gray>Benchmark started for <#0079FF>{minutes}</#0079FF><gray> minutes. Do your FPP stress test now. Use <#0079FF>/fpp perf report stop</#0079FF><gray> to finish early."
+# {remaining}
+perf-benchmark-reminder: "{prefix}<gray>Benchmark running — <#0079FF>{remaining}</#0079FF><gray> minute(s) remaining."
+# {file}
+perf-benchmark-done: "{prefix}<gray>Benchmark finished. Full report saved to <#0079FF>{file}</#0079FF><gray>."
+perf-benchmark-already: "{prefix}<red>A benchmark is already running. Use <#0079FF>/fpp perf report stop</#0079FF><gray> to finish it early."
+perf-benchmark-none: "{prefix}<red>No benchmark is currently running."
+perf-benchmark-no-profiler: "{prefix}<red>Built-in profiler is not available."

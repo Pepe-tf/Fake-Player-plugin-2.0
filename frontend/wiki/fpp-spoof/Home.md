@@ -38,7 +38,7 @@ Official documentation for the first-party `fpp-extensions` modules.
 
 ## Requirements
 
-- FakePlayerPlugin `1.6.6.12.7` compatible API
+- FakePlayerPlugin `1.6.6.12.8` compatible API
 - Paper/Purpur/Folia 1.21+
 - Java 21 runtime
 - `fake-player-plugin/build/fpp.jar` available when building from source

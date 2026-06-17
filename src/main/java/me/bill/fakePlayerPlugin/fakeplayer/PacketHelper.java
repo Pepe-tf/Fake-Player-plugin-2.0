@@ -21,14 +21,19 @@ import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.perf.ProfilerToken;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.server.level.ServerPlayer;
 
 @SuppressWarnings("unused")
 public final class PacketHelper {
@@ -55,6 +60,14 @@ public final class PacketHelper {
     private static Object vec3Zero;
     private static Object gameTypeSurvival;
     private static Object entityTypePlayer;
+
+    private static volatile Constructor<?> cachedAddEntityCtor = null;
+    private static volatile Constructor<?> cachedRemoveEntitiesCtor = null;
+    private static volatile Constructor<?> cachedTeleportCtor = null;
+    private static volatile Class<?> cachedTeleportPacketClass = null;
+    private static volatile Constructor<?> cachedHurtAnimationCtor = null;
+    private static volatile Constructor<?> cachedEntityEventCtor = null;
+    private static volatile Constructor<?> cachedAnimateCtor = null;
 
     private static volatile Constructor<?> cachedPosSyncCtor = null;
 
@@ -227,8 +240,23 @@ public final class PacketHelper {
     private static final Pattern PKT_3DIG_OPEN = Pattern.compile("<#([0-9A-Fa-f]{3})>");
     private static final Pattern PKT_3DIG_CLOSE = Pattern.compile("</#([0-9A-Fa-f]{3})>");
 
-    public static String convertHexColors(String input) {
+    public static ProfilerToken profile(String section) {
+        FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
+        if (plugin == null) {
+            return ProfilerToken.NO_OP;
+        }
+        return plugin.getProfiler().enter(section);
+    }
 
+    public static ProfilerToken profileMethod(String section) {
+        FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
+        if (plugin == null) {
+            return ProfilerToken.NO_OP;
+        }
+        return plugin.getProfiler().enterMethod(section);
+    }
+
+    public static String convertHexColors(String input) {
         input = expand3DigitHexCodesForPacket(input);
 
         Matcher m = PKT_HEX_OPEN.matcher(input);
@@ -278,7 +306,7 @@ public final class PacketHelper {
     public static void sendTabListAdd(Player receiver, FakePlayer fp) {
         if (receiver == null || fp == null) return;
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.sendTabListAdd")) {
             Object nms = getHandle(receiver);
             if (nms == null) return;
 
@@ -490,30 +518,51 @@ public final class PacketHelper {
 
     public static void sendTabListRemove(Player receiver, FakePlayer fp) {
         if (!ensureReady()) return;
-        try {
-            Object nms = getHandle(receiver);
+        try (var token = profile("PacketHelper.sendTabListRemove")) {
+            ServerPlayer receiverNms = getServerPlayer(receiver);
+            if (receiverNms == null) return;
             Constructor<?> ctor = getConstructor(playerInfoRemovePacketClass, List.class);
             if (ctor == null) {
                 ctor = playerInfoRemovePacketClass.getDeclaredConstructors()[0];
                 ctor.setAccessible(true);
             }
-            sendPacket(nms, ctor.newInstance(List.of(fp.getUuid())));
+            sendDirect(receiverNms, ctor.newInstance(List.of(fp.getUuid())));
             if (Config.debugPackets()) Config.debugPackets("Tab REMOVE for " + fp.getName());
         } catch (Exception e) {
             FppLogger.error("sendTabListRemove failed: " + e.getMessage());
         }
     }
 
-    public static void sendTabListRemoveByUuid(Player receiver, UUID uuid) {
-        if (!ensureReady()) return;
-        try {
-            Object nms = getHandle(receiver);
+    public static void broadcastTabListRemove(FakePlayer fp, Collection<? extends Player> receivers) {
+        if (!ensureReady() || receivers.isEmpty()) return;
+        try (var token = profile("PacketHelper.sendTabListRemove")) {
             Constructor<?> ctor = getConstructor(playerInfoRemovePacketClass, List.class);
             if (ctor == null) {
                 ctor = playerInfoRemovePacketClass.getDeclaredConstructors()[0];
                 ctor.setAccessible(true);
             }
-            sendPacket(nms, ctor.newInstance(List.of(uuid)));
+            Object packet = ctor.newInstance(List.of(fp.getUuid()));
+            for (Player receiver : receivers) {
+                ServerPlayer receiverNms = getServerPlayer(receiver);
+                if (receiverNms != null) sendDirect(receiverNms, packet);
+            }
+            if (Config.debugPackets()) Config.debugPackets("Tab REMOVE broadcast for " + fp.getName());
+        } catch (Exception e) {
+            FppLogger.error("broadcastTabListRemove failed: " + e.getMessage());
+        }
+    }
+
+    public static void sendTabListRemoveByUuid(Player receiver, UUID uuid) {
+        if (!ensureReady()) return;
+        try (var token = profile("PacketHelper.sendTabListRemoveByUuid")) {
+            ServerPlayer receiverNms = getServerPlayer(receiver);
+            if (receiverNms == null) return;
+            Constructor<?> ctor = getConstructor(playerInfoRemovePacketClass, List.class);
+            if (ctor == null) {
+                ctor = playerInfoRemovePacketClass.getDeclaredConstructors()[0];
+                ctor.setAccessible(true);
+            }
+            sendDirect(receiverNms, ctor.newInstance(List.of(uuid)));
             if (Config.debugPackets()) Config.debugPackets("Tab REMOVE raw for " + uuid);
         } catch (Exception e) {
             FppLogger.error("sendTabListRemoveByUuid failed: " + e.getMessage());
@@ -569,7 +618,7 @@ public final class PacketHelper {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static void sendTabListDisplayNameUpdate(Player receiver, FakePlayer fp) {
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.sendTabListDisplayNameUpdate")) {
             Object nms = getHandle(receiver);
 
             Object profile = fp.getCachedTabListGameProfile();
@@ -632,7 +681,7 @@ public final class PacketHelper {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static void sendTabListLatencyUpdate(Player receiver, FakePlayer fp) {
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.sendTabListLatencyUpdate")) {
             Object nms = getHandle(receiver);
 
             Object profile = fp.getCachedTabListGameProfile();
@@ -668,7 +717,7 @@ public final class PacketHelper {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static void sendTabListUpdateListed(Player receiver, FakePlayer fp, boolean listed) {
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.sendTabListUpdateListed")) {
             Object nms = getHandle(receiver);
 
             Object profile = fp.getCachedTabListGameProfile();
@@ -702,7 +751,7 @@ public final class PacketHelper {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static void sendTabListRefreshEntry(Player receiver, FakePlayer fp) {
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.sendTabListRefreshEntry")) {
             Object nms = getHandle(receiver);
             if (nms == null) return;
 
@@ -742,20 +791,24 @@ public final class PacketHelper {
 
     public static void spawnFakePlayer(Player receiver, FakePlayer fp, Location loc) {
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.spawnFakePlayer")) {
             Object nms = getHandle(receiver);
-            Constructor<?> ctor = addEntityPacketClass.getConstructor(
-                    int.class,
-                    UUID.class,
-                    double.class,
-                    double.class,
-                    double.class,
-                    float.class,
-                    float.class,
-                    entityTypeClass,
-                    int.class,
-                    vec3Class,
-                    double.class);
+            Constructor<?> ctor = cachedAddEntityCtor;
+            if (ctor == null) {
+                ctor = addEntityPacketClass.getConstructor(
+                        int.class,
+                        UUID.class,
+                        double.class,
+                        double.class,
+                        double.class,
+                        float.class,
+                        float.class,
+                        entityTypeClass,
+                        int.class,
+                        vec3Class,
+                        double.class);
+                cachedAddEntityCtor = ctor;
+            }
             sendPacket(
                     nms,
                     ctor.newInstance(
@@ -779,9 +832,13 @@ public final class PacketHelper {
 
     public static void despawnFakePlayer(Player receiver, FakePlayer fp) {
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.despawnFakePlayer")) {
             Object nms = getHandle(receiver);
-            Constructor<?> ctor = removeEntitiesPacketClass.getConstructor(int[].class);
+            Constructor<?> ctor = cachedRemoveEntitiesCtor;
+            if (ctor == null) {
+                ctor = removeEntitiesPacketClass.getConstructor(int[].class);
+                cachedRemoveEntitiesCtor = ctor;
+            }
             sendPacket(nms, ctor.newInstance((Object) new int[] {fp.getPlayer().getEntityId()}));
             if (Config.debugPackets()) Config.debugPackets("Despawn entity for " + fp.getName());
         } catch (Exception e) {
@@ -791,35 +848,45 @@ public final class PacketHelper {
 
     public static void sendTeleport(Player receiver, FakePlayer fp, Location loc) {
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.sendTeleport")) {
             Object nms = getHandle(receiver);
             ClassLoader cl = nms.getClass().getClassLoader();
-            String[] candidates = {
-                "net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket",
-                "net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket"
-            };
-            for (String className : candidates) {
-                try {
-                    Class<?> pktClass = cl.loadClass(className);
-                    for (Constructor<?> c : pktClass.getDeclaredConstructors()) {
-                        c.setAccessible(true);
-                        Class<?>[] pt = c.getParameterTypes();
-                        if (pt.length == 7 && pt[0] == int.class && pt[1] == double.class) {
-                            sendPacket(
-                                    nms,
-                                    c.newInstance(
-                                            fp.getEntityId(),
-                                            loc.getX(),
-                                            loc.getY(),
-                                            loc.getZ(),
-                                            loc.getYaw(),
-                                            loc.getPitch(),
-                                            true));
-                            return;
+
+            Constructor<?> ctor = cachedTeleportCtor;
+            if (ctor == null) {
+                String[] candidates = {
+                    "net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket",
+                    "net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket"
+                };
+                outer:
+                for (String className : candidates) {
+                    try {
+                        Class<?> pktClass = cl.loadClass(className);
+                        for (Constructor<?> c : pktClass.getDeclaredConstructors()) {
+                            c.setAccessible(true);
+                            Class<?>[] pt = c.getParameterTypes();
+                            if (pt.length == 7 && pt[0] == int.class && pt[1] == double.class) {
+                                cachedTeleportPacketClass = pktClass;
+                                cachedTeleportCtor = c;
+                                ctor = c;
+                                break outer;
+                            }
                         }
+                    } catch (ClassNotFoundException ignored) {
                     }
-                } catch (ClassNotFoundException ignored) {
                 }
+            }
+            if (ctor != null) {
+                sendPacket(
+                        nms,
+                        ctor.newInstance(
+                                fp.getEntityId(),
+                                loc.getX(),
+                                loc.getY(),
+                                loc.getZ(),
+                                loc.getYaw(),
+                                loc.getPitch(),
+                                true));
             }
         } catch (Exception ignored) {
 
@@ -828,53 +895,73 @@ public final class PacketHelper {
 
     public static void sendHurtAnimation(Player receiver, FakePlayer fp) {
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.sendHurtAnimation")) {
             Object nms = getHandle(receiver);
             ClassLoader cl = nms.getClass().getClassLoader();
             try {
                 Class<?> hurtClass = cl.loadClass("net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket");
-                for (Constructor<?> c : hurtClass.getDeclaredConstructors()) {
-                    c.setAccessible(true);
-                    Class<?>[] pt = c.getParameterTypes();
-                    if (pt.length == 2 && pt[0] == int.class && pt[1] == float.class) {
-                        Player bot = fp.getPlayer();
-                        float yaw = bot != null ? bot.getLocation().getYaw() : 0.0f;
-                        sendPacket(nms, c.newInstance(fp.getEntityId(), yaw));
-                        return;
+                Constructor<?> ctor = cachedHurtAnimationCtor;
+                if (ctor == null) {
+                    for (Constructor<?> c : hurtClass.getDeclaredConstructors()) {
+                        c.setAccessible(true);
+                        Class<?>[] pt = c.getParameterTypes();
+                        if (pt.length == 2 && pt[0] == int.class && pt[1] == float.class) {
+                            cachedHurtAnimationCtor = c;
+                            ctor = c;
+                            break;
+                        }
                     }
+                }
+                if (ctor != null) {
+                    Player bot = fp.getPlayer();
+                    float yaw = bot != null ? bot.getLocation().getYaw() : 0.0f;
+                    sendPacket(nms, ctor.newInstance(fp.getEntityId(), yaw));
+                    return;
                 }
             } catch (ClassNotFoundException ignored) {
             }
 
             Class<?> eventClass = cl.loadClass("net.minecraft.network.protocol.game.ClientboundEntityEventPacket");
-            Player bot = fp.getPlayer();
-            if (bot == null) return;
-            Object botNms = getHandle(bot);
-            for (Constructor<?> c : eventClass.getDeclaredConstructors()) {
-                c.setAccessible(true);
-                Class<?>[] pt = c.getParameterTypes();
-                if (pt.length == 2 && pt[1] == byte.class) {
-                    sendPacket(nms, c.newInstance(botNms, (byte) 2));
-                    return;
+            Constructor<?> ctor = cachedEntityEventCtor;
+            if (ctor == null) {
+                for (Constructor<?> c : eventClass.getDeclaredConstructors()) {
+                    c.setAccessible(true);
+                    Class<?>[] pt = c.getParameterTypes();
+                    if (pt.length == 2 && pt[1] == byte.class) {
+                        cachedEntityEventCtor = c;
+                        ctor = c;
+                        break;
+                    }
                 }
             }
+            Player bot = fp.getPlayer();
+            if (bot == null || ctor == null) return;
+            Object botNms = getHandle(bot);
+            sendPacket(nms, ctor.newInstance(botNms, (byte) 2));
         } catch (Exception ignored) {
         }
     }
 
     public static void sendSwingArm(Player receiver, FakePlayer fp) {
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.sendSwingArm")) {
             Object nms = getHandle(receiver);
             ClassLoader cl = nms.getClass().getClassLoader();
             Class<?> animClass = cl.loadClass("net.minecraft.network.protocol.game.ClientboundAnimatePacket");
-            for (Constructor<?> c : animClass.getDeclaredConstructors()) {
-                c.setAccessible(true);
-                Class<?>[] pt = c.getParameterTypes();
-                if (pt.length == 2 && pt[0] == int.class && pt[1] == int.class) {
-                    sendPacket(nms, c.newInstance(fp.getEntityId(), 0));
-                    return;
+            Constructor<?> ctor = cachedAnimateCtor;
+            if (ctor == null) {
+                for (Constructor<?> c : animClass.getDeclaredConstructors()) {
+                    c.setAccessible(true);
+                    Class<?>[] pt = c.getParameterTypes();
+                    if (pt.length == 2 && pt[0] == int.class && pt[1] == int.class) {
+                        cachedAnimateCtor = c;
+                        ctor = c;
+                        break;
+                    }
                 }
+            }
+            if (ctor != null) {
+                sendPacket(nms, ctor.newInstance(fp.getEntityId(), 0));
             }
         } catch (Exception ignored) {
         }
@@ -882,32 +969,52 @@ public final class PacketHelper {
 
     public static void sendEatAnimation(Player receiver, FakePlayer fp) {
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.sendEatAnimation")) {
             Object nms = getHandle(receiver);
             ClassLoader cl = nms.getClass().getClassLoader();
 
             Class<?> entityEventClass =
                     cl.loadClass("net.minecraft.network.protocol.game.ClientboundEntityEventPacket");
 
-            Player botPlayer = fp.getPlayer();
-            if (botPlayer == null) return;
-            Object botNms = getHandle(botPlayer);
-            for (Constructor<?> c : entityEventClass.getDeclaredConstructors()) {
-                c.setAccessible(true);
-                Class<?>[] pt = c.getParameterTypes();
-                if (pt.length == 2 && pt[1] == byte.class) {
-                    sendPacket(nms, c.newInstance(botNms, (byte) 9));
-                    return;
+            Constructor<?> ctor = cachedEntityEventCtor;
+            if (ctor == null) {
+                for (Constructor<?> c : entityEventClass.getDeclaredConstructors()) {
+                    c.setAccessible(true);
+                    Class<?>[] pt = c.getParameterTypes();
+                    if (pt.length == 2 && pt[1] == byte.class) {
+                        cachedEntityEventCtor = c;
+                        ctor = c;
+                        break;
+                    }
                 }
             }
+            Player botPlayer = fp.getPlayer();
+            if (botPlayer == null || ctor == null) return;
+            Object botNms = getHandle(botPlayer);
+            sendPacket(nms, ctor.newInstance(botNms, (byte) 9));
         } catch (Exception ignored) {
         }
     }
 
     public static void sendRotation(Player receiver, FakePlayer fp, float yaw, float pitch, float headYaw) {
-        if (!ensureReady() || moveEntityRotPacketClass == null || rotateHeadPacketClass == null) return;
-        try {
-            Object nms = getHandle(receiver);
+        if (!ensureReady()) return;
+        ServerPlayer receiverNms = getServerPlayer(receiver);
+        if (receiverNms == null) return;
+        sendRotationDirect(receiverNms, fp, yaw, pitch, headYaw, true);
+    }
+
+    public static void sendRotationDirect(
+            Player receiver, FakePlayer fp, float yaw, float pitch, float headYaw, boolean profile) {
+        if (!ensureReady()) return;
+        ServerPlayer receiverNms = getServerPlayer(receiver);
+        if (receiverNms == null) return;
+        sendRotationDirect(receiverNms, fp, yaw, pitch, headYaw, profile);
+    }
+
+    public static void sendRotationDirect(
+            ServerPlayer receiverNms, FakePlayer fp, float yaw, float pitch, float headYaw, boolean profile) {
+        if (!ensureReady()) return;
+        try (var token = profile ? profile("PacketHelper.sendRotation") : ProfilerToken.NO_OP) {
             int entityId = fp.getEntityId();
             if (entityId == -1) return;
 
@@ -942,14 +1049,15 @@ public final class PacketHelper {
             }
 
             if (cachedMoveEntityRotCtor != null) {
-                sendPacket(nms, cachedMoveEntityRotCtor.newInstance(entityId, encYaw, encPitch, true));
+                sendDirect(receiverNms, cachedMoveEntityRotCtor.newInstance(entityId, encYaw, encPitch, true));
             }
             if (cachedRotateHeadCtorInt != null) {
-                sendPacket(nms, cachedRotateHeadCtorInt.newInstance(entityId, encHead));
+                sendDirect(receiverNms, cachedRotateHeadCtorInt.newInstance(entityId, encHead));
             } else if (cachedRotateHeadCtorEntity != null && fp.getPhysicsEntity() != null) {
-
-                Object nmsEntity = craftPlayerGetHandle.invoke(fp.getPhysicsEntity());
-                sendPacket(nms, cachedRotateHeadCtorEntity.newInstance(nmsEntity, encHead));
+                ServerPlayer nmsEntity = getServerPlayer(fp.getPhysicsEntity());
+                if (nmsEntity != null) {
+                    sendDirect(receiverNms, cachedRotateHeadCtorEntity.newInstance(nmsEntity, encHead));
+                }
             }
         } catch (Exception e) {
             Config.debugPackets("sendRotation failed: " + e.getMessage());
@@ -958,7 +1066,7 @@ public final class PacketHelper {
 
     public static void sendPositionSync(Player receiver, Player bot) {
         if (!ensureReady()) return;
-        try {
+        try (var token = profile("PacketHelper.sendPositionSync")) {
             Object receiverNms = craftPlayerGetHandle.invoke(receiver);
 
             if (!posSyncCtorLookupDone) {
@@ -1011,14 +1119,15 @@ public final class PacketHelper {
 
             Object packet;
             if (posSyncUsesEntityArg) {
-                Object nmsBot = craftPlayerGetHandle.invoke(bot);
+                ServerPlayer nmsBot = getServerPlayer(bot);
+                if (nmsBot == null) return;
                 packet = cachedPosSyncCtor.newInstance(nmsBot);
             } else {
                 Location loc = bot.getLocation();
                 packet = cachedPosSyncCtor.newInstance(
                         bot.getEntityId(), loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(), true);
             }
-            sendPacket(receiverNms, packet);
+            sendDirect((ServerPlayer) receiverNms, packet);
 
         } catch (Exception e) {
             Config.debugPackets("sendPositionSync failed: " + e.getMessage());
@@ -1034,22 +1143,27 @@ public final class PacketHelper {
         }
         if (cachedPosSyncCtor == null) return;
         try {
-            Object receiverNms = craftPlayerGetHandle.invoke(receiver);
+            ServerPlayer receiverNms = getServerPlayer(receiver);
+            if (receiverNms == null) return;
             Object packet;
             if (posSyncUsesEntityArg) {
-                Object nmsBot = craftPlayerGetHandle.invoke(bot);
+                ServerPlayer nmsBot = getServerPlayer(bot);
+                if (nmsBot == null) return;
                 packet = cachedPosSyncCtor.newInstance(nmsBot);
             } else {
                 packet = cachedPosSyncCtor.newInstance(
                         bot.getEntityId(), loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(), true);
             }
-            sendPacket(receiverNms, packet);
+            sendDirect(receiverNms, packet);
         } catch (Exception e) {
             Config.debugPackets("sendPositionSync (pre-loc) failed: " + e.getMessage());
         }
     }
 
     private static Object getHandle(Player player) throws Exception {
+        if (player instanceof CraftPlayer craft) {
+            return craft.getHandle();
+        }
         if (craftPlayerGetHandle != null) return craftPlayerGetHandle.invoke(craftPlayerClass.cast(player));
         for (Method m : craftPlayerClass.getDeclaredMethods()) {
             if (m.getName().equals("getHandle") && m.getParameterCount() == 0) {
@@ -1059,6 +1173,22 @@ public final class PacketHelper {
             }
         }
         throw new NoSuchMethodException("CraftPlayer.getHandle()");
+    }
+
+    private static ServerPlayer getServerPlayer(Player player) {
+        if (player instanceof CraftPlayer craft) {
+            return craft.getHandle();
+        }
+        try {
+            return (ServerPlayer) getHandle(player);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static void sendDirect(ServerPlayer nms, Object packet) {
+        if (nms == null || packet == null) return;
+        nms.connection.send((Packet<?>) packet);
     }
 
     private static void sendPacket(Object serverPlayer, Object packet) throws Exception {

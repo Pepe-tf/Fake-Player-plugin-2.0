@@ -1,6 +1,8 @@
 package me.bill.fakePlayerPlugin.listener;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
@@ -365,7 +367,8 @@ public class FakePlayerEntityListener implements Listener {
                             }
                         }
 
-                        for (Player p : Bukkit.getOnlinePlayers()) PacketHelper.sendTabListRemove(p, fp);
+                        List<Player> onlinePlayers = new ArrayList<>(Bukkit.getOnlinePlayers());
+                        PacketHelper.broadcastTabListRemove(fp, onlinePlayers);
                         Config.debugNmsBot("Sent tab-list remove for '" + name + "'");
 
                         var vc2 = plugin.getVelocityChannel();

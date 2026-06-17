@@ -810,7 +810,7 @@ tasks.withType<JavaCompile>().configureEach {
     <dependency>
         <groupId>me.bill</groupId>
         <artifactId>fpp</artifactId>
-        <version>1.6.6.12.7</version>
+        <version>1.6.6.12.8</version>
         <scope>system</scope>
         <systemPath>${project.basedir}/libs/fpp.jar</systemPath>
     </dependency>
