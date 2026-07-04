@@ -55,7 +55,7 @@ public final class StorageCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "<bot> [storage_name|--list|--remove <name>|--clear]";
+        return "<bot> [storage_name|--list|--remove <name>|--clear|--enable <name>|--disable <name>|--deposit [name]]";
     }
 
     @Override
@@ -91,11 +91,11 @@ public final class StorageCommand implements FppCommand {
             String sub = args[1].toLowerCase(Locale.ROOT);
 
             switch (sub) {
-                case "--list", "list" -> {
+                case "--list" -> {
                     handleList(sender, fp);
                     return true;
                 }
-                case "--remove", "remove" -> {
+                case "--remove" -> {
                     if (args.length < 3) {
                         sender.sendMessage(Lang.get("storage-remove-usage", "name", fp.getDisplayName()));
                         return true;
@@ -103,24 +103,24 @@ public final class StorageCommand implements FppCommand {
                     handleRemove(sender, fp, args[2]);
                     return true;
                 }
-                case "--clear", "clear" -> {
+                case "--clear" -> {
                     handleClear(sender, fp);
                     return true;
                 }
-                case "--enable", "enable", "--disable", "disable" -> {
+                case "--enable", "--disable" -> {
                     if (args.length < 3) {
                         sender.sendMessage(Component.text(
                                 "Usage: /fpp storage " + fp.getName() + " " + sub + " <name>", NamedTextColor.RED));
                         return true;
                     }
-                    boolean enabled = sub.contains("enable") && !sub.contains("disable");
+                    boolean enabled = sub.equals("--enable");
                     boolean ok = storageStore.setEnabled(fp.getName(), args[2], enabled);
                     sender.sendMessage(Component.text(
                             ok ? "Storage updated." : "Storage not found.",
                             ok ? NamedTextColor.YELLOW : NamedTextColor.RED));
                     return true;
                 }
-                case "--deposit", "deposit" -> {
+                case "--deposit" -> {
                     depositInventory(sender, fp, args.length >= 3 ? args[2] : null);
                     return true;
                 }
@@ -218,7 +218,7 @@ public final class StorageCommand implements FppCommand {
         if (bot == null || !bot.isOnline()) return;
         StorageStore.StoragePoint point = chooseStorage(fp, bot, storageName);
         if (point == null) {
-            sender.sendMessage(Component.text("No enabled storage found.", NamedTextColor.RED));
+            sender.sendMessage(Lang.get("storage-none-enabled"));
             return;
         }
         Block block = point.location().getBlock();
@@ -241,7 +241,7 @@ public final class StorageCommand implements FppCommand {
                                 null),
                         null,
                         null));
-        sender.sendMessage(Component.text("Walking to storage: " + point.name(), NamedTextColor.YELLOW));
+        sender.sendMessage(Lang.get("storage-walking", "name", fp.getDisplayName(), "storage", point.name()));
     }
 
     private StorageStore.StoragePoint chooseStorage(FakePlayer fp, Player bot, String storageName) {
@@ -325,7 +325,7 @@ public final class StorageCommand implements FppCommand {
 
         if (args.length == 3) {
             String sub = args[1].toLowerCase(Locale.ROOT);
-            if (sub.equals("--remove") || sub.equals("remove")) {
+            if (sub.equals("--remove")) {
                 FakePlayer fp = manager.getByName(args[0]);
                 if (fp == null) return List.of();
                 String prefix = args[2].toLowerCase(Locale.ROOT);

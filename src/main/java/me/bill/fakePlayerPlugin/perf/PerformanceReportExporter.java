@@ -252,7 +252,6 @@ public final class PerformanceReportExporter {
         sb.append("head-ai.enabled: ").append(Config.headAiEnabled()).append("\n");
         sb.append("fall-damage.enabled: ").append(Config.fallDamageEnabled()).append("\n");
         sb.append("tab-list.enabled: ").append(Config.tabListEnabled()).append("\n");
-        sb.append("ping.enabled: ").append(Config.pingEnabled()).append("\n");
         sb.append("database.enabled: ").append(Config.databaseEnabled()).append("\n");
         sb.append("network-mode: ").append(Config.isNetworkMode()).append("\n");
         sb.append("max-bots: ").append(Config.maxBots()).append("\n");

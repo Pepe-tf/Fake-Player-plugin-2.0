@@ -23,7 +23,6 @@ import org.jetbrains.annotations.NotNull;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerBody;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -42,7 +41,6 @@ public final class VelocityChannel implements PluginMessageListener {
     public static final String SUBCHANNEL_BOT_SPAWN = "BOT_SPAWN";
     public static final String SUBCHANNEL_BOT_DESPAWN = "BOT_DESPAWN";
     public static final String SUBCHANNEL_BOT_UPDATE = "BOT_UPDATE";
-    public static final String SUBCHANNEL_CHAT = "CHAT";
     public static final String SUBCHANNEL_ALERT = "ALERT";
     public static final String SUBCHANNEL_JOIN = "JOIN";
     public static final String SUBCHANNEL_LEAVE = "LEAVE";
@@ -265,12 +263,6 @@ public final class VelocityChannel implements PluginMessageListener {
         }
     }
 
-    public void sendChatToNetwork(String botName, String botDisplayName, String message, String prefix, String suffix) {
-        if (!Config.isNetworkMode()) return;
-        String msgId = generateAndTrackId();
-        sendPluginMessage(SUBCHANNEL_CHAT, msgId, botName, botDisplayName, message, prefix, suffix);
-    }
-
     public void broadcastJoinToNetwork(FakePlayer fp) {
         if (!Config.isNetworkMode()) return;
         String msgId = generateAndTrackId();
@@ -407,7 +399,6 @@ public final class VelocityChannel implements PluginMessageListener {
                 case SUBCHANNEL_BOT_SPAWN -> handleBotSpawn(in);
                 case SUBCHANNEL_BOT_DESPAWN -> handleBotDespawn(in);
                 case SUBCHANNEL_BOT_UPDATE -> handleBotUpdate(in);
-                case SUBCHANNEL_CHAT -> handleChat(in);
                 case SUBCHANNEL_ALERT -> handleAlert(in);
                 case SUBCHANNEL_JOIN -> handleJoin(in);
                 case SUBCHANNEL_LEAVE -> handleLeave(in);
@@ -483,21 +474,6 @@ public final class VelocityChannel implements PluginMessageListener {
         for (Player online : Bukkit.getOnlinePlayers()) {
             PacketHelper.sendTabListRemoveByUuid(online, uuid);
         }
-    }
-
-    private void handleChat(DataInputStream in) throws IOException {
-        String msgId = in.readUTF();
-        String botName = in.readUTF();
-        String botDisplayName = in.readUTF();
-        String message = in.readUTF();
-        String prefix = in.readUTF();
-        String suffix = in.readUTF();
-
-        if (recentIds.contains(msgId)) {
-            Config.debugNetwork("[VelocityChannel] CHAT echo suppressed.");
-            return;
-        }
-        BotBroadcast.broadcastRemote(botName, botDisplayName, message, prefix, suffix);
     }
 
     private void handleAlert(DataInputStream in) throws IOException {

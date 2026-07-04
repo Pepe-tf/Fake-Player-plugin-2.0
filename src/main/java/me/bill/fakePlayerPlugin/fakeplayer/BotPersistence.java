@@ -12,7 +12,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.Bukkit;
@@ -671,12 +670,12 @@ public final class BotPersistence {
 
         loadTasksFile();
 
-        boolean skinExtensionLoaded = isExtensionLoaded("FPP-Skin");
-        boolean luckPermsExtensionLoaded = isExtensionLoaded("FPP-LuckPerms");
-        boolean chatExtensionLoaded = isExtensionLoaded("FPP-Chat");
-        boolean aiChatExtensionLoaded = isExtensionLoaded("FPP-AIChat");
-        boolean commandExtensionLoaded = isExtensionLoaded("FPP-Command");
-        boolean pingExtensionLoaded = isExtensionLoaded("FPP-Ping");
+        boolean skinExtensionLoaded = false;
+        boolean luckPermsExtensionLoaded = false;
+        boolean chatExtensionLoaded = false;
+        boolean aiChatExtensionLoaded = false;
+        boolean commandExtensionLoaded = false;
+        boolean pingExtensionLoaded = false;
 
         DatabaseManager db = plugin.getDatabaseManager();
         if (db != null) {
@@ -1087,19 +1086,9 @@ public final class BotPersistence {
             if (sb.pingUserSet && sb.ping >= 0) {
                 fp.setUserPing(sb.ping);
                 fp.setBasePing(-1);
-            } else if (sb.ping >= 0 && Config.pingEnabled()) {
-                fp.setUserPing(-1);
-                fp.setBasePing(sb.ping);
-                fp.setPing(sb.ping);
-            } else if (Config.pingEnabled()) {
-                fp.setUserPing(-1);
-                int min = Config.pingMin();
-                int max = Config.pingMax();
-                int base = min + ThreadLocalRandom.current().nextInt(Math.max(1, max - min + 1));
-                fp.setBasePing(base);
-                fp.setPing(base);
             } else {
                 fp.setUserPing(-1);
+                fp.setBasePing(-1);
             }
             fp.setPveSmartAttackMode(sb.pveSmartAttackMode);
             fp.setPveRange(sb.pveRange);
@@ -1115,7 +1104,7 @@ public final class BotPersistence {
 
             manager.persistBotSettings(fp);
 
-            if (sb.ping >= 0) {
+            if (sb.pingUserSet && sb.ping >= 0) {
                 final UUID restoredUuid = fp.getUuid();
                 final int restoredPing = sb.ping;
                 FppScheduler.runSyncLater(
@@ -1124,17 +1113,6 @@ public final class BotPersistence {
                             FakePlayer restored = manager.getByUuid(restoredUuid);
                             if (restored != null) {
                                 manager.applyPing(restored, restoredPing);
-                            }
-                        },
-                        5L);
-            } else if (Config.pingEnabled() && fp.getBasePing() >= 0) {
-                final UUID restoredUuid = fp.getUuid();
-                FppScheduler.runSyncLater(
-                        plugin,
-                        () -> {
-                            FakePlayer restored = manager.getByUuid(restoredUuid);
-                            if (restored != null) {
-                                manager.applyPing(restored, -1);
                             }
                         },
                         5L);
@@ -1244,11 +1222,6 @@ public final class BotPersistence {
         } catch (NumberFormatException ignored) {
         }
         return raw;
-    }
-
-    private boolean isExtensionLoaded(String extensionName) {
-        return plugin.getExtensionLoader() != null
-                && plugin.getExtensionLoader().isExtensionLoaded(extensionName);
     }
 
     private void loadInventoryFile() {
@@ -1623,18 +1596,19 @@ public final class BotPersistence {
             boolean pingUserSet) {}
 
     private UUID resolveRestoredUuid(String botName, UUID storedUuid) {
-        BotIdentityCache identityCache = plugin.getBotIdentityCache();
-        UUID resolved = identityCache != null && botName != null && !botName.isBlank()
-                ? identityCache.lookupOrCreate(botName)
-                : storedUuid;
-        if (resolved != null && storedUuid != null && !resolved.equals(storedUuid)) {
-            remapLoadedState(storedUuid, resolved);
-            DatabaseManager db = plugin.getDatabaseManager();
-            if (db != null) db.deleteActiveBot(storedUuid.toString());
-            Config.debugDatabase(
-                    "BotPersistence: remapped restored UUID for '" + botName + "' " + storedUuid + " -> " + resolved);
+        if (botName == null || botName.isBlank()) return storedUuid;
+        UUID target = BotIdentityCache.deterministicBotUuid(botName);
+        if (storedUuid == null || storedUuid.equals(target)) return target;
+
+        // One-time migration to the fb07-prefixed UUID scheme: only entries carrying the exact
+        // legacy offline-mode UUID for this name are remapped (inventory/XP/task state follows the
+        // bot to its new key). Anything else — e.g. an explicit-UUID API spawn — is trusted as-is.
+        if (storedUuid.equals(BotIdentityCache.offlineModeUuid(botName))) {
+            remapLoadedState(storedUuid, target);
+            Config.debug("BotPersistence: migrated '" + botName + "' " + storedUuid + " → " + target);
+            return target;
         }
-        return resolved;
+        return storedUuid;
     }
 
     private void remapLoadedState(UUID oldUuid, UUID newUuid) {

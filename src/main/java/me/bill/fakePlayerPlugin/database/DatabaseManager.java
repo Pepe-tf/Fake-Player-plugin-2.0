@@ -770,112 +770,6 @@ public class DatabaseManager {
         return " AND server_id='" + Config.serverId().replace("'", "''") + "'";
     }
 
-    public SkinCacheEntry getCachedSkin(String skinName) {
-        String sql =
-                "SELECT texture_value, texture_signature, source, cached_at FROM fpp_skin_cache" + " WHERE skin_name=?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, skinName.toLowerCase(Locale.ROOT));
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    long cachedAt = rs.getLong("cached_at");
-                    long age = System.currentTimeMillis() - cachedAt;
-
-                    if (age > TimeUnit.DAYS.toMillis(7)) {
-                        Config.debugSkin("DB: skin cache for '"
-                                + skinName
-                                + "' expired (age="
-                                + TimeUnit.MILLISECONDS.toDays(age)
-                                + " days)");
-                        return null;
-                    }
-                    String value = rs.getString("texture_value");
-                    String signature = rs.getString("texture_signature");
-                    String source = rs.getString("source");
-                    Config.debugSkin("DB: skin cache HIT for '"
-                            + skinName
-                            + "' (age="
-                            + TimeUnit.MILLISECONDS.toHours(age)
-                            + "h, source="
-                            + source
-                            + ")");
-                    return new SkinCacheEntry(skinName, value, signature, source, cachedAt);
-                }
-            }
-        } catch (Exception e) {
-            Config.debugSkin("DB: skin cache lookup error for '" + skinName + "': " + e.getMessage());
-        }
-        Config.debugSkin("DB: skin cache MISS for '" + skinName + "'");
-        return null;
-    }
-
-    public void cacheSkin(String skinName, String textureValue, String textureSignature, String source) {
-        enqueue(() -> {
-            if (!isAlive()) return;
-            String sql = isMysql
-                    ? "INSERT INTO fpp_skin_cache(skin_name, texture_value,"
-                            + " texture_signature, source, cached_at)"
-                            + " VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE"
-                            + " texture_value=?, texture_signature=?, source=?,"
-                            + " cached_at=?"
-                    : "INSERT OR REPLACE INTO fpp_skin_cache(skin_name,"
-                            + " texture_value, texture_signature, source, cached_at)"
-                            + " VALUES(?,?,?,?,?)";
-
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                String lowerName = skinName.toLowerCase(Locale.ROOT);
-                long now = System.currentTimeMillis();
-
-                ps.setString(1, lowerName);
-                ps.setString(2, textureValue);
-                ps.setString(3, textureSignature);
-                ps.setString(4, source);
-                ps.setLong(5, now);
-
-                if (isMysql) {
-                    ps.setString(6, textureValue);
-                    ps.setString(7, textureSignature);
-                    ps.setString(8, source);
-                    ps.setLong(9, now);
-                }
-
-                ps.executeUpdate();
-                Config.debugSkin("DB: cached skin for '" + skinName + "' (source=" + source + ")");
-            } catch (Exception e) {
-                FppLogger.warn("DB: failed to cache skin for '" + skinName + "': " + e.getMessage());
-            }
-        });
-    }
-
-    public void cleanExpiredSkinCache() {
-        enqueue(() -> {
-            if (!isAlive()) return;
-            long cutoff = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7);
-            String sql = "DELETE FROM fpp_skin_cache WHERE cached_at < ?";
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                ps.setLong(1, cutoff);
-                int deleted = ps.executeUpdate();
-                if (deleted > 0) {
-                    Config.debugDatabase("DB: cleaned " + deleted + " expired skin cache entries");
-                }
-            } catch (Exception e) {
-                FppLogger.warn("DB: failed to clean expired skin cache: " + e.getMessage());
-            }
-        });
-    }
-
-    public int getSkinCacheSize() {
-        String sql = "SELECT COUNT(*) FROM fpp_skin_cache";
-        try (PreparedStatement ps = connection.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-        } catch (Exception e) {
-            Config.debugDatabase("DB: failed to get skin cache size: " + e.getMessage());
-        }
-        return 0;
-    }
-
     public void close() {
         boolean isClosed = false;
         try {
@@ -2224,6 +2118,10 @@ public class DatabaseManager {
         });
     }
 
+    public void updateBotDisplay(String uuid, String display) {
+        updateNullableString("bot_display", uuid, display, "DB updateBotDisplay");
+    }
+
     public void updateBotOwner(String uuid, String ownerName, String ownerUuid) {
         if (!isAlive()) return;
         enqueue(() -> {
@@ -2632,18 +2530,6 @@ public class DatabaseManager {
             if (days > 0) return days + "d " + hours + "h " + mins + "m";
             if (hours > 0) return hours + "h " + mins + "m";
             return mins + "m";
-        }
-    }
-
-    public record SkinCacheEntry(
-            String skinName, String textureValue, String textureSignature, String source, long cachedAt) {
-
-        public boolean isValid() {
-            return textureValue != null && !textureValue.isEmpty();
-        }
-
-        public long getAgeMillis() {
-            return System.currentTimeMillis() - cachedAt;
         }
     }
 }

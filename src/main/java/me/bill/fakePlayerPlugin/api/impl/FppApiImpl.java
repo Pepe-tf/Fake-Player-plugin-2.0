@@ -1,43 +1,30 @@
 package me.bill.fakePlayerPlugin.api.impl;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.api.FppAddon;
-import me.bill.fakePlayerPlugin.api.FppAddonCommand;
 import me.bill.fakePlayerPlugin.api.FppApi;
 import me.bill.fakePlayerPlugin.api.FppBot;
 import me.bill.fakePlayerPlugin.api.FppBotTickHandler;
 import me.bill.fakePlayerPlugin.api.FppClickMode;
-import me.bill.fakePlayerPlugin.api.FppCommandExtension;
 import me.bill.fakePlayerPlugin.api.FppCommandInfo;
 import me.bill.fakePlayerPlugin.api.FppCommandSource;
 import me.bill.fakePlayerPlugin.api.FppNavigationGoal;
-import me.bill.fakePlayerPlugin.api.FppSettingsTab;
 import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.command.FppCommand;
-import me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
@@ -56,30 +43,9 @@ public final class FppApiImpl implements FppApi {
     private final FakePlayerManager manager;
 
     /**
-     * Registered addon tick handlers — thread-safe iterate, rare write.
+     * Registered bot tick handlers — thread-safe iterate, rare write.
      */
     private final CopyOnWriteArrayList<FppBotTickHandler> tickHandlers = new CopyOnWriteArrayList<>();
-
-    /**
-     * Registered addon commands — iterated by CommandManager.
-     */
-    private final CopyOnWriteArrayList<FppAddonCommand> addonCommands = new CopyOnWriteArrayList<>();
-
-    /**
-     * Registered addon command extensions for built-in /fpp subcommands.
-     */
-    private final CopyOnWriteArrayList<FppCommandExtension> commandExtensions = new CopyOnWriteArrayList<>();
-
-    /**
-     * Registered addon settings tabs for /fpp settings.
-     */
-    private final CopyOnWriteArrayList<FppSettingsTab> settingsTabs = new CopyOnWriteArrayList<>();
-
-    /**
-     * Registered addon lifecycle instances, ordered by priority (lower = earlier).
-     */
-    private final ConcurrentSkipListSet<FppAddon> addons = new ConcurrentSkipListSet<>(
-            Comparator.comparingInt(FppAddon::getPriority).thenComparing(FppAddon::getName));
 
     public FppApiImpl(@NotNull FakePlayerPlugin plugin, @NotNull FakePlayerManager manager) {
         this.plugin = plugin;
@@ -177,17 +143,6 @@ public final class FppApiImpl implements FppApi {
     }
 
     @Override
-    public @NotNull Optional<FppBot> spawnBot(
-            @NotNull Location location, @Nullable Player spawner, @NotNull String name, @NotNull UUID uuid) {
-        int result = manager.spawn(location, 1, spawner, name, /* bypassMax */ false, uuid);
-        if (result <= 0) return Optional.empty();
-
-        FakePlayer fp = manager.getByUuid(uuid);
-        if (fp == null) fp = manager.getByName(name);
-        return fp == null ? Optional.empty() : Optional.of(new FppBotImpl(fp));
-    }
-
-    @Override
     public boolean despawnBot(@NotNull String name) {
         return manager.delete(name, "api_despawn");
     }
@@ -202,40 +157,7 @@ public final class FppApiImpl implements FppApi {
         return manager.deleteForLoginHandoff(name, null);
     }
 
-    // ── Command registration ──────────────────────────────────────────────────
-
-    @Override
-    public void registerCommand(@NotNull FppAddonCommand command) {
-        String nameLower = command.getName().toLowerCase();
-        for (FppAddonCommand existing : addonCommands) {
-            if (existing.getName().equalsIgnoreCase(nameLower)) return; // duplicate — ignore
-        }
-        addonCommands.add(command);
-        // Tell CommandManager to include this command (if already initialised).
-        var cmdManager = plugin.getCommandManager();
-        if (cmdManager != null) cmdManager.registerAddonCommand(command);
-    }
-
-    @Override
-    public void unregisterCommand(@NotNull FppAddonCommand command) {
-        addonCommands.removeIf(existing -> existing.getName().equalsIgnoreCase(command.getName()));
-        var cmdManager = plugin.getCommandManager();
-        if (cmdManager != null) cmdManager.unregisterAddonCommand(command);
-    }
-
-    @Override
-    public void registerCommandExtension(@NotNull FppCommandExtension extension) {
-        commandExtensions.addIfAbsent(extension);
-        var cmdManager = plugin.getCommandManager();
-        if (cmdManager != null) cmdManager.registerCommandExtension(extension);
-    }
-
-    @Override
-    public void unregisterCommandExtension(@NotNull FppCommandExtension extension) {
-        commandExtensions.remove(extension);
-        var cmdManager = plugin.getCommandManager();
-        if (cmdManager != null) cmdManager.unregisterCommandExtension(extension);
-    }
+    // ── Command info ──────────────────────────────────────────────────────────
 
     @Override
     public @NotNull List<FppCommandInfo> getRegisteredCommands() {
@@ -263,78 +185,12 @@ public final class FppApiImpl implements FppApi {
                         FppCommandSource.CORE,
                         false));
             }
-
-            for (FppAddonCommand command : cmdManager.getAddonCommands()) {
-                if (sender != null && !command.canUse(sender)) continue;
-                result.add(new FppCommandInfo(
-                        command.getName(),
-                        List.copyOf(command.getAliases()),
-                        safe(command.getUsage()),
-                        safe(command.getDescription()),
-                        command.getPermission(),
-                        FppCommandSource.ADDON,
-                        false));
-            }
-
-            for (FppCommandExtension extension : cmdManager.getCommandExtensions()) {
-                if (sender != null && !extension.canUse(sender)) continue;
-                result.add(commandExtensionInfo(extension));
-            }
-            return List.copyOf(result);
-        }
-
-        for (FppAddonCommand command : addonCommands) {
-            if (sender != null && !command.canUse(sender)) continue;
-            result.add(new FppCommandInfo(
-                    command.getName(),
-                    List.copyOf(command.getAliases()),
-                    safe(command.getUsage()),
-                    safe(command.getDescription()),
-                    command.getPermission(),
-                    FppCommandSource.ADDON,
-                    false));
-        }
-        for (FppCommandExtension extension : commandExtensions) {
-            if (sender != null && !extension.canUse(sender)) continue;
-            result.add(commandExtensionInfo(extension));
         }
         return List.copyOf(result);
     }
 
-    private static FppCommandInfo commandExtensionInfo(FppCommandExtension extension) {
-        return new FppCommandInfo(
-                extension.getCommandName(),
-                List.copyOf(extension.getAliases()),
-                safe(extension.getUsage()),
-                safe(extension.getDescription()),
-                extension.getPermission(),
-                FppCommandSource.EXTENSION,
-                true);
-    }
-
     private static String safe(@Nullable String value) {
         return value != null ? value : "";
-    }
-
-    @Override
-    public void registerSettingsTab(@NotNull FppSettingsTab tab) {
-        settingsTabs.addIfAbsent(tab);
-        var gui = plugin.getSettingGui();
-        if (gui != null) gui.registerExtensionTab(tab);
-    }
-
-    @Override
-    public void unregisterSettingsTab(@NotNull FppSettingsTab tab) {
-        settingsTabs.remove(tab);
-        var gui = plugin.getSettingGui();
-        if (gui != null) gui.unregisterExtensionTab(tab);
-    }
-
-    /**
-     * Returns all registered addon commands (used by CommandManager).
-     */
-    public @NotNull List<FppAddonCommand> getAddonCommands() {
-        return addonCommands;
     }
 
     // ── Tick hooks ────────────────────────────────────────────────────────────
@@ -527,18 +383,6 @@ public final class FppApiImpl implements FppApi {
     }
 
     @Override
-    public void sayAsBot(@NotNull FppBot bot, @NotNull String message) {
-        FakePlayer fp = manager.getByUuid(bot.getUuid());
-        if (fp == null) return;
-        Player entity = fp.getPlayer();
-        if (entity != null && entity.isOnline() && !fp.isBodyless()) {
-            entity.chat(message);
-            return;
-        }
-        BotBroadcast.broadcastRemote(fp.getName(), fp.getDisplayName(), message, "", "");
-    }
-
-    @Override
     public void setBotPing(@NotNull FppBot bot, int pingMs) {
         FakePlayer fp = manager.getByUuid(bot.getUuid());
         if (fp == null) return;
@@ -558,25 +402,6 @@ public final class FppApiImpl implements FppApi {
     public void persistBotSettings(@NotNull FppBot bot) {
         FakePlayer fp = manager.getByUuid(bot.getUuid());
         if (fp != null) manager.persistBotSettings(fp);
-    }
-
-    @Override
-    public void setBotExtensionData(
-            @NotNull FppBot bot, @NotNull String extensionKey, @NotNull String dataKey, @Nullable String dataValue) {
-        var db = plugin.getDatabaseManager();
-        if (db != null) db.setBotExtensionData(bot.getUuid().toString(), extensionKey, dataKey, dataValue);
-    }
-
-    @Override
-    public void removeBotExtensionData(@NotNull FppBot bot, @NotNull String extensionKey, @NotNull String dataKey) {
-        var db = plugin.getDatabaseManager();
-        if (db != null) db.removeBotExtensionData(bot.getUuid().toString(), extensionKey, dataKey);
-    }
-
-    @Override
-    public @NotNull Map<String, String> getBotExtensionData(@NotNull FppBot bot, @NotNull String extensionKey) {
-        var db = plugin.getDatabaseManager();
-        return db != null ? db.loadBotExtensionData(bot.getUuid().toString(), extensionKey) : Map.of();
     }
 
     // ── Plugin info ───────────────────────────────────────────────────────────
@@ -608,20 +433,6 @@ public final class FppApiImpl implements FppApi {
     }
 
     @Override
-    public void registerBotSettingsTab(@NotNull FppSettingsTab tab) {
-        settingsTabs.addIfAbsent(tab);
-        var gui = plugin.getBotSettingGui();
-        if (gui != null) gui.registerExtensionTab(tab);
-    }
-
-    @Override
-    public void unregisterBotSettingsTab(@NotNull FppSettingsTab tab) {
-        settingsTabs.remove(tab);
-        var gui = plugin.getBotSettingGui();
-        if (gui != null) gui.unregisterExtensionTab(tab);
-    }
-
-    @Override
     public boolean runAsBot(@NotNull FppBot bot, @NotNull String command) {
         FakePlayer fp = manager.getByUuid(bot.getUuid());
         if (fp == null) return false;
@@ -641,96 +452,5 @@ public final class FppApiImpl implements FppApi {
     @Override
     public @NotNull FakePlayerPlugin getPlugin() {
         return plugin;
-    }
-
-    @Override
-    public void registerAddon(@NotNull FppAddon addon) {
-        // Validate hard dependencies
-        Set<String> loaded = new HashSet<>();
-        for (FppAddon a : addons) loaded.add(a.getName());
-        for (String dep : addon.getDependencies()) {
-            if (!loaded.contains(dep)) {
-                FppLogger.warn("[FppApi] Addon '" + addon.getName() + "' requires '" + dep + "' which is not loaded.");
-                return;
-            }
-        }
-        if (addons.add(addon)) {
-            try {
-                addon.onEnable(this);
-            } catch (Throwable t) {
-                FppLogger.warn("[FppApi] Addon '" + addon.getName() + "' onEnable threw: " + t.getMessage());
-            }
-        }
-    }
-
-    @Override
-    public void unregisterAddon(@NotNull FppAddon addon) {
-        if (addons.remove(addon)) {
-            try {
-                addon.onDisable();
-            } catch (Throwable t) {
-                FppLogger.warn("[FppApi] Addon '" + addon.getName() + "' onDisable threw: " + t.getMessage());
-            }
-        }
-    }
-
-    // ── Service registry ──────────────────────────────────────────────────────
-
-    private final ConcurrentHashMap<Class<?>, Object> services = new ConcurrentHashMap<>();
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public <T> void registerService(@NotNull Class<T> serviceClass, @NotNull T instance) {
-        services.put(serviceClass, instance);
-    }
-
-    @Override
-    public <T> void unregisterService(@NotNull Class<T> serviceClass, @NotNull T instance) {
-        services.remove(serviceClass, instance);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public <T> @Nullable T getService(@NotNull Class<T> serviceClass) {
-        return (T) services.get(serviceClass);
-    }
-
-    @Override
-    public boolean hasService(@NotNull Class<?> serviceClass) {
-        return services.containsKey(serviceClass);
-    }
-
-    // ── Extension config & resources ────────────────────────────────────────────
-
-    @Override
-    public @Nullable File getExtensionDataFolder(@NotNull String extensionName) {
-        var loader = plugin.getExtensionLoader();
-        return loader != null ? loader.getExtensionDataFolder(extensionName) : null;
-    }
-
-    @Override
-    public void saveDefaultExtensionConfig(@NotNull String extensionName) {
-        var loader = plugin.getExtensionLoader();
-        if (loader != null) loader.saveDefaultExtensionConfig(extensionName);
-    }
-
-    @Override
-    public @Nullable YamlConfiguration getExtensionConfig(@NotNull String extensionName) {
-        var loader = plugin.getExtensionLoader();
-        return loader != null ? loader.getExtensionConfig(extensionName) : null;
-    }
-
-    /**
-     * Called by FakePlayerPlugin#onDisable to shut down all registered addons.
-     */
-    public void disableAllAddons() {
-        for (FppAddon addon : addons) {
-            try {
-                addon.onDisable();
-            } catch (Throwable t) {
-                FppLogger.warn("[FppApi] Addon '" + addon.getName() + "' onDisable threw: " + t.getMessage());
-            }
-        }
-        addons.clear();
     }
 }

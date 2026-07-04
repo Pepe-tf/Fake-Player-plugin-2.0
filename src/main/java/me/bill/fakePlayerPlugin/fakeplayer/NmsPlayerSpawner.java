@@ -335,7 +335,7 @@ public final class NmsPlayerSpawner {
             }
 
             initialized = true;
-            FppLogger.info("NmsPlayerSpawner initialised (doTick="
+            FppLogger.debug("NmsPlayerSpawner initialised (doTick="
                     + (doTickMethod != null)
                     + ", connectionField="
                     + (connectionFieldInPlayer != null)
@@ -501,7 +501,8 @@ public final class NmsPlayerSpawner {
                 correctSpawnLocation(serverPlayer, result, requested);
                 applyRotation(result, yaw, pitch);
                 result.setGameMode(GameMode.SURVIVAL);
-                setListed(result, true);
+                // Respect the tab-list setting at spawn (default hidden) so bots don't flicker into tab.
+                setListed(result, Config.tabListEnabled());
 
                 forceAllSkinParts(result);
                 firstTickSet.add(uuid);
@@ -1769,7 +1770,6 @@ public final class NmsPlayerSpawner {
     private static void prepareJoinCompatibility(Object conn, Object serverPlayer, UUID uuid, String name) {
         Player bukkitPlayer = resolveBukkitPlayer(serverPlayer);
         markFakePlayerMetadata(bukkitPlayer);
-        preLoadLuckPermsUser(uuid);
         registerPacketEventsUser(conn, bukkitPlayer, uuid, name);
     }
 
@@ -1795,53 +1795,6 @@ public final class NmsPlayerSpawner {
                     .set(new NamespacedKey(plugin, "fakeplayerplugin"), PersistentDataType.BYTE, (byte) 1);
         } catch (Throwable t) {
             FppLogger.debug("NmsPlayerSpawner: fake-player metadata failed: " + t.getMessage());
-        }
-    }
-
-    private static void preLoadLuckPermsUser(UUID uuid) {
-        if (uuid == null) return;
-        Plugin lpPlugin = Bukkit.getPluginManager().getPlugin("LuckPerms");
-        if (lpPlugin == null || !lpPlugin.isEnabled()) return;
-        try {
-            ClassLoader loader = lpPlugin.getClass().getClassLoader();
-            Class<?> providerClass = Class.forName("net.luckperms.api.LuckPermsProvider", false, loader);
-            Object api = providerClass.getMethod("get").invoke(null);
-            if (api == null) return;
-            Object userManager = api.getClass().getMethod("getUserManager").invoke(api);
-            if (userManager == null) return;
-
-            Object future =
-                    userManager.getClass().getMethod("loadUser", UUID.class).invoke(userManager, uuid);
-            if (future == null) return;
-
-            // If already cached we are done.
-            Method getNow = future.getClass().getMethod("getNow", Object.class);
-            Object user = getNow.invoke(future, (Object) null);
-            if (user != null) {
-                FppLogger.debug("NmsPlayerSpawner: LuckPerms user already cached for " + uuid);
-                return;
-            }
-
-            Method whenComplete = future.getClass().getMethod("whenComplete", java.util.function.BiConsumer.class);
-            whenComplete.invoke(future, (java.util.function.BiConsumer<Object, Throwable>) (loadedUser, error) -> {
-                if (error != null) {
-                    FppLogger.debug("NmsPlayerSpawner: async LuckPerms pre-load failed for " + uuid + ": "
-                            + error.getClass().getSimpleName());
-                    return;
-                }
-                FppLogger.debug("NmsPlayerSpawner: asynchronously pre-loaded LuckPerms user for " + uuid);
-            });
-        } catch (Throwable t) {
-            if (t instanceof java.lang.reflect.InvocationTargetException ite) {
-                Throwable cause = ite.getCause();
-                if (cause instanceof InterruptedException) {
-                    Thread.currentThread().interrupt();
-                }
-                FppLogger.debug("NmsPlayerSpawner: LuckPerms pre-load failed for " + uuid + ": "
-                        + (cause != null ? cause.getClass().getSimpleName() : "unknown"));
-            } else {
-                FppLogger.debug("NmsPlayerSpawner: LuckPerms pre-load skipped: " + t.getMessage());
-            }
         }
     }
 
@@ -2480,11 +2433,29 @@ public final class NmsPlayerSpawner {
 
     // ── interactOn ──
 
+    /**
+     * Right-click-on-entity simulation: routes through the same {@code Player#interactOn} entry
+     * point a real client's interact packet uses, so feeding/taming/breeding, shearing, milking,
+     * boarding vehicles, leashing, name-tagging, villager trading, etc. all behave exactly as they
+     * would for a real player.
+     */
     public static boolean interactOnEntity(
             ServerPlayer nms, net.minecraft.world.entity.Entity entity, InteractionHand hand, Vec3 hitLocation) {
         try {
             var result = nms.interactOn(entity, hand, hitLocation);
-            return result != null && result.consumesAction();
+            boolean consumed = result != null && result.consumesAction();
+
+            // Fake players have no real client to drive a container/trade screen any further — if
+            // this interaction opened one (villager trade, chest minecart, etc.) close it immediately
+            // so the entity isn't left "busy" and blocking real players from interacting with it.
+            if (nms.containerMenu != null && nms.containerMenu != nms.inventoryMenu) {
+                try {
+                    nms.closeContainer();
+                } catch (Throwable ignored) {
+                }
+            }
+
+            return consumed;
         } catch (Throwable e) {
             Config.debugNms("NmsPlayerSpawner.interactOnEntity failed: " + e.getMessage());
             return false;

@@ -2,11 +2,10 @@
 
 > Advanced NPC / Bot Plugin for Paper/Purpur/Folia 1.21+
 
-Welcome to the FakePlayerPlugin (FPP) wiki. FPP spawns server-side bot entities that behave like players — useful for **AFK farms, automated tasks, testing, and NPC simulations**. It is **not** a fake-online-count or player-spoofing tool.
-
-This documentation covers the **base plugin only** — features that ship in the core `fpp.jar`.
-
-Some advanced subsystems are implemented as extensions and are not part of the base plugin. Those are noted where applicable. You can find official extensions on the [FPP Marketplace](https://mp.fpp.wtf/resources/).
+Welcome to the FakePlayerPlugin (FPP) wiki. FPP spawns server-side bot entities that behave like
+players — useful for **AFK farms, automated tasks, testing, and NPC simulations**. It is **not** a
+fake-online-count or player-spoofing tool: bots are hidden from the tab list and server-list ping,
+always wear a mandatory "ʙᴏᴛ ʙʏ {owner}" nametag, and can never take a real account's identity.
 
 ---
 
@@ -23,11 +22,11 @@ Some advanced subsystems are implemented as extensions and are not part of the b
 
 | Page | Description |
 |------|-------------|
-| [Placeholders](Placeholders) | PlaceholderAPI integration reference (80+ placeholders including cross-server totals) |
+| [Placeholders](Placeholders) | PlaceholderAPI integration reference |
 | [Database](Database) | SQLite / MySQL setup, network tables, and proxy-merged architecture |
 | [Proxy Support](Proxy-Support) | Velocity / BungeeCord multi-server networks with shared MySQL |
 | [Config Sync](Config-Sync) | Synchronize configs across proxy backends |
-| [Extensions](Extensions) | Extension API for third-party developers |
+| [Extensions](Extensions) | Why the extension system was removed and where its features went |
 
 ## Reference
 
@@ -43,23 +42,32 @@ Some advanced subsystems are implemented as extensions and are not part of the b
 - **Source:** https://github.com/Pepe-tf/fake-player-plugin
 - **Discord:** https://discord.gg/RfjEJDG2TM
 - **Modrinth:** https://modrinth.com/plugin/fake-player-plugin-(fpp)
-- **Marketplace:** https://mp.fpp.wtf/resources/
 - **License:** MIT
 
 ---
 
-## Latest Version: v1.6.6.12.8
+## Latest Version: v2.0.0
 
 **Highlights:**
-- 🚪 **nLogin Compatibility** — `NmsPlayerSpawner` suppresses nLogin `PlayerJoinEvent` listeners for fake players, preventing auth plugins from kicking/despawning bots during spawn
-- 🚪 **Synthetic Quit on Kick** — `FakePlayerKickListener` now marks kicked bots as synthetic quits before despawning, ensuring consistent despawn/quit-event handling
-- ✅ **System Check** — `/fpp check` runs targeted or full health checks for commands, listeners, NMS, database, Folia, world, config, extensions, and memory
-- 🖱️ **Left/Right Click Automation** — `/fpp left-click` and `/fpp right-click` replace older mine/use style automation with once, repeat, hold, and stop modes
-- 👁️ **Sneak Command** — `/fpp sneak` toggles or sets the sneaking state for a live bot body
-- ✅ **Debug GUI** — Toggle every debug category at runtime from `/fpp settings`
-- 💬 **Debug Chat** — Broadcast debug output to OP/notify players in-game
-- ✅ **Folia Support** — Full compatibility with Folia's region-threaded architecture
-- 🖱️ **Click Commands** — Unified left-click/right-click automation system
-- 🔇 **Silent License** — License verification runs silently without debug spam
-- 📊 **80+ Placeholders** — Extensive PlaceholderAPI integration
-- 🔒 **Extension Ownership** — Advanced movement, follow, sleep, and rich combat are now extension-owned responsibilities
+- 🧭 **Real Pathfinding Engine** — Pathetic-backed A* navigation with parkour, block-breaking,
+  bridging, stuck detection with a hard give-up budget, pre-flight path verification, and a
+  Baritone-style particle debug view (per bot or globally)
+- 🗡️ **PVE Combat** — per-bot smart attack with mob-type selection, detect range, target priority,
+  weapon-cooldown pacing, and pathfinding-linked chasing
+- ⛏️ **`/fpp find` Automation** — search → path → mine loops with tool auto-equip, anti-stuck
+  watchdogs, and inventory-aware deposits into registered storages
+- 🎨 **Rarity Skin Pools** — bots roll their skin from configurable rarity tiers
+  (`skins/1-<N>%.txt`), signed once via MineSkin and cached forever; slim/classic model
+  auto-detection
+- 🆔 **Readable Bot UUIDs** — deterministic `fb07…` UUIDs with the bot number embedded
+  (`bot2` → `fb070000-…-000000000002`); zero collision risk with real accounts
+- 🏷️ **Live Nametags** — three-row mannequin-style tag with a real-time activity line
+  (idle / moving / mining / fighting / searching / sneaking …)
+- 🖥️ **GUI Suite** — bot list hub (search, sort, live refresh, spawn & settings shortcuts),
+  per-bot settings (PVE, pathfinding, skin, danger zone), global settings with runtime debug
+  toggles, and a categorized help GUI
+- 🫥 **Invisible to Players** — no tab-list entry, no server-list ping count/sample entry, no
+  advancements, no join/leave/death chat noise
+- ✅ **Folia Support** — full compatibility with Folia's region-threaded architecture
+- 📊 **Performance Tooling** — `/fpp perf` dashboard, history, benchmark reports, and Spark
+  integration

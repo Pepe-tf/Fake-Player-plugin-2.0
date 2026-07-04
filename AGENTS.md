@@ -3,7 +3,7 @@
 ## Build
 ```bash
 ./gradlew shadowJar           # Build fat plugin JAR (build/libs/fake-player-plugin-<version>-all.jar)
-./gradlew test                # Only 2 string-assertion JUnit tests; do not rely on coverage
+./gradlew test                # Small JUnit suite (Folia guards, UUID scheme, skin model detection); do not rely on coverage
 ./gradlew runServer           # Paper 1.21.11 dev server
 ./gradlew runFolia            # Folia 1.21.11 dev server
 ./gradlew runDevBundleServer  # Mojang-mapped dev server (paperweight)
@@ -21,19 +21,16 @@
 
 ## Critical Dev Gotchas
 
-### License/Attribution Check Blocks Startup
-`FakePlayerPlugin.onEnable()` fetches credentials from `fpp.wtf` and **disables the plugin** if the license check throws.
-- **Internet is required for local dev/testing.**
-- The check runs before most initialization.
-- If `fpp.wtf` is unreachable, the code falls back to offline credentials and continues, but any exception in `licenseManager.verify()` still disables the plugin.
+### No License Check / No Extension Loader
+The licensing system and the runtime extension/addon loader were **fully removed** (open-source hardening). The plugin starts unconditionally and never loads external code. Do not reintroduce either — see `CONTRIBUTING.md` § "Deliberately Removed Capabilities" for the policy (also covers player spoofing/impersonation and bot chat).
 
 ### Command Registration
 Commands are instantiated and registered in `FakePlayerPlugin.onEnable()` through `CommandManager.register(...)`. Also add permissions to `Perm.java`, `plugin.yml`, and language keys when the command needs user-facing messages.
 
-### Core vs Extension Command Ownership
-- Core `/fpp move` is **directional input only**: `MoveCommand.java` accepts `--direction forward|backward|left|right`, optional duration flags `--seconds <n>` / `--ticks <n>`, and `--stop`. Do not re-add core `--to`, `--coords`, `--pos`, or `--roam`; pathfinding movement belongs in an extension.
-- Core no longer registers `/fpp follow` or `/fpp sleep`. Follow/pathfinding behavior and sleep automation should be extension-owned if needed. (These names are only referenced in ownership/tab-complete lists in `CommandManager` to keep extension hook points clear.)
-- Core `/fpp attack` is the basic swing/attack command only (`--once`, `--stop`). Do not re-add `--mob`, `--hunt`, `--move`, `--range`, `--type`, or `--priority` to core; richer combat belongs in an extension.
+### Command Scope Boundaries
+- Core `/fpp move` supports **directional input** (`--direction forward|backward|left|right`, optional `--seconds <n>` / `--ticks <n>`) **and** pathfinding-backed movement: `--to <bot>` (walk to another bot, re-pathing as it moves, via `Config.pathfindingFollowRecalcDistance()`) and `--coords <x> <y> <z> [world]` (walk to a fixed point), both routed through `PathfindingService`/`PatheticPathfindingController`. Gated by `fpp.move.to` / `fpp.move.coords` respectively (on top of the base `fpp.move`). `--stop` cancels both directional input and any in-progress pathfinding for that bot. Do not re-add `--pos` or `--roam` (free-roam wandering) without discussing scope first — `--to`/`--coords` cover the requested use case.
+- Core does **not** register `/fpp follow` or `/fpp sleep` as standalone commands. `/fpp move --to <bot>` is the core-owned equivalent of a one-shot "walk to" — it does not auto-repeat once arrived the way a dedicated `/fpp follow` would.
+- Core `/fpp attack` is the basic swing/attack command only (`--once`, `--stop`). Automated combat (mob targeting, priority, chase) lives in the per-bot PVE system (`PveController` + Bot Settings GUI PVE tab), not in `/fpp attack` flags.
 - Core `/fpp sneak <bot> [on|off|toggle]` is registered in core and owns the `fpp.sneak` permission.
 
 ### Config Migration
@@ -75,7 +72,7 @@ Added in v1.6.6.12.7/12.8. A lightweight performance subsystem designed to make 
 - **Entry:** `FakePlayerPlugin.java` — standard Bukkit `JavaPlugin`
 - **Main shadow JAR manifest:** `Main-Class = me.bill.fakePlayerPlugin.Launcher` (for standalone launcher), but Bukkit loads via `plugin.yml` → `FakePlayerPlugin`
 - **Bot lifecycle:** `FakePlayerManager` owns spawn/despawn/tick loop and `actingBots` action-lock set
-- **Pathfinding:** `PathfindingService` + `BotPathfinder` remain available to internal legacy services, but user-facing pathfinding movement commands (`move --to/--coords/--roam`, follow, sleep navigation) are no longer core-owned.
+- **Pathfinding:** `PathfindingService` is now backed by a real, core-owned engine: `PatheticPathfindingController` (`fakeplayer/pathfinding/`), built on the [Pathetic](https://github.com/bsommerfeld/pathetic) A* library (`de.bsommerfeld.pathetic:engine`/`api:5.5.2`, bundled in the shaded jar). It's used internally by `left-click`/`right-click`/`find`/`place`/`storage`/PVE chasing to walk a bot to its action target, and exposed to users via `/fpp move --to/--coords` (see "Command Scope Boundaries" above for what not to re-add).
 - **Scheduler abstraction:** `FppScheduler` routes tasks through Folia-compatible APIs; legacy `Bukkit.getScheduler()` is prohibited (enforced by test)
 - **Folia:** Runtime detected via `Class.forName("io.papermc.paper.threadedregions.ThreadedRegionizer")`; `NmsPlayerSpawner.isFoliaServer()` used in spawn chain; `folia-supported: true` in `plugin.yml`
 
@@ -98,9 +95,9 @@ Added in v1.6.6.12.7/12.8. A lightweight performance subsystem designed to make 
 
 ## Tests
 
-Only `FoliaCompatibilityTest.java`:
-- Asserts `plugin.yml` contains `folia-supported: true`
-- Asserts `FppScheduler.java` does not contain `Bukkit.getScheduler()`
+- `FoliaCompatibilityTest.java` — asserts `plugin.yml` contains `folia-supported: true` and `FppScheduler.java` does not contain `Bukkit.getScheduler()`
+- `BotUuidTest.java` — fb07 deterministic UUID scheme (`BotIdentityCache`)
+- `SkinModelDetectorTest.java` — slim/classic skin model detection
 
 There is **no integration test harness**; Minecraft-specific logic is untested in CI.
 

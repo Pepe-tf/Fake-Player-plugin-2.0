@@ -42,14 +42,54 @@ persistence:
 # ═══════════════════════════════════════════════════════════════════════════════
 # BOT NAMES
 # ═══════════════════════════════════════════════════════════════════════════════
-# mode: random uses generated names; pool uses the configured name pool.
-# admin-format and user-format control display names, not internal UUID identity.
-# Available placeholders: {bot_name}, {spawner}, {num}
+# Bots spawn with sequential internal names: bot, bot2, bot3, …
+# admin-format controls the display name / name tag. Placeholder: {bot_name}
 # ═══════════════════════════════════════════════════════════════════════════════
 bot-name:
-  mode: random
   admin-format: '{bot_name}'
-  user-format: 'bot-{spawner}-{num}'
+  user-format: '{bot_name}'
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BOT NAME TAG (mannequin-style, three rows)
+# ═══════════════════════════════════════════════════════════════════════════════
+# All three rows are rendered by a floating text_display above the bot; the bot's
+# vanilla over-head name is hidden so it does not overlay.
+#   Row 1 (top)    = current activity (idle/moving/mining/fighting/searching/sneaking/...),
+#                    computed live twice a second — not configurable here, see BotActivity.java.
+#   Row 2 (middle) = the bot's name.
+#   Row 3 (bottom) = the format below.
+# Row 3 is a mandatory disclosure tag and cannot be disabled — every bot must
+# always visibly identify itself as a bot.
+#   {owner} = the player (or CONSOLE) that spawned the bot.
+#   y-offset             = blocks above the bot's feet (~1.9 sits just above the head, mannequin-style).
+#   interpolation-ticks  = follow smoothing; ~3 matches the bot's own movement.
+# ═══════════════════════════════════════════════════════════════════════════════
+nametag:
+  second-line:
+    format: '<gray>ʙᴏᴛ ʙʏ {owner}</gray>'
+    y-offset: 1.9
+    interpolation-ticks: 3
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BOT SKINS (rarity pools)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Skins are defined in plugins/FakePlayerPlugin/skins/ as text files of NameMC
+# skin URLs (https://namemc.com/skin/<id>), one per line:
+#   main_skin.txt = the default skin every bot spawns with.
+#   1-<N>%.txt    = a "1 in N" rarity pool — each fresh spawn has a 1/N chance to
+#                   draw a random skin from that file instead of the main skin.
+#                   Add or remove pool files freely; rarest pools roll first.
+# Skins are signed once through the MineSkin API (slim/classic model detected
+# automatically from the texture) and cached forever in data/skin-cache.yml.
+# A bot keeps its rolled skin across despawn/restart; the roll only happens on a
+# brand-new spawn. Set rare-pools: false to disable the whole system (bots then
+# use the vanilla default Steve/Alex skin).
+# ═══════════════════════════════════════════════════════════════════════════════
+skin:
+  rare-pools: true
+  # Optional MineSkin API key (https://mineskin.org/apikey) — grants a much larger
+  # signing quota than anonymous use. Only needed if you add many new skins at once.
+  mineskin-api-key: ''
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BAD WORD FILTER
@@ -84,14 +124,13 @@ bot-interaction:
 # ═══════════════════════════════════════════════════════════════════════════════
 # BROADCAST MESSAGES
 # ═══════════════════════════════════════════════════════════════════════════════
-# Controls visible join/leave/death/kill announcements for fake players.
+# leave-message controls network-relay behavior (Velocity/BungeeCord), not chat text — bots never
+# show join/leave/death/kill messages in chat.
 # notify-admins-on-join sends an additional notification to staff/admin users.
 # ═══════════════════════════════════════════════════════════════════════════════
 messages:
   join-message: true
   leave-message: true
-  death-message: true
-  kill-message: false
   notify-admins-on-join: true
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -152,7 +191,6 @@ chunk-loading:
 # BOT AUTOMATION DEFAULTS
 # ═══════════════════════════════════════════════════════════════════════════════
 # These defaults are copied to newly spawned/restored bots.
-# Extensions may add their own automation settings in extension config files.
 # ═══════════════════════════════════════════════════════════════════════════════
 automation:
   auto-eat: true
@@ -177,7 +215,7 @@ head-ai:
 # SWIM AI
 # ═══════════════════════════════════════════════════════════════════════════════
 # Lets bots attempt basic swimming/surface movement when physics places them in
-# water. Advanced navigation is extension-owned.
+# water. Land navigation is handled by the pathfinding engine.
 # ═══════════════════════════════════════════════════════════════════════════════
 swim-ai:
   enabled: true
@@ -266,10 +304,10 @@ update-checker:
   enabled: true
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# LEGACY PVE DEFAULTS
+# PVE DEFAULTS
 # ═══════════════════════════════════════════════════════════════════════════════
-# Core /fpp attack is swing-only. These values are kept for saved legacy PvE bot
-# settings and compatibility with older data; richer combat belongs in extensions.
+# Default range/priority applied to a bot's PVE settings until changed in the
+# per-bot settings GUI. Core /fpp attack itself is swing-only.
 # ═══════════════════════════════════════════════════════════════════════════════
 attack-mob:
   default-range: 8.0

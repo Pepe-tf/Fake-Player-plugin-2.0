@@ -72,7 +72,7 @@ public final class AttackCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "<bot|all> [--once|--stop]  |  --stop";
+        return "<bot|--all> [--once|--stop]  |  --stop";
     }
 
     @Override
@@ -117,7 +117,7 @@ public final class AttackCommand implements FppCommand {
             }
         }
 
-        if (botName.equalsIgnoreCase("--all") || botName.equalsIgnoreCase("all")) {
+        if (botName.equalsIgnoreCase("--all")) {
             if (stop) {
                 stopAll();
                 sender.sendMessage(Lang.get("attack-stopped-all"));
@@ -226,7 +226,8 @@ public final class AttackCommand implements FppCommand {
         if (once) stopAttacking(uuid);
     }
 
-    private static int getWeaponCooldown(@Nullable Material weapon) {
+    /** Swing cooldown in ticks for a weapon material — shared with the PVE controller. */
+    public static int getWeaponCooldown(@Nullable Material weapon) {
         if (weapon == null) return DEFAULT_COOLDOWN;
         return WEAPON_COOLDOWN.getOrDefault(weapon, DEFAULT_COOLDOWN);
     }
@@ -253,7 +254,7 @@ public final class AttackCommand implements FppCommand {
         if (args.length == 1) {
             String prefix = args[0].toLowerCase();
             List<String> out = new ArrayList<>();
-            for (String s : List.of("--stop", "--all", "all")) if (s.startsWith(prefix)) out.add(s);
+            for (String s : List.of("--stop", "--all")) if (s.startsWith(prefix)) out.add(s);
             for (FakePlayer fp : manager.getActivePlayers()) {
                 if (fp.getName().toLowerCase().startsWith(prefix)) out.add(fp.getName());
             }

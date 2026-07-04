@@ -1,6 +1,6 @@
 # Placeholders
 
-FPP provides **80+ placeholders** via PlaceholderAPI (requires the PlaceholderAPI plugin).
+FPP provides an extensive set of placeholders via PlaceholderAPI (requires the PlaceholderAPI plugin).
 
 All identifiers are prefixed with `%fpp_`.
 
@@ -71,13 +71,6 @@ All identifiers are prefixed with `%fpp_`.
 | `%fpp_server_tps%` | Server TPS (current) |
 | `%fpp_server_uptime%` | Server uptime (e.g. `4h 12m`) |
 
-## Extensions (2 placeholders)
-
-| Placeholder | Description |
-|-------------|-------------|
-| `%fpp_extensions%` | Number of loaded extensions |
-| `%fpp_extensions_names%` | Comma-separated extension names |
-
 ## Ping (3 placeholders)
 
 | Placeholder | Description |
@@ -136,7 +129,6 @@ All identifiers are prefixed with `%fpp_`.
 | `%fpp_damage_<bot_name>%` | Total damage taken by bot |
 | `%fpp_deaths_<bot_name>%` | Bot's death count |
 | `%fpp_type_<bot_name>%` | Bot's type (e.g. `AFK`, `MINER`, `BUILDER`) |
-| `%fpp_chat_<bot_name>%` | `yes` or `no` (bot chat enabled) |
 | `%fpp_skin_<bot_name>%` | Bot's skin name |
 
 ## Examples
@@ -148,7 +140,6 @@ All identifiers are prefixed with `%fpp_`.
 # Scoreboard
 'Bot Count': %fpp_count% / %fpp_max%
 'Your Bots': %fpp_user_count% / %fpp_user_max%
-'Extensions': %fpp_extensions%
 'Server Uptime': %fpp_server_uptime%
 
 # Per-bot info display

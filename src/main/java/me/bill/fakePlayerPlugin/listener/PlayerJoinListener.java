@@ -14,7 +14,6 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
@@ -50,17 +49,8 @@ public class PlayerJoinListener implements Listener {
         FakePlayer fp = manager.getByUuid(uuid);
         if (fp == null) return;
 
-        if (manager.suppressBodyTransitionMessage(fp.getUuid())) {
-            event.joinMessage(null);
-        } else if (manager.isRenaming(fp.getUuid())) {
-            event.joinMessage(null);
-        } else if (fp.isRespawning() || manager.isBodyTransitioning(fp.getUuid())) {
-            event.joinMessage(null);
-        } else if (!Config.joinMessage()) {
-            event.joinMessage(null);
-        } else {
-            event.joinMessage(BotBroadcast.joinComponent(fp));
-        }
+        // Bot join messages were removed with the chat system.
+        event.joinMessage(null);
 
         if (event.getPlayer().getFirstPlayed() != 0L) {
             forceHasPlayedBefore(event.getPlayer());
@@ -69,35 +59,9 @@ public class PlayerJoinListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onQuitEarly(PlayerQuitEvent event) {
-
-        UUID uuid = event.getPlayer().getUniqueId();
-
-        if (manager.hasSyntheticQuit(uuid)) {
-            event.quitMessage(null);
-            return;
-        }
-
-        if (manager.suppressBodyTransitionMessage(uuid)) {
-            event.quitMessage(null);
-            return;
-        }
-
-        if (manager.isRenaming(uuid)) {
-            event.quitMessage(null);
-            return;
-        }
-
-        String despawnName = manager.getDespawningDisplayName(uuid);
-        if (despawnName != null) {
-            event.quitMessage(
-                    Config.leaveMessage() && !despawnName.isBlank() ? BotBroadcast.leaveComponent(despawnName) : null);
-            return;
-        }
-
-        FakePlayer fp = manager.getByUuid(uuid);
-        if (fp == null) return;
-
-        event.quitMessage(Config.leaveMessage() ? BotBroadcast.leaveComponent(fp) : null);
+        // Bot leave messages are removed; real players' quit messages are left untouched.
+        if (manager.getByUuid(event.getPlayer().getUniqueId()) == null) return;
+        event.quitMessage(null);
     }
 
     private static void forceHasPlayedBefore(Player player) {

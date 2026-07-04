@@ -30,7 +30,7 @@ public class ReloadCommand implements FppCommand {
     private static final TextColor YELLOW = NamedTextColor.YELLOW;
     private static final TextColor RED = NamedTextColor.RED;
 
-    private static final List<String> TARGETS = List.of("all", "config", "lang", "extensions");
+    private static final List<String> TARGETS = List.of("all", "config", "lang");
 
     private final FakePlayerPlugin plugin;
 
@@ -45,7 +45,7 @@ public class ReloadCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "[all|config|lang|extensions]";
+        return "[all|config|lang]";
     }
 
     @Override
@@ -77,7 +77,6 @@ public class ReloadCommand implements FppCommand {
         switch (target) {
             case "config" -> reloadConfig(sender);
             case "lang" -> reloadLang(sender);
-            case "extensions" -> reloadExtensions(sender);
             case "all" -> reloadAll(sender);
             default -> {
                 sender.sendMessage(Component.text("│  ")
@@ -112,6 +111,7 @@ public class ReloadCommand implements FppCommand {
         Lang.reload();
         BotNameConfig.reload();
         BadwordFilter.reload(plugin);
+        if (plugin.getSkinManager() != null) plugin.getSkinManager().reload();
 
         if (Config.isBadwordFilterEnabled() && BadwordFilter.getBadwordCount() == 0) {
             sender.sendMessage(Component.text("│  ⚠ Badword filter is ON but no sources are active — enable"
@@ -141,23 +141,13 @@ public class ReloadCommand implements FppCommand {
         sendStep(sender, "Language file reloaded");
     }
 
-    private void reloadExtensions(CommandSender sender) {
-        var loader = plugin.getExtensionLoader();
-        if (loader != null) {
-            loader.reload();
-            loader.reloadExtensionConfigs();
-            sendStep(sender, "Extensions reloaded from plugins/FakePlayerPlugin/extensions/");
-        } else {
-            sendStep(sender, "Extension loader not available");
-        }
-    }
-
     private void reloadAll(CommandSender sender) {
 
         Config.reload();
         Lang.reload();
         BotNameConfig.reload();
         BadwordFilter.reload(plugin);
+        if (plugin.getSkinManager() != null) plugin.getSkinManager().reload();
 
         if (Config.isBadwordFilterEnabled() && BadwordFilter.getBadwordCount() == 0) {
             sender.sendMessage(Component.text("│  ⚠ Badword filter is ON but no sources are active — enable"
@@ -203,8 +193,6 @@ public class ReloadCommand implements FppCommand {
                 ? "db + yaml  (schema v" + DatabaseManager.getCurrentSchemaVersion() + ")"
                 : Config.persistOnRestart() ? "yaml only  (DB disabled)" : "disabled";
         sendStep(sender, "Task persistence — " + taskPersistDetail);
-
-        reloadExtensions(sender);
 
         int issues = ConfigValidator.validate();
         if (issues > 0) {

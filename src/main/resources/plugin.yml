@@ -1,10 +1,10 @@
 name: FakePlayerPlugin
-version: '1.6.6.12.8'
+version: '2.0.0'
 main: me.bill.fakePlayerPlugin.FakePlayerPlugin
 api-version: '1.21'
 folia-supported: true
 authors: [ F_PP ]
-description: "Advanced Fake Player Spoofer for Paper 1.21+"
+description: "Advanced fake player / bot plugin for Paper and Folia 1.21+"
 website: "https://modrinth.com/plugin/fake-player-plugin-(fpp)"
 softdepend: [ PlaceholderAPI, WorldEdit, spark ]
 
@@ -67,9 +67,6 @@ permissions:
       fpp.plugininfo:           true
       fpp.help:                 true
       fpp.spawn:                true
-      fpp.spawn.multiple:       true
-      fpp.spawn.mass:           true
-      fpp.spawn.name:           true
       fpp.spawn.coords:         true
       fpp.despawn:              true
       fpp.despawn.bulk:         true
@@ -83,13 +80,14 @@ permissions:
       fpp.tph.all:              true
       fpp.bypass.max:           true
       fpp.bypass.cooldown:      true
-      fpp.migrate:              true
-      fpp.stats:                true
       fpp.freeze:               true
       fpp.sneak:                true
+      fpp.rename:               true
       fpp.settings:             true
       fpp.check:                true
       fpp.move:                 true
+      fpp.move.to:              true
+      fpp.move.coords:          true
       fpp.inventory:            true
       fpp.inventory.cmd:        true
       fpp.inventory.rightclick: true
@@ -114,10 +112,6 @@ permissions:
       fpp.storage:              true
       fpp.setowner:             true
       fpp.save:                 true
-      fpp.place:                true
-      fpp.place.start:          true
-      fpp.place.once:           true
-      fpp.place.stop:           true
       fpp.useitem:              true
       fpp.use.cmd:              true
       fpp.useitem.start:        true
@@ -126,9 +120,6 @@ permissions:
       fpp.attack:               true
       fpp.find:                 true
       fpp.stop:                 true
-      fpp.badword:              true
-      fpp.rename:               true
-      fpp.rename.own:           true
       fpp.notify:               true
       fpp.use:                  true
 
@@ -172,34 +163,17 @@ permissions:
 
   fpp.spawn:
     description: >
-      Admin spawn — ignores personal bot limits. Grants fpp.spawn.multiple,
-      fpp.spawn.mass, fpp.spawn.name, fpp.spawn.coords automatically.
+      Admin spawn — ignores personal bot limits. Grants fpp.spawn.coords
+      automatically. Spawns one bot per command (auto-named or --name).
     default: op
     children:
-      fpp.spawn.multiple:   true
-      fpp.spawn.mass:       true
-      fpp.spawn.name:       true
       fpp.spawn.coords:     true
 
   fpp.spawn.user:
     description: >
       Spawn bots up to the player's personal limit (fpp.spawn.limit.<n>).
-      Cannot use --name, coordinates, or multi-bot spawns. Included in fpp.use.
+      Cannot use coordinates. Included in fpp.use.
     default: true
-
-  fpp.spawn.multiple:
-    description: Spawn more than one bot at a time. Child of fpp.spawn.
-    default: op
-
-  fpp.spawn.mass:
-    description: Alias for fpp.spawn.multiple — new preferred name.
-    default: op
-    children:
-      fpp.spawn.multiple: true
-
-  fpp.spawn.name:
-    description: Use --name to spawn a bot with a custom name. Admin only.
-    default: op
 
   fpp.spawn.coords:
     description: Spawn bots at explicit world / coordinate arguments. Admin only.
@@ -314,10 +288,6 @@ permissions:
     description: List all active bots with /fpp list.
     default: op
 
-  fpp.stats:
-    description: View live plugin statistics with /fpp stats.
-    default: op
-
   # ════════════════════════════════════════════════════════════════════════════
   #  INFO
   # ════════════════════════════════════════════════════════════════════════════
@@ -362,7 +332,19 @@ permissions:
 
   fpp.move:
     description: >
-      Directional bot movement input (/fpp move <bot|all> --direction ... [--seconds n|--ticks n]).
+      Bot movement: pathfind to another bot/player or to fixed coordinates
+      (requires fpp.move.to / fpp.move.coords below).
+    default: op
+
+  fpp.move.to:
+    description: >
+      Walk a bot to another bot's or online player's location via pathfinding, following live
+      (/fpp move <bot|--all> --to <bot|player>).
+    default: op
+
+  fpp.move.coords:
+    description: >
+      Walk a bot to specific coordinates via pathfinding (/fpp move <bot|--all> --coords <x> <y> <z> [world]).
     default: op
 
   # ════════════════════════════════════════════════════════════════════════════
@@ -377,21 +359,9 @@ permissions:
     description: Toggle bot sneaking with /fpp sneak <bot> [on|off|toggle].
     default: op
 
-  # ════════════════════════════════════════════════════════════════════════════
-  #  RENAME
-  # ════════════════════════════════════════════════════════════════════════════
-
   fpp.rename:
-    description: >
-      Rename any active bot (admin — any bot regardless of owner).
-      Grants fpp.rename.own automatically.
+    description: Rename a bot's display name with /fpp rename <bot> <new name>.
     default: op
-    children:
-      fpp.rename.own: true
-
-  fpp.rename.own:
-    description: Rename only bots the sender personally spawned. User opt-in.
-    default: false
 
   # ════════════════════════════════════════════════════════════════════════════
   #  INVENTORY
@@ -533,7 +503,7 @@ permissions:
 
   fpp.attack:
     description: >
-      Bot attack swing automation. PvE/pathfinding combat belongs in an extension.
+      Bot attack swing automation. Automated PVE combat is configured per bot in the settings GUI.
     default: op
 
   fpp.perf:
@@ -565,39 +535,6 @@ permissions:
     default: op
 
   # ════════════════════════════════════════════════════════════════════════════
-  #  PLACE  (granular sub-nodes)
-  # ════════════════════════════════════════════════════════════════════════════
-
-  fpp.place:
-    description: >
-      Bot block placement — grants fpp.place.start, fpp.place.once, fpp.place.stop.
-    default: op
-    children:
-      fpp.place.start: true
-      fpp.place.once:  true
-      fpp.place.stop:  true
-
-  fpp.place.start:
-    description: Start continuous placement (/fpp place <bot>).
-    default: op
-
-  fpp.place.once:
-    description: Place a single block (/fpp place <bot> --once).
-    default: op
-
-  fpp.place.stop:
-    description: Stop placing (/fpp place <bot> --stop).
-    default: op
-
-  fpp.place.wesel:
-    description: Use a WorldEdit selection as the place fill area (--wesel).
-    default: op
-    children:
-      fpp.place.start: true
-      fpp.place.once: true
-      fpp.place.stop: true
-
-  # ════════════════════════════════════════════════════════════════════════════
   #  STORAGE
   # ════════════════════════════════════════════════════════════════════════════
 
@@ -606,27 +543,11 @@ permissions:
     default: op
 
   # ════════════════════════════════════════════════════════════════════════════
-  #  BADWORD
-  # ════════════════════════════════════════════════════════════════════════════
-
-  fpp.badword:
-    description: >
-      Manage badword filter and fix bot names with /fpp badword.
-      Sub-commands: check, update, status.
-    default: op
-
-  # ════════════════════════════════════════════════════════════════════════════
   #  SYSTEM / NETWORK
   # ════════════════════════════════════════════════════════════════════════════
 
   fpp.reload:
     description: Hot-reload plugin config with /fpp reload. Trusted admins only.
-    default: op
-
-  fpp.migrate:
-    description: >
-      /fpp migrate — backups, config migrations, DB export/import/convert.
-      Trusted admins only.
     default: op
 
   fpp.settings:

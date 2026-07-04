@@ -117,7 +117,7 @@ public final class LeftClickCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "<bot> [--once|--repeat|--hold|--stop]";
+        return "<bot> [--once|--repeat|--hold|--stop]  |  --stop";
     }
 
     @Override
@@ -540,6 +540,24 @@ public final class LeftClickCommand implements FppCommand {
 
         if (nms.blockActionRestricted(nms.level(), pos, nms.gameMode.getGameModeForPlayer())) {
             return false;
+        }
+
+        // Creative-mode players insta-break on the very first click — no progress accumulation,
+        // matching ServerPlayerGameMode's real "creative destroy" short-circuit.
+        if (bot.getGameMode() == org.bukkit.GameMode.CREATIVE) {
+            nms.swing(InteractionHand.MAIN_HAND);
+            NmsPlayerSpawner.handleBlockBreakAction(
+                    nms,
+                    pos,
+                    ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK,
+                    Direction.DOWN,
+                    nms.level().getMaxY(),
+                    -1);
+            NmsPlayerSpawner.destroyBlockProgress(nms, -1, pos, -1);
+            nms.gameMode.destroyBlock(pos);
+            state.progress = 0;
+            state.blockTarget = null;
+            return true;
         }
 
         if (state.progress == 0) {

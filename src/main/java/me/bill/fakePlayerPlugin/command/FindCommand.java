@@ -15,6 +15,7 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
@@ -23,10 +24,13 @@ import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.Nullable;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotBlockBreakEvent;
@@ -37,6 +41,8 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
+import me.bill.fakePlayerPlugin.fakeplayer.StorageInteractionHelper;
+import me.bill.fakePlayerPlugin.fakeplayer.pathfinding.PatheticPathfindingController;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
@@ -69,20 +75,43 @@ public final class FindCommand implements FppCommand {
      */
     private static final int POST_MINE_PAUSE_TICKS = 10;
 
+    /**
+     * How long a find-job navigation attempt can run with no arrival/cancel/failure before we give up
+     * on that block ourselves and move to the next one (anti-stuck: the shared pathfinder will keep
+     * recalculating against a genuinely unreachable block forever otherwise).
+     */
+    private static final long NAV_WATCHDOG_TICKS = 45L * 20L;
+
+    /**
+     * Ticks of zero mining-progress before a block is abandoned as stuck (wrong/no tool, block
+     * regenerating, etc.) instead of being ground on forever.
+     */
+    private static final int MINE_STALL_TICKS = 100;
+
+    /** Auto-deposit trip triggers once free main-inventory slots drop to/below this. */
+    private static final int LOW_INVENTORY_FREE_SLOTS = 2;
+
     private final FakePlayerPlugin plugin;
     private final FakePlayerManager manager;
     private final PathfindingService pathfinding;
+    private final StorageStore storageStore;
 
     private final Map<UUID, FindJob> jobs = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> miningTasks = new ConcurrentHashMap<>();
     private final Map<String, UUID> reservedBlocks = new ConcurrentHashMap<>();
 
     private final Map<UUID, SimpleMiningState> miningStates = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> navWatchdogTasks = new ConcurrentHashMap<>();
 
-    public FindCommand(FakePlayerPlugin plugin, FakePlayerManager manager, PathfindingService pathfinding) {
+    public FindCommand(
+            FakePlayerPlugin plugin,
+            FakePlayerManager manager,
+            PathfindingService pathfinding,
+            StorageStore storageStore) {
         this.plugin = plugin;
         this.manager = manager;
         this.pathfinding = pathfinding;
+        this.storageStore = storageStore;
     }
 
     @Override
@@ -92,12 +121,13 @@ public final class FindCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "<bot> <block> [--radius <n>] [--count <n>] [--prefer-visible]  |  <bot> --stop  |" + "  --stop";
+        return "<bot> <block> [--radius|-r <n>] [--count|-c <n>] [--prefer-visible]  |  <bot> --stop  |  --stop";
     }
 
     @Override
     public String getDescription() {
-        return "Path to and mine nearby blocks of a chosen type. Repeats until --count blocks are"
+        return "Path to and mine nearby blocks of a chosen type, auto-equipping the right tool and"
+                + " auto-depositing at registered storage when full. Repeats until --count blocks are"
                 + " mined or no more are found.";
     }
 
@@ -362,6 +392,17 @@ public final class FindCommand implements FppCommand {
             return;
         }
 
+        // Inventory-aware: detour to the bot's nearest registered storage when running low on space,
+        // then resume the search from wherever the bot ends up. Skipped once right after a deposit
+        // trip finishes so an unreachable/full storage can't cause a tight retry loop; falls back to
+        // the existing passive drop-collection behavior if no storage is registered.
+        if (!job.skipInventoryCheckOnce && isInventoryLow(bot)) {
+            job.skipInventoryCheckOnce = true;
+            if (tryStartDepositTrip(fp, job)) return;
+        } else {
+            job.skipInventoryCheckOnce = false;
+        }
+
         Location origin = bot.getLocation().clone();
         World world = origin.getWorld();
         if (world == null) {
@@ -428,6 +469,13 @@ public final class FindCommand implements FppCommand {
         if (xzDist <= Config.pathfindingArrivalDistance()) {
             lockAndMineTarget(fp, job, target, faceLoc);
         } else {
+            UUID uuid = fp.getUuid();
+            startNavWatchdog(fp, target, () -> {
+                // Stuck too long chasing this block — give up on it and try the next one.
+                pathfinding.cancel(uuid);
+                releaseReservation(found.key(), uuid);
+                findAndMineNext(fp, job);
+            });
             pathfinding.navigate(
                     fp,
                     new PathfindingService.NavigationRequest(
@@ -436,14 +484,19 @@ public final class FindCommand implements FppCommand {
                             Config.pathfindingArrivalDistance(),
                             0.0,
                             Integer.MAX_VALUE,
-                            () -> lockAndMineTarget(fp, job, target, faceLoc),
+                            () -> {
+                                cancelNavWatchdog(uuid);
+                                lockAndMineTarget(fp, job, target, faceLoc);
+                            },
                             () -> {
                                 // Navigation cancelled externally — stop job
-                                cleanupBot(fp.getUuid());
+                                cancelNavWatchdog(uuid);
+                                cleanupBot(uuid);
                             },
                             () -> {
                                 // Path failed — skip this block and try next
-                                releaseReservation(found.key(), fp.getUuid());
+                                cancelNavWatchdog(uuid);
+                                releaseReservation(found.key(), uuid);
                                 findAndMineNext(fp, job);
                             },
                             faceLoc));
@@ -470,6 +523,12 @@ public final class FindCommand implements FppCommand {
         }
 
         if (!isAtLockLocation(bot, lockLoc)) {
+            UUID uuid = fp.getUuid();
+            startNavWatchdog(fp, target, () -> {
+                pathfinding.cancel(uuid);
+                releaseReservation(blockKey(target), uuid);
+                findAndMineNext(fp, job);
+            });
             pathfinding.navigate(
                     fp,
                     new PathfindingService.NavigationRequest(
@@ -478,9 +537,19 @@ public final class FindCommand implements FppCommand {
                             Config.pathfindingArrivalDistance(),
                             0.0,
                             Integer.MAX_VALUE,
-                            () -> lockAndMineTarget(fp, job, target, lockLoc),
-                            () -> cleanupBot(fp.getUuid()),
-                            () -> findAndMineNext(fp, job),
+                            () -> {
+                                cancelNavWatchdog(uuid);
+                                lockAndMineTarget(fp, job, target, lockLoc);
+                            },
+                            () -> {
+                                cancelNavWatchdog(uuid);
+                                cleanupBot(uuid);
+                            },
+                            () -> {
+                                cancelNavWatchdog(uuid);
+                                releaseReservation(blockKey(target), uuid);
+                                findAndMineNext(fp, job);
+                            },
                             lockLoc));
             return;
         }
@@ -621,12 +690,28 @@ public final class FindCommand implements FppCommand {
             }
         }
 
+        // Anti-stuck: no destroy progress for too long (wrong/missing tool, block resisting breakage,
+        // etc.) — give up on this block instead of grinding on it forever. It's already in job.mined
+        // so it won't be re-targeted.
+        if (state.ticksSinceProgress >= MINE_STALL_TICKS) {
+            ItemStack held = bot.getInventory().getItemInMainHand();
+            Config.debugPathfinding("event=MINE_STALL bot='" + fp.getName() + "'"
+                    + " block=" + currentMaterial
+                    + "@(" + targetPos.getX() + "," + targetPos.getY() + "," + targetPos.getZ() + ")"
+                    + " heldItem=" + held.getType()
+                    + " lastProgress=" + state.lastObservedProgress
+                    + " ticksSinceProgress=" + state.ticksSinceProgress + "/" + MINE_STALL_TICKS);
+            PatheticPathfindingController.sendDebugChat(fp.getUuid(), fp.getName(), "pathdebug-mine-stall");
+            state.done = true;
+            state.postMinePause = 0;
+            return;
+        }
+
         if (nms.blockActionRestricted(nms.level(), targetPos, nms.gameMode.getGameModeForPlayer())) {
             return;
         }
 
-        // Auto-equip best tool (delegates to MineCommand's package-private logic via the mine command
-        // instance — here we duplicate the minimal version needed)
+        // Auto-equip the best available tool for this block (real logic — see toolTagFor/toolTier).
         equipBestTool(bot, targetPos);
 
         Direction side = Direction.DOWN;
@@ -680,9 +765,17 @@ public final class FindCommand implements FppCommand {
             }
             state.currentPos = targetPos;
             state.progress = 0f;
+            state.lastObservedProgress = 0f;
+            state.ticksSinceProgress = 0;
         } else {
             float speed = blockState.getDestroyProgress(nms, nms.level(), targetPos);
             state.progress += speed;
+            if (state.progress > state.lastObservedProgress) {
+                state.lastObservedProgress = state.progress;
+                state.ticksSinceProgress = 0;
+            } else {
+                state.ticksSinceProgress++;
+            }
             if (state.progress >= 1.0f) {
                 if (fireBlockBreakHook(fp, targetPos)) {
                     NmsPlayerSpawner.handleBlockBreakAction(
@@ -767,6 +860,92 @@ public final class FindCommand implements FppCommand {
             } else {
                 ItemStack remaining = leftovers.values().iterator().next();
                 item.setItemStack(remaining);
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    //  Inventory-aware auto-deposit (mirrors StorageCommand's depositInventory/chooseStorage flow)
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    private boolean isInventoryLow(Player bot) {
+        int free = 0;
+        for (ItemStack item : bot.getInventory().getStorageContents()) {
+            if (item == null || item.getType().isAir()) free++;
+        }
+        return free <= LOW_INVENTORY_FREE_SLOTS;
+    }
+
+    /** @return true if a deposit trip was started (caller should stop and let it resume the job later). */
+    private boolean tryStartDepositTrip(FakePlayer fp, FindJob job) {
+        Player bot = fp.getPlayer();
+        if (bot == null || !bot.isOnline() || storageStore == null) return false;
+
+        StorageStore.StoragePoint point = chooseNearestStorage(fp, bot);
+        if (point == null) return false;
+
+        Block block = point.location().getBlock();
+        Location faceLoc = faceLocationForStorage(bot, block);
+
+        notifySender(job, "find-depositing", "name", fp.getDisplayName(), "storage", point.name());
+
+        pathfinding.navigate(
+                fp,
+                new PathfindingService.NavigationRequest(
+                        PathfindingService.Owner.SYSTEM,
+                        () -> faceLoc,
+                        1.25,
+                        0.0,
+                        10,
+                        () -> StorageInteractionHelper.interact(
+                                fp,
+                                faceLoc,
+                                block,
+                                plugin,
+                                manager,
+                                (holder, liveBot) ->
+                                        moveInventoryToStorage(liveBot.getInventory(), holder.getInventory()),
+                                () -> findAndMineNext(fp, job)),
+                        () -> findAndMineNext(fp, job),
+                        () -> findAndMineNext(fp, job)));
+        return true;
+    }
+
+    private StorageStore.StoragePoint chooseNearestStorage(FakePlayer fp, Player bot) {
+        List<StorageStore.StoragePoint> points = storageStore.getStorages(fp.getName());
+        StorageStore.StoragePoint best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (StorageStore.StoragePoint point : points) {
+            if (point.location().getWorld() != bot.getWorld()) continue;
+            if (!(point.location().getBlock().getState() instanceof InventoryHolder)) continue;
+            double dist = point.location().distanceSquared(bot.getLocation());
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = point;
+            }
+        }
+        return best;
+    }
+
+    private Location faceLocationForStorage(Player bot, Block block) {
+        Location loc = block.getLocation().add(0.5, 0, 0.5);
+        Location stand = BotNavUtil.findStandLocation(block.getWorld(), null, block.getX(), block.getY(), block.getZ());
+        if (stand == null) stand = bot.getLocation();
+        Location face = stand.clone();
+        face.setYaw(BotNavUtil.faceToward(face, loc).getYaw());
+        face.setPitch(BotNavUtil.faceToward(face, loc).getPitch());
+        return face;
+    }
+
+    private void moveInventoryToStorage(Inventory from, Inventory to) {
+        for (int i = 0; i < from.getSize(); i++) {
+            ItemStack item = from.getItem(i);
+            if (item == null || item.getType().isAir()) continue;
+            Map<Integer, ItemStack> leftover = to.addItem(item.clone());
+            if (leftover.isEmpty()) {
+                from.setItem(i, null);
+            } else {
+                from.setItem(i, leftover.values().iterator().next());
             }
         }
     }
@@ -927,15 +1106,64 @@ public final class FindCommand implements FppCommand {
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
-    //  Tool equip (minimal version — delegates pattern from MineCommand)
+    //  Tool equip — real logic, driven by Bukkit's own MINEABLE_*/ITEMS_* tags (the same
+    //  data vanilla uses to decide which tool category works on which block).
     // ─────────────────────────────────────────────────────────────────────────────
 
     /**
-     * Equip the best mining tool for the given block position. Scans the hotbar + main inventory and
-     * swaps the best tool into the held slot. This is a condensed version of MineCommand's tool logic.
+     * Equips the best available tool in the bot's inventory for the block at {@code pos}, if any tool
+     * category applies and the bot actually has one. Never blocks progress: if the block wants no
+     * specific tool, or the bot has none of the right category, mining proceeds with whatever's held.
      */
     private void equipBestTool(Player bot, BlockPos pos) {
-        // Handled by the addon auto-equipment tick handler.
+        Block block = bot.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
+        Tag<Material> toolCategory = toolTagFor(block.getType());
+        if (toolCategory == null) return;
+
+        PlayerInventory inv = bot.getInventory();
+        int bestSlot = -1;
+        int bestTier = -1;
+        for (int slot = 0; slot < 36; slot++) {
+            ItemStack item = inv.getItem(slot);
+            if (item == null || item.getType().isAir() || !toolCategory.isTagged(item.getType())) continue;
+            int tier = toolTier(item.getType());
+            if (tier > bestTier) {
+                bestTier = tier;
+                bestSlot = slot;
+            }
+        }
+        if (bestSlot < 0 || bestSlot == inv.getHeldItemSlot()) return;
+
+        if (bestSlot <= 8) {
+            inv.setHeldItemSlot(bestSlot);
+        } else {
+            int heldSlot = inv.getHeldItemSlot();
+            ItemStack heldItem = inv.getItem(heldSlot);
+            ItemStack toolItem = inv.getItem(bestSlot);
+            inv.setItem(heldSlot, toolItem);
+            inv.setItem(bestSlot, heldItem);
+        }
+    }
+
+    /** Which tool category (if any) is appropriate for mining this block, mirroring vanilla's own tags. */
+    private static Tag<Material> toolTagFor(Material blockType) {
+        if (Tag.MINEABLE_PICKAXE.isTagged(blockType)) return Tag.ITEMS_PICKAXES;
+        if (Tag.MINEABLE_AXE.isTagged(blockType)) return Tag.ITEMS_AXES;
+        if (Tag.MINEABLE_SHOVEL.isTagged(blockType)) return Tag.ITEMS_SHOVELS;
+        if (Tag.MINEABLE_HOE.isTagged(blockType)) return Tag.ITEMS_HOES;
+        return null;
+    }
+
+    /** Higher = better tier, for picking the strongest available tool within a category. */
+    private static int toolTier(Material toolMaterial) {
+        String name = toolMaterial.name();
+        if (name.startsWith("NETHERITE_")) return 6;
+        if (name.startsWith("DIAMOND_")) return 5;
+        if (name.startsWith("IRON_")) return 4;
+        if (name.startsWith("STONE_")) return 3;
+        if (name.startsWith("GOLDEN_")) return 2;
+        if (name.startsWith("WOODEN_")) return 1;
+        return 0;
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
@@ -971,6 +1199,52 @@ public final class FindCommand implements FppCommand {
         releaseReservations(botUuid);
         pathfinding.cancel(botUuid);
         stopCurrentMine(botUuid);
+        cancelNavWatchdog(botUuid);
+    }
+
+    /**
+     * Starts a watchdog that fires {@code onStuck} if navigation to the current find-job block hasn't
+     * arrived/cancelled/failed within {@link #NAV_WATCHDOG_TICKS} — the shared pathfinder will keep
+     * recalculating against a genuinely unreachable block forever otherwise (anti-stuck).
+     */
+    private void startNavWatchdog(FakePlayer fp, Runnable onStuck) {
+        startNavWatchdog(fp, null, onStuck);
+    }
+
+    private void startNavWatchdog(FakePlayer fp, @Nullable Block targetBlock, Runnable onStuck) {
+        UUID uuid = fp.getUuid();
+        cancelNavWatchdog(uuid);
+        Player bot = fp.getPlayer();
+        if (bot == null) return;
+        int taskId = FppScheduler.runAtEntityLaterWithId(
+                plugin,
+                bot,
+                () -> {
+                    navWatchdogTasks.remove(uuid);
+                    Location botLoc = bot.isOnline() ? bot.getLocation() : null;
+                    Config.debugPathfinding("event=WATCHDOG bot='" + fp.getName() + "'"
+                            + " elapsedTicks=" + NAV_WATCHDOG_TICKS
+                            + " pos=" + (botLoc != null ? formatLoc(botLoc) : "offline")
+                            + " target=" + (targetBlock != null ? formatBlock(targetBlock) : "n/a"));
+                    PatheticPathfindingController.sendDebugChat(uuid, fp.getName(), "pathdebug-watchdog");
+                    onStuck.run();
+                },
+                NAV_WATCHDOG_TICKS);
+        navWatchdogTasks.put(uuid, taskId);
+    }
+
+    private static String formatLoc(Location loc) {
+        return loc.getWorld().getName() + String.format(":(%.1f,%.1f,%.1f)", loc.getX(), loc.getY(), loc.getZ());
+    }
+
+    private static String formatBlock(Block block) {
+        return block.getType() + "@" + block.getWorld().getName() + ":(" + block.getX() + "," + block.getY() + ","
+                + block.getZ() + ")";
+    }
+
+    private void cancelNavWatchdog(UUID uuid) {
+        Integer taskId = navWatchdogTasks.remove(uuid);
+        if (taskId != null) FppScheduler.cancelTask(taskId);
     }
 
     /**
@@ -1057,6 +1331,9 @@ public final class FindCommand implements FppCommand {
 
         int minedCount = 0;
 
+        /** Skips the next inventory-full check — set right after a deposit trip finishes. */
+        boolean skipInventoryCheckOnce = false;
+
         FindJob(
                 Material material,
                 int radius,
@@ -1083,6 +1360,8 @@ public final class FindCommand implements FppCommand {
         int freeze;
         boolean done;
         int postMinePause;
+        float lastObservedProgress;
+        int ticksSinceProgress;
 
         SimpleMiningState(BlockPos targetPos, BlockPos desiredPos, Location lockLoc, boolean countsTowardGoal) {
             this.targetPos = targetPos;

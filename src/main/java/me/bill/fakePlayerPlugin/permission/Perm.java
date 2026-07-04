@@ -21,12 +21,6 @@ public final class Perm {
 
     public static final String USER_SPAWN = "fpp.spawn.user";
 
-    public static final String SPAWN_MULTIPLE = "fpp.spawn.multiple";
-
-    public static final String SPAWN_MASS = "fpp.spawn.mass";
-
-    public static final String SPAWN_CUSTOM_NAME = "fpp.spawn.name";
-
     public static final String SPAWN_COORDS = "fpp.spawn.coords";
 
     public static final String BOT_LIMIT_PREFIX = "fpp.spawn.limit.";
@@ -43,7 +37,6 @@ public final class Perm {
 
     public static final String HELP = "fpp.help";
     public static final String LIST = "fpp.list";
-    public static final String STATS = "fpp.stats";
 
     public static final String INFO = "fpp.info";
 
@@ -58,13 +51,15 @@ public final class Perm {
 
     public static final String MOVE = "fpp.move";
 
+    public static final String MOVE_TO = "fpp.move.to";
+
+    public static final String MOVE_COORDS = "fpp.move.coords";
+
     public static final String FREEZE = "fpp.freeze";
 
     public static final String SNEAK = "fpp.sneak";
 
     public static final String RENAME = "fpp.rename";
-
-    public static final String RENAME_OWN = "fpp.rename.own";
 
     public static final String INVENTORY = "fpp.inventory";
 
@@ -120,20 +115,9 @@ public final class Perm {
 
     public static final String SAVE = "fpp.save";
 
-    public static final String PLACE = "fpp.place";
-
-    public static final String PLACE_START = "fpp.place.start";
-
-    public static final String PLACE_ONCE = "fpp.place.once";
-
-    public static final String PLACE_STOP = "fpp.place.stop";
-
     public static final String STORAGE = "fpp.storage";
 
-    public static final String BADWORD = "fpp.badword";
-
     public static final String RELOAD = "fpp.reload";
-    public static final String MIGRATE = "fpp.migrate";
 
     public static final String SETTINGS = "fpp.settings";
 

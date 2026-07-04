@@ -4,10 +4,8 @@ import org.bukkit.command.CommandSender;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
-
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 public final class SaveCommand implements FppCommand {
     private final FakePlayerPlugin plugin;
@@ -44,16 +42,18 @@ public final class SaveCommand implements FppCommand {
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (!Config.persistOnRestart()) {
-            sender.sendMessage(Component.text("Persistence is disabled in config.yml.", NamedTextColor.RED));
+            sender.sendMessage(Lang.get("save-disabled"));
             return true;
         }
         if (plugin.getBotPersistence() == null) {
-            sender.sendMessage(Component.text("Bot persistence is not available.", NamedTextColor.RED));
+            sender.sendMessage(Lang.get("save-unavailable"));
             return true;
         }
         plugin.getBotPersistence().saveFullAsync(plugin.getFakePlayerManager().getActivePlayers());
-        sender.sendMessage(Component.text(
-                "Saving " + plugin.getFakePlayerManager().getCount() + " active bot(s).", NamedTextColor.YELLOW));
+        sender.sendMessage(Lang.get(
+                "save-started",
+                "count",
+                String.valueOf(plugin.getFakePlayerManager().getCount())));
         return true;
     }
 }

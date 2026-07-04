@@ -2,11 +2,9 @@ package me.bill.fakePlayerPlugin.config;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BooleanSupplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -21,61 +19,9 @@ public final class Config {
     private static FakePlayerPlugin plugin;
     private static FileConfiguration cfg;
     private static FileConfiguration debugCfg;
-    private static ChatMessageProvider chatMessageProvider = null;
-    private static BooleanSupplier tabListEnabledProvider = null;
     private static final Map<String, FileConfiguration> externalConfigs = new ConcurrentHashMap<>();
 
     private Config() {}
-
-    public interface ChatMessageProvider {
-        void reload();
-
-        List<String> getMessages();
-
-        List<String> getReplyMessages();
-
-        List<String> getBurstMessages();
-
-        List<String> getJoinReactionMessages();
-
-        List<String> getDeathReactionMessages();
-
-        List<String> getLeaveReactionMessages();
-
-        List<String> getKeywordReactionMessages(String key);
-
-        List<String> getBotToBotReplyMessages();
-
-        List<String> getAdvancementReactionMessages();
-
-        List<String> getFirstJoinReactionMessages();
-
-        List<String> getKillReactionMessages();
-
-        List<String> getHighLevelReactionMessages();
-
-        List<String> getPlayerChatReactionMessages();
-    }
-
-    public static void setChatMessageProvider(ChatMessageProvider provider) {
-        chatMessageProvider = provider;
-    }
-
-    public static void clearChatMessageProvider(ChatMessageProvider provider) {
-        if (chatMessageProvider == provider) chatMessageProvider = null;
-    }
-
-    public static void reloadChatMessages() {
-        if (chatMessageProvider != null) chatMessageProvider.reload();
-    }
-
-    public static void setTabListEnabledProvider(BooleanSupplier provider) {
-        tabListEnabledProvider = provider;
-    }
-
-    public static void clearTabListEnabledProvider(BooleanSupplier provider) {
-        if (tabListEnabledProvider == provider) tabListEnabledProvider = null;
-    }
 
     public static void registerExternalConfig(String rootKey, FileConfiguration config) {
         if (rootKey == null || rootKey.isBlank() || config == null) return;
@@ -209,10 +155,6 @@ public final class Config {
         return debugBool("nms.damage", false);
     }
 
-    public static boolean debugLicense() {
-        return isDebug() || debugBool("license", false);
-    }
-
     public static boolean debugStartup() {
         return isDebug() || debugBool("startup", false);
     }
@@ -246,8 +188,12 @@ public final class Config {
         return isDebug() || debugBool("chat", false);
     }
 
-    public static boolean debugSwap() {
-        return isDebug() || debugBool("swap", false);
+    public static boolean debugPathfinding() {
+        return isDebug() || debugBool("pathfinding", false);
+    }
+
+    public static boolean debugSkinPool() {
+        return isDebug() || debugBool("skin-pool", false);
     }
 
     public static boolean debugCommands() {
@@ -332,57 +278,12 @@ public final class Config {
         return Math.max(0, cfg.getInt("spawn-cooldown", 0));
     }
 
+    /**
+     * Bots are permanently hidden from the tab list — there is no override mechanism. This is
+     * intentional: bots must never be able to present themselves as a real connected client.
+     */
     public static boolean tabListEnabled() {
-        if (tabListEnabledProvider != null) return tabListEnabledProvider.getAsBoolean();
-        return true;
-    }
-
-    public static boolean pingEnabled() {
-        return bool("ping.enabled", false);
-    }
-
-    public static int pingMin() {
-        return integer("ping.min", 20);
-    }
-
-    public static int pingMax() {
-        return integer("ping.max", 200);
-    }
-
-    public static int pingVariability() {
-        return integer("ping.variability", 8);
-    }
-
-    public static int pingUpdateInterval() {
-        return integer("ping.update-interval", 40);
-    }
-
-    public static boolean pingLatencyEffect() {
-        return bool("ping.latency-effect", true);
-    }
-
-    public static boolean pingBehaviorEffect() {
-        return bool("ping.behavior-effect", true);
-    }
-
-    public static int pingMaxBehaviorSkipTicks() {
-        return Math.max(1, integer("ping.max-behavior-skip-ticks", 8));
-    }
-
-    public static double pingSpikeChance() {
-        return decimal("ping.spike-chance", 0.04);
-    }
-
-    public static int pingSpikeMin() {
-        return integer("ping.spike-min", 200);
-    }
-
-    public static int pingSpikeMax() {
-        return integer("ping.spike-max", 600);
-    }
-
-    public static int pingJoinRampTicks() {
-        return integer("ping.join-ramp-ticks", 60);
+        return false;
     }
 
     public static int maxBots() {
@@ -393,79 +294,40 @@ public final class Config {
         return cfg.getInt("limits.user-bot-limit", 1);
     }
 
-    public static List<String> spawnCountPresetsAdmin() {
-        List<?> raw = cfg.getList("limits.spawn-presets", List.of(1, 5, 10, 15, 20));
-        return raw.stream().map(Object::toString).toList();
-    }
-
     public static String adminBotNameFormat() {
-        return cfg.getString("bot-name.admin-format", "<#0079FF>[bot-{bot_name}]</#0079FF>");
+        return cfg.getString("bot-name.admin-format", "{bot_name}");
     }
 
     public static String userBotNameFormat() {
         return cfg.getString("bot-name.user-format", "<gray>[bot-{spawner}-{num}]</gray>");
     }
 
-    public static String botNameMode() {
-        return cfg.getString("bot-name.mode", "random").toLowerCase();
+    /**
+     * The disclosure line ("bot by {owner}") is mandatory and cannot be disabled — every bot must
+     * always visibly identify itself as a bot, never as an indistinguishable real player.
+     */
+    public static boolean nametagSecondLineEnabled() {
+        return true;
     }
 
-    public static String skinMode() {
-        return cfg.getString("skin.mode", "player").toLowerCase();
+    public static String nametagSecondLineFormat() {
+        return string("nametag.second-line.format", "<gray>bot by {owner}</gray>");
     }
 
-    public static boolean skinClearCacheOnReload() {
-        return cfg.getBoolean("skin.clear-cache-on-reload", true);
+    public static double nametagSecondLineYOffset() {
+        return cfg.getDouble("nametag.second-line.y-offset", 1.9);
     }
 
-    public static boolean skinGuaranteed() {
-        return cfg.getBoolean("skin.guaranteed-skin", false);
+    public static int nametagInterpolationTicks() {
+        return integer("nametag.second-line.interpolation-ticks", 3);
     }
 
-    public static List<String> skinCustomPool() {
-
-        Object raw = cfg.get("skin.pool");
-        if (raw == null) raw = cfg.get("skin.custom.pool");
-        if (raw instanceof List<?> list) {
-            return list.stream()
-                    .filter(o -> o instanceof String)
-                    .map(o -> (String) o)
-                    .filter(s -> !s.isBlank())
-                    .toList();
-        }
-        return List.of();
-    }
-
-    public static Map<String, String> skinCustomByName() {
-
-        Object section = cfg.get("skin.overrides");
-        if (section == null) section = cfg.get("skin.custom.by-name");
-        if (section instanceof Map<?, ?> raw) {
-            Map<String, String> result = new LinkedHashMap<>();
-            for (Map.Entry<?, ?> e : raw.entrySet()) {
-                if (e.getKey() instanceof String k && e.getValue() instanceof String v) {
-                    result.put(k.toLowerCase(), v);
-                }
-            }
-            return result;
-        }
-        return Map.of();
-    }
-
-    public static boolean skinUseSkinFolder() {
-        return cfg.getBoolean("skin.use-skin-folder", true);
-    }
-
-    public static boolean skinMineSkinUrlUploadEnabled() {
-        return cfg.getBoolean("skin.mineskin.url-upload-enabled", true);
+    public static boolean skinRarePoolsEnabled() {
+        return cfg.getBoolean("skin.rare-pools", true);
     }
 
     public static String skinMineSkinApiKey() {
-        return cfg.getString("skin.mineskin.api-key", "");
-    }
-
-    public static String skinMineSkinVisibility() {
-        return cfg.getString("skin.mineskin.visibility", "public");
+        return cfg.getString("skin.mineskin-api-key", "");
     }
 
     public static boolean bodyPushable() {
@@ -520,116 +382,12 @@ public final class Config {
         return BotNameConfig.getNames();
     }
 
-    public static boolean swapEnabled() {
-        return bool("swap.enabled", false);
-    }
-
-    public static int swapSessionMin() {
-        return integer("swap.session.min", 60);
-    }
-
-    public static int swapSessionMax() {
-        return integer("swap.session.max", 300);
-    }
-
-    public static int swapAbsenceMin() {
-        return integer("swap.absence.min", 30);
-    }
-
-    public static int swapAbsenceMax() {
-        return integer("swap.absence.max", 120);
-    }
-
-    public static int swapMaxSwappedOut() {
-        return integer("swap.max-swapped-out", 0);
-    }
-
-    public static boolean swapFarewellChat() {
-        return bool("swap.farewell-chat", true);
-    }
-
-    public static boolean swapGreetingChat() {
-        return bool("swap.greeting-chat", true);
-    }
-
-    public static boolean swapSameNameOnRejoin() {
-        return bool("swap.same-name-on-rejoin", true);
-    }
-
-    public static int swapMinOnline() {
-        return integer("swap.min-online", 0);
-    }
-
-    public static boolean swapRetryRejoin() {
-        return bool("swap.retry-rejoin", true);
-    }
-
-    public static int swapRetryDelay() {
-        return integer("swap.retry-delay", 60);
-    }
-
-    public static boolean swapPlayerAwareEnabled() {
-        return bool("swap.player-aware.enabled", false);
-    }
-
-    public static double swapPlayerAwareNearbyRadius() {
-        return decimal("swap.player-aware.nearby-radius", 48.0);
-    }
-
-    public static int swapPlayerAwareIdleThresholdSeconds() {
-        return integer("swap.player-aware.idle-threshold-seconds", 120);
-    }
-
-    public static double swapPlayerAwareIdleBonusPercent() {
-        return decimal("swap.player-aware.idle-bonus-percent", 35.0);
-    }
-
-    public static double swapPlayerAwareActivePenaltyPercent() {
-        return decimal("swap.player-aware.active-penalty-percent", 25.0);
-    }
-
-    public static boolean peakHoursEnabled() {
-        return bool("peak-hours.enabled", false);
-    }
-
-    public static String peakHoursTimezone() {
-        return string("peak-hours.timezone", "UTC");
-    }
-
-    public static int peakHoursStaggerSeconds() {
-        return integer("peak-hours.stagger-seconds", 30);
-    }
-
-    public static List<Map<?, ?>> peakHoursSchedule() {
-        return mapList("peak-hours.schedule");
-    }
-
-    public static ConfigurationSection peakHoursDayOverrides() {
-        return section("peak-hours.day-overrides");
-    }
-
-    public static int peakHoursMinOnline() {
-        return Math.max(0, integer("peak-hours.min-online", 0));
-    }
-
-    public static boolean peakHoursNotifyTransitions() {
-        return bool("peak-hours.notify-transitions", false);
-    }
-
     public static boolean joinMessage() {
         return cfg.getBoolean("messages.join-message", true);
     }
 
     public static boolean leaveMessage() {
         return cfg.getBoolean("messages.leave-message", true);
-    }
-
-    public static boolean deathMessage() {
-        return cfg.getBoolean("messages.death-message", true);
-    }
-
-    public static boolean killMessage() {
-        return cfg.getBoolean("messages.kill-message", false);
     }
 
     public static boolean warningsNotifyAdmins() {
@@ -754,11 +512,20 @@ public final class Config {
     }
 
     public static int pathfindingStuckTicks() {
-        return Math.max(1, integer("pathfinding.stuck-ticks", 5));
+        return Math.max(1, integer("pathfinding.stuck-ticks", 10));
     }
 
     public static double pathfindingStuckThreshold() {
         return Math.max(0.001, decimal("pathfinding.stuck-threshold", 0.04));
+    }
+
+    /**
+     * How many consecutive stuck→recalculate cycles are tolerated (with zero real progress toward
+     * the goal in between) before the navigation is abandoned outright as unreachable, instead of
+     * recalculating against the same obstruction forever.
+     */
+    public static int pathfindingMaxStuckCycles() {
+        return Math.max(1, integer("pathfinding.max-stuck-cycles", 4));
     }
 
     public static int pathfindingBreakTicks() {
@@ -811,335 +578,6 @@ public final class Config {
 
     public static double collisionBotStrength() {
         return cfg.getDouble("collision.bot-strength", 0.14);
-    }
-
-    public static boolean fakeChatEnabled() {
-        return bool("fake-chat.enabled", false);
-    }
-
-    public static boolean fakeChatRequirePlayer() {
-        return bool("fake-chat.require-player-online", true);
-    }
-
-    public static double fakeChatChance() {
-        return decimal("fake-chat.chance", 0.75);
-    }
-
-    public static int fakeChatIntervalMin() {
-        return integer("fake-chat.interval.min", 5);
-    }
-
-    public static int fakeChatIntervalMax() {
-        return integer("fake-chat.interval.max", 10);
-    }
-
-    public static boolean fakeChatTypingDelay() {
-        return bool("fake-chat.typing-delay", true);
-    }
-
-    public static double fakeChatBurstChance() {
-        return decimal("fake-chat.burst-chance", 0.12);
-    }
-
-    public static int fakeChatBurstDelayMin() {
-        return integer("fake-chat.burst-delay.min", 2);
-    }
-
-    public static int fakeChatBurstDelayMax() {
-        return integer("fake-chat.burst-delay.max", 5);
-    }
-
-    public static boolean fakeChatReplyToMentions() {
-        return bool("fake-chat.reply-to-mentions", true);
-    }
-
-    public static double fakeChatMentionReplyChance() {
-        return decimal("fake-chat.mention-reply-chance", 0.65);
-    }
-
-    public static int fakeChatReplyDelayMin() {
-        return integer("fake-chat.reply-delay.min", 2);
-    }
-
-    public static int fakeChatReplyDelayMax() {
-        return integer("fake-chat.reply-delay.max", 8);
-    }
-
-    public static int fakeChatStaggerInterval() {
-        return integer("fake-chat.stagger-interval", 3);
-    }
-
-    public static boolean fakeChatActivityVariation() {
-        return bool("fake-chat.activity-variation", true);
-    }
-
-    public static int fakeChatHistorySize() {
-        return integer("fake-chat.history-size", 5);
-    }
-
-    public static List<String> fakeChatMessages() {
-        return chatMessageProvider != null ? chatMessageProvider.getMessages() : fallbackChatMessages();
-    }
-
-    public static List<String> chatReplyMessages() {
-        return chatMessageProvider != null ? chatMessageProvider.getReplyMessages() : fallbackChatReplies();
-    }
-
-    public static List<String> chatBurstMessages() {
-        return chatMessageProvider != null ? chatMessageProvider.getBurstMessages() : fallbackChatBursts();
-    }
-
-    public static List<String> chatJoinReactionMessages() {
-        return chatMessageProvider != null ? chatMessageProvider.getJoinReactionMessages() : List.of();
-    }
-
-    public static List<String> chatDeathReactionMessages() {
-        return chatMessageProvider != null ? chatMessageProvider.getDeathReactionMessages() : List.of();
-    }
-
-    public static List<String> chatLeaveReactionMessages() {
-        return chatMessageProvider != null ? chatMessageProvider.getLeaveReactionMessages() : List.of();
-    }
-
-    public static List<String> chatKeywordReactionMessages(String key) {
-        return chatMessageProvider != null ? chatMessageProvider.getKeywordReactionMessages(key) : List.of();
-    }
-
-    public static String fakeChatRemoteFormat() {
-        return string("fake-chat.remote-format", "<yellow>{name}<dark_gray>: <white>{message}");
-    }
-
-    public static boolean fakeChatEventTriggersEnabled() {
-        return bool("fake-chat.event-triggers.enabled", true);
-    }
-
-    public static boolean fakeChatOnJoinEnabled() {
-        return bool("fake-chat.event-triggers.on-player-join.enabled", true);
-    }
-
-    public static double fakeChatOnJoinChance() {
-        return decimal("fake-chat.event-triggers.on-player-join.chance", 0.40);
-    }
-
-    public static int fakeChatOnJoinDelayMin() {
-        return integer("fake-chat.event-triggers.on-player-join.delay.min", 2);
-    }
-
-    public static int fakeChatOnJoinDelayMax() {
-        return integer("fake-chat.event-triggers.on-player-join.delay.max", 6);
-    }
-
-    public static boolean fakeChatOnDeathEnabled() {
-        return bool("fake-chat.event-triggers.on-death.enabled", true);
-    }
-
-    public static boolean fakeChatOnDeathPlayersOnly() {
-        return bool("fake-chat.event-triggers.on-death.players-only", false);
-    }
-
-    public static double fakeChatOnDeathChance() {
-        return decimal("fake-chat.event-triggers.on-death.chance", 0.30);
-    }
-
-    public static int fakeChatOnDeathDelayMin() {
-        return integer("fake-chat.event-triggers.on-death.delay.min", 1);
-    }
-
-    public static int fakeChatOnDeathDelayMax() {
-        return integer("fake-chat.event-triggers.on-death.delay.max", 4);
-    }
-
-    public static boolean fakeChatOnLeaveEnabled() {
-        return bool("fake-chat.event-triggers.on-player-leave.enabled", true);
-    }
-
-    public static double fakeChatOnLeaveChance() {
-        return decimal("fake-chat.event-triggers.on-player-leave.chance", 0.30);
-    }
-
-    public static int fakeChatOnLeaveDelayMin() {
-        return integer("fake-chat.event-triggers.on-player-leave.delay.min", 1);
-    }
-
-    public static int fakeChatOnLeaveDelayMax() {
-        return integer("fake-chat.event-triggers.on-player-leave.delay.max", 4);
-    }
-
-    public static boolean fakeChatOnPlayerChatEnabled() {
-        return bool("fake-chat.event-triggers.on-player-chat.enabled", false);
-    }
-
-    public static double fakeChatOnPlayerChatChance() {
-        return decimal("fake-chat.event-triggers.on-player-chat.chance", 0.25);
-    }
-
-    public static int fakeChatOnPlayerChatMaxBots() {
-        return integer("fake-chat.event-triggers.on-player-chat.max-bots", 1);
-    }
-
-    public static boolean fakeChatOnPlayerChatIgnoreShort() {
-        return bool("fake-chat.event-triggers.on-player-chat.ignore-short", true);
-    }
-
-    public static boolean fakeChatOnPlayerChatIgnoreCommands() {
-        return bool("fake-chat.event-triggers.on-player-chat.ignore-commands", true);
-    }
-
-    public static double fakeChatOnPlayerChatMentionChance() {
-        return decimal("fake-chat.event-triggers.on-player-chat.mention-player", 0.50);
-    }
-
-    public static int fakeChatOnPlayerChatDelayMin() {
-        return integer("fake-chat.event-triggers.on-player-chat.delay.min", 2);
-    }
-
-    public static int fakeChatOnPlayerChatDelayMax() {
-        return integer("fake-chat.event-triggers.on-player-chat.delay.max", 8);
-    }
-
-    public static boolean fakeChatBotToBotEnabled() {
-        return bool("fake-chat.bot-to-bot.enabled", true);
-    }
-
-    public static double fakeChatBotToBotReplyChance() {
-        return decimal("fake-chat.bot-to-bot.reply-chance", 0.35);
-    }
-
-    public static double fakeChatBotToBotChainChance() {
-        return decimal("fake-chat.bot-to-bot.chain-chance", 0.40);
-    }
-
-    public static int fakeChatBotToBotMaxChain() {
-        return integer("fake-chat.bot-to-bot.max-chain", 3);
-    }
-
-    public static int fakeChatBotToBotDelayMin() {
-        return integer("fake-chat.bot-to-bot.delay.min", 4);
-    }
-
-    public static int fakeChatBotToBotDelayMax() {
-        return integer("fake-chat.bot-to-bot.delay.max", 14);
-    }
-
-    public static int fakeChatBotToBotCooldown() {
-        return integer("fake-chat.bot-to-bot.cooldown", 8);
-    }
-
-    public static boolean fakeChatOnAdvancementEnabled() {
-        return bool("fake-chat.event-triggers.on-advancement.enabled", true);
-    }
-
-    public static double fakeChatOnAdvancementChance() {
-        return decimal("fake-chat.event-triggers.on-advancement.chance", 0.45);
-    }
-
-    public static int fakeChatOnAdvancementDelayMin() {
-        return integer("fake-chat.event-triggers.on-advancement.delay.min", 1);
-    }
-
-    public static int fakeChatOnAdvancementDelayMax() {
-        return integer("fake-chat.event-triggers.on-advancement.delay.max", 5);
-    }
-
-    public static boolean fakeChatOnFirstJoinEnabled() {
-        return bool("fake-chat.event-triggers.on-first-join.enabled", true);
-    }
-
-    public static double fakeChatOnFirstJoinChance() {
-        return decimal("fake-chat.event-triggers.on-first-join.chance", 0.70);
-    }
-
-    public static boolean fakeChatOnKillEnabled() {
-        return bool("fake-chat.event-triggers.on-kill.enabled", true);
-    }
-
-    public static double fakeChatOnKillChance() {
-        return decimal("fake-chat.event-triggers.on-kill.chance", 0.35);
-    }
-
-    public static int fakeChatOnKillDelayMin() {
-        return integer("fake-chat.event-triggers.on-kill.delay.min", 1);
-    }
-
-    public static int fakeChatOnKillDelayMax() {
-        return integer("fake-chat.event-triggers.on-kill.delay.max", 4);
-    }
-
-    public static boolean fakeChatOnHighLevelEnabled() {
-        return bool("fake-chat.event-triggers.on-high-level.enabled", true);
-    }
-
-    public static int fakeChatOnHighLevelMinLevel() {
-        return integer("fake-chat.event-triggers.on-high-level.min-level", 30);
-    }
-
-    public static double fakeChatOnHighLevelChance() {
-        return decimal("fake-chat.event-triggers.on-high-level.chance", 0.35);
-    }
-
-    public static int fakeChatOnHighLevelDelayMin() {
-        return integer("fake-chat.event-triggers.on-high-level.delay.min", 1);
-    }
-
-    public static int fakeChatOnHighLevelDelayMax() {
-        return integer("fake-chat.event-triggers.on-high-level.delay.max", 5);
-    }
-
-    public static List<String> chatBotToBotReplyMessages() {
-        return chatMessageProvider != null ? chatMessageProvider.getBotToBotReplyMessages() : chatReplyMessages();
-    }
-
-    public static List<String> chatAdvancementReactionMessages() {
-        return chatMessageProvider != null ? chatMessageProvider.getAdvancementReactionMessages() : List.of();
-    }
-
-    public static List<String> chatFirstJoinReactionMessages() {
-        return chatMessageProvider != null
-                ? chatMessageProvider.getFirstJoinReactionMessages()
-                : chatJoinReactionMessages();
-    }
-
-    public static List<String> chatKillReactionMessages() {
-        return chatMessageProvider != null ? chatMessageProvider.getKillReactionMessages() : List.of();
-    }
-
-    public static List<String> chatHighLevelReactionMessages() {
-        return chatMessageProvider != null ? chatMessageProvider.getHighLevelReactionMessages() : List.of();
-    }
-
-    public static List<String> chatPlayerChatReactionMessages() {
-        return chatMessageProvider != null ? chatMessageProvider.getPlayerChatReactionMessages() : chatReplyMessages();
-    }
-
-    private static List<String> fallbackChatMessages() {
-        return List.of("gg", "let's go!", "hey everyone", "what's up", "nice server");
-    }
-
-    private static List<String> fallbackChatReplies() {
-        return List.of("yeah?", "sup", "what?", "hm?", "here!");
-    }
-
-    private static List<String> fallbackChatBursts() {
-        return List.of("lol", "fr", "ngl", "no cap", "lmao");
-    }
-
-    public static boolean fakeChatKeywordReactionsEnabled() {
-        return bool("fake-chat.keyword-reactions.enabled", false);
-    }
-
-    @SuppressWarnings("unchecked")
-    public static Map<String, String> fakeChatKeywordMap() {
-        Object raw = value("fake-chat.keyword-reactions.keywords");
-        if (raw instanceof Map<?, ?> m) {
-            Map<String, String> result = new LinkedHashMap<>();
-            for (Map.Entry<?, ?> e : m.entrySet()) {
-                if (e.getKey() instanceof String k && e.getValue() instanceof String v) {
-                    result.put(k.toLowerCase(), v);
-                }
-            }
-            return result;
-        }
-        return Map.of();
     }
 
     public static boolean mysqlEnabled() {
@@ -1331,16 +769,16 @@ public final class Config {
         FppLogger.debug("NMS-DAMAGE", debugNmsDamage(), message);
     }
 
-    public static void debugLicense(String message) {
-        FppLogger.debug("LICENSE", debugLicense(), message);
-    }
-
     public static void debugChat(String message) {
         FppLogger.debug("CHAT", debugChat(), message);
     }
 
-    public static void debugSwap(String message) {
-        FppLogger.debug("SWAP", debugSwap(), message);
+    public static void debugPathfinding(String message) {
+        FppLogger.debug("PATHFINDING", debugPathfinding(), message);
+    }
+
+    public static void debugSkinPool(String message) {
+        FppLogger.debug("SKIN-POOL", debugSkinPool(), message);
     }
 
     public static double attackMobDefaultRange() {

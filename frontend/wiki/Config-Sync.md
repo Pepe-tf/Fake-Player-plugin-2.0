@@ -36,6 +36,6 @@ config-sync:
 
 ## Notes
 
-- Only the **base config** is synced. Extension configs are not synced via this system.
+- Only the **base config** is synced.
 - Backups are still created locally before applying pulled configs.
 - Conflicts are not resolved; the latest pushed config wins (last-write-wins).

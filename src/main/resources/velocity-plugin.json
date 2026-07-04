@@ -1,11 +1,10 @@
 {
   "id": "fpp",
   "name": "FakePlayerPlugin",
-  "version": "1.6.6.11",
-  "description": "Advanced Fake Player Spoofer for Paper 1.21+ with realistic fake players, join/leave messages, in-world bodies, chunk loading, LuckPerms integration, proxy network support, and extension support.",
-  "url": "https://fpp.wtf",
+  "version": "2.0.0",
+  "description": "Advanced fake player / bot plugin for Paper and Folia 1.21+ with realistic in-world bot bodies, pathfinding, PVE, chunk loading, and proxy network support.",
+  "url": "https://modrinth.com/plugin/fake-player-plugin-(fpp)",
   "authors": [
-    "F_PP",
     "F_PP"
   ],
   "main": "me.bill.fakePlayerPlugin.FakePlayerPlugin"

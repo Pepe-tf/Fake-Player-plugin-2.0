@@ -37,7 +37,7 @@ public class XpCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "/fpp xp <bot>";
+        return "<bot>";
     }
 
     @Override

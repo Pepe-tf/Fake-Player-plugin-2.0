@@ -1,32 +1,37 @@
 package me.bill.fakePlayerPlugin.command;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.BotAccess;
-import me.bill.fakePlayerPlugin.util.BotRenameHelper;
 import me.bill.fakePlayerPlugin.util.TextUtil;
 
-public class RenameCommand implements FppCommand {
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
-    private static final String ACCENT = "<#0079FF>";
-    private static final String CLOSE = "</#0079FF>";
-    private static final String GRAY = "<gray>";
-    private static final String RED = "<red>";
+/**
+ * Renames a bot's <em>display name</em> — the name shown above its head, in the tab list and in
+ * command output. The login name and fb07 UUID (identity) are never changed, and the mandatory
+ * "ʙᴏᴛ ʙʏ {owner}" disclosure row on the name-tag is preserved.
+ */
+public final class RenameCommand implements FppCommand {
+
+    /** Longest allowed display name (visible, colour codes stripped) — keeps the name-tag readable. */
+    private static final int MAX_NAME_LENGTH = 32;
 
     private final FakePlayerManager manager;
-    private final BotRenameHelper renameHelper;
 
-    public RenameCommand(FakePlayerPlugin plugin, FakePlayerManager manager) {
+    public RenameCommand(FakePlayerManager manager) {
         this.manager = manager;
-        this.renameHelper = new BotRenameHelper(plugin, manager);
     }
 
     @Override
@@ -36,12 +41,12 @@ public class RenameCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "<oldname> <newname>";
+        return "<bot> <new name>";
     }
 
     @Override
     public String getDescription() {
-        return "Rename an active bot (preserves all data).";
+        return "Rename a bot's display name (identity is unchanged).";
     }
 
     @Override
@@ -50,75 +55,54 @@ public class RenameCommand implements FppCommand {
     }
 
     @Override
-    public boolean canUse(CommandSender sender) {
-        return Perm.hasAny(sender, Perm.RENAME, Perm.RENAME_OWN);
-    }
-
-    @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (!canUse(sender)) {
+        if (args.length < 2) {
+            sender.sendMessage(Lang.get("rename-usage"));
+            return true;
+        }
+
+        FakePlayer fp = manager.getByName(args[0]);
+        if (fp == null) {
+            sender.sendMessage(Lang.get("rename-not-found", "name", args[0]));
+            return true;
+        }
+
+        if (sender instanceof Player player
+                && !Perm.hasOrOp(sender, Perm.ADMIN)
+                && !BotAccess.canAdminister(player, fp)) {
             sender.sendMessage(Lang.get("no-permission"));
             return true;
         }
 
-        if (args.length < 2) {
-            msg(sender, GRAY + "Usage: " + ACCENT + "/fpp rename <oldname> <newname>" + CLOSE + GRAY + ".");
+        String newName =
+                String.join(" ", Arrays.copyOfRange(args, 1, args.length)).trim();
+        String plain = PlainTextComponentSerializer.plainText()
+                .serialize(TextUtil.colorize(newName))
+                .trim();
+        if (plain.isEmpty()) {
+            sender.sendMessage(Lang.get("rename-invalid"));
+            return true;
+        }
+        if (plain.length() > MAX_NAME_LENGTH) {
+            sender.sendMessage(Lang.get("rename-too-long", "max", String.valueOf(MAX_NAME_LENGTH)));
             return true;
         }
 
-        String oldName = args[0];
-        String newName = args[1];
-
-        FakePlayer fp = manager.getByName(oldName);
-        if (fp == null) {
-            msg(sender, RED + "No active bot named " + ACCENT + oldName + CLOSE + RED + ".");
-            return true;
-        }
-
-        if (!Perm.has(sender, Perm.RENAME) && sender instanceof Player player) {
-            if (!BotAccess.canAdminister(player, fp)) {
-                msg(
-                        sender,
-                        RED
-                                + "You can only rename bots you own or control."
-                                + " Ask an admin for "
-                                + ACCENT
-                                + "fpp.rename"
-                                + CLOSE
-                                + RED
-                                + " to rename any bot.");
-                return true;
-            }
-        }
-
-        renameHelper.rename(sender, fp, newName);
+        String oldName = fp.getName();
+        manager.renameBot(fp, newName);
+        sender.sendMessage(Lang.get("rename-success", "name", oldName, "display", plain));
         return true;
     }
 
     @Override
     public List<String> tabComplete(CommandSender sender, String[] args) {
         if (!canUse(sender)) return List.of();
-
         if (args.length == 1) {
-            String lower = args[0].toLowerCase();
-            boolean canRenameAny = Perm.has(sender, Perm.RENAME);
-
-            return manager.getActivePlayers().stream()
-                    .filter(fp -> {
-                        if (canRenameAny) return true;
-
-                        if (!(sender instanceof Player p)) return false;
-                        return BotAccess.canAdminister(p, fp);
-                    })
-                    .map(FakePlayer::getName)
-                    .filter(n -> n.toLowerCase().startsWith(lower))
-                    .toList();
+            String prefix = args[0].toLowerCase(Locale.ROOT);
+            return manager.getActiveNames().stream()
+                    .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix))
+                    .collect(Collectors.toCollection(ArrayList::new));
         }
-
         return List.of();
-    }
-
-    private void msg(CommandSender sender, String mm) {
-        sender.sendMessage(TextUtil.colorize(mm));
     }
 }

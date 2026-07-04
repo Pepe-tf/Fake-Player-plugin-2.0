@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
@@ -65,6 +66,13 @@ public class ListCommand implements FppCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
+        // Players get the GUI: normal users see only their own bots, admins/OPs see every bot.
+        if (sender instanceof Player player) {
+            plugin.getBotListGui().open(player);
+            return true;
+        }
+
+        // Console / command blocks keep the text list (all bots).
         List<FakePlayer> localBots = new ArrayList<>(manager.getActivePlayers());
         Collection<RemoteBotEntry> remoteBots =
                 Config.isNetworkMode() ? plugin.getRemoteBotCache().getAll() : List.of();

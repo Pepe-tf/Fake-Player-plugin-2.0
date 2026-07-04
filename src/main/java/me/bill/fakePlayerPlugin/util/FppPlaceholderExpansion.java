@@ -19,9 +19,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.api.FppAddon;
 import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.extension.ExtensionLoader;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry;
@@ -125,28 +123,10 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
             case "server_uptime" -> formatUptime(
                     ManagementFactory.getRuntimeMXBean().getUptime() / 1000);
 
-            case "extensions" -> {
-                ExtensionLoader loader = plugin.getExtensionLoader();
-                yield loader == null
-                        ? "0"
-                        : String.valueOf(loader.getLoadedExtensions().size());
-            }
-            case "extensions_names" -> {
-                ExtensionLoader loader = plugin.getExtensionLoader();
-                yield loader == null
-                        ? ""
-                        : loader.getLoadedExtensions().stream()
-                                .map(FppAddon::getName)
-                                .collect(Collectors.joining(", "));
-            }
-
-            case "chat" -> onOff(Config.fakeChatEnabled());
-            case "skin" -> Config.skinMode();
             case "body" -> onOff(true);
             case "pushable" -> onOff(Config.bodyPushable());
             case "damageable" -> onOff(Config.bodyDamageable());
             case "tab" -> onOff(Config.tabListEnabled());
-            case "ping" -> onOff(Config.pingEnabled());
             case "max_health" -> String.valueOf(Config.maxHealth());
             case "network" -> onOff(Config.isNetworkMode());
             case "network_mode" -> onOff(Config.isNetworkMode());
@@ -166,9 +146,6 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
             case "hurt_sound" -> onOff(Config.hurtSound());
             case "join_message" -> onOff(Config.joinMessage());
             case "leave_message" -> onOff(Config.leaveMessage());
-            case "death_message" -> onOff(Config.deathMessage());
-            case "peak_hours" -> onOff(Config.peakHoursEnabled());
-            case "swap" -> onOff(Config.swapEnabled());
             case "metrics" -> onOff(Config.metricsEnabled());
             case "update_checker" -> onOff(Config.updateCheckerEnabled());
             case "badword_filter" -> onOff(Config.isBadwordFilterEnabled());
@@ -379,10 +356,6 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
         if (p.startsWith("type_")) {
             fp = manager.getByName(p.substring(5));
             return fp != null ? fp.getBotType().name() : "N/A";
-        }
-        if (p.startsWith("chat_")) {
-            fp = manager.getByName(p.substring(5));
-            return fp != null ? (fp.isChatEnabled() ? "yes" : "no") : "N/A";
         }
         if (p.startsWith("skin_")) {
             fp = manager.getByName(p.substring(5));

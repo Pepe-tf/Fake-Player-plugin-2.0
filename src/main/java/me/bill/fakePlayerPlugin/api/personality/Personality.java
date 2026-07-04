@@ -117,10 +117,6 @@ public final class Personality {
         return tags.contains(tag.toLowerCase(Locale.ROOT));
     }
 
-    public double chatFrequencyMultiplier() {
-        return 1.0 + talkativeness * 0.5;
-    }
-
     private static double clamp(double value) {
         return Math.max(MIN_TRAIT_VALUE, Math.min(MAX_TRAIT_VALUE, value));
     }

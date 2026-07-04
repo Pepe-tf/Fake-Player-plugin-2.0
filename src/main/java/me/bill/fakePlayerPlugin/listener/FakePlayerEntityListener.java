@@ -28,6 +28,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.Nullable;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.event.FppBotDamageEvent;
@@ -43,8 +44,11 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerBody;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.fakeplayer.PacketHelper;
+import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.util.AttributeCompat;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
+
+import net.kyori.adventure.text.Component;
 
 public class FakePlayerEntityListener implements Listener {
 
@@ -60,11 +64,11 @@ public class FakePlayerEntityListener implements Listener {
         this.chunkLoader = chunkLoader;
     }
 
-    /** Keep one visible bot death line: vanilla death message or FPP custom kill message, not both. */
+    /** Bots never show a death/kill message in chat — matches the rest of the chat-suppression design. */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onBotDeathMessage(PlayerDeathEvent event) {
         if (!isFakeBotBody(event.getEntity())) return;
-        if (!Config.deathMessage() || Config.killMessage()) event.deathMessage(null);
+        event.deathMessage(null);
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = false)
@@ -256,12 +260,8 @@ public class FakePlayerEntityListener implements Listener {
             event.setDroppedExp(0);
         }
 
+        // Bot death (kill) messages were removed with the chat system.
         Player killer = event.getEntity().getKiller();
-        if (killer != null && Config.killMessage()) {
-
-            String displayName = fp.getRawDisplayName() != null ? fp.getRawDisplayName() : fp.getDisplayName();
-            BotBroadcast.broadcastKill(killer.getName(), displayName);
-        }
 
         fp.incrementDeathCount();
         fp.setAlive(false);
@@ -282,6 +282,7 @@ public class FakePlayerEntityListener implements Listener {
             int delay = Math.max(0, Config.respawnDelay());
             if (chunkLoader != null) chunkLoader.releaseForBot(fp);
 
+            final Location respawnFailLoc = event.getEntity().getLocation();
             fp.setPlayer(null);
             fp.setRespawning(true);
             final UUID botUuid = fp.getUuid();
@@ -291,7 +292,7 @@ public class FakePlayerEntityListener implements Listener {
                     () -> {
                         if (deadPlayer == null || !deadPlayer.isOnline()) {
                             fp.setRespawning(false);
-                            manager.removeByName(name);
+                            manager.removeByName(name, respawnFailLoc);
                             recentBotDeaths.remove(botUuid);
                             return;
                         }
@@ -305,7 +306,7 @@ public class FakePlayerEntityListener implements Listener {
                                     if (newEntity == null || newEntity.isDead()) {
 
                                         fp.setRespawning(false);
-                                        if (newEntity == null) manager.removeByName(name);
+                                        if (newEntity == null) manager.removeByName(name, respawnFailLoc);
                                         recentBotDeaths.remove(botUuid);
                                         return;
                                     }
@@ -352,6 +353,7 @@ public class FakePlayerEntityListener implements Listener {
             if (deadPlayer != null) {
                 manager.markDespawning(deadPlayer.getUniqueId(), deathDespawnName);
             }
+            notifyOwnerOfDeathDespawn(fp, deathDespawnName, killer);
             FppScheduler.runSyncLater(
                     plugin,
                     () -> {
@@ -393,13 +395,35 @@ public class FakePlayerEntityListener implements Listener {
                                     manager.clearDespawningNextTick(deathDespawnUuid);
                                 }
                             }
-                            manager.removeByName(name);
+                            // fp's entity reference is already null at this point (cleared above), so
+                            // pass the pre-removal death location through explicitly for the despawn effect.
+                            manager.removeByName(name, loc);
                             recentBotDeaths.remove(fp.getUuid());
                             Config.debugNmsBot("Removed bot '" + name + "' from manager after death");
                         });
                     },
                     20L);
         }
+    }
+
+    /**
+     * Tells the bot's owner and whoever killed it (if online, and not the same person twice) that it
+     * died and was removed (respawn-on-death is off). No one else sees this.
+     */
+    private void notifyOwnerOfDeathDespawn(FakePlayer fp, String displayName, @Nullable Player killer) {
+        Component message = Lang.get("bot-died-despawned", "name", displayName);
+
+        UUID ownerUuid = fp.getSpawnedByUuid();
+        Player owner = ownerUuid != null ? Bukkit.getPlayer(ownerUuid) : null;
+        if (owner != null && owner.isOnline()) {
+            owner.sendMessage(message);
+        }
+
+        if (killer != null && killer.isOnline() && !killer.getUniqueId().equals(ownerUuid)) {
+            killer.sendMessage(message);
+        }
+
+        Config.debugNmsBot("Bot '" + fp.getName() + "' died and was removed (respawnOnDeath=false)");
     }
 
     @EventHandler(priority = EventPriority.HIGH)

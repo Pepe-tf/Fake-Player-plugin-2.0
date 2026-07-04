@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -35,12 +34,11 @@ import org.bukkit.inventory.meta.SkullMeta;
 import com.destroystokyo.paper.profile.PlayerProfile;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.api.FppSettingsItem;
-import me.bill.fakePlayerPlugin.api.FppSettingsTab;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
+import me.bill.fakePlayerPlugin.fakeplayer.pathfinding.PathfindingDebugManager;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.AttributionManager;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
@@ -54,15 +52,15 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 public final class SettingGui implements Listener {
 
-    private static final TextColor ACCENT = TextColor.fromHexString("#0079FF");
-    private static final TextColor ON_GREEN = TextColor.fromHexString("#66CC66");
-    private static final TextColor OFF_RED = NamedTextColor.RED;
-    private static final TextColor VALUE_YELLOW = TextColor.fromHexString("#FFDD57");
-    private static final TextColor YELLOW = NamedTextColor.YELLOW;
-    private static final TextColor GRAY = NamedTextColor.GRAY;
-    private static final TextColor DARK_GRAY = NamedTextColor.DARK_GRAY;
-    private static final TextColor WHITE = NamedTextColor.WHITE;
-    private static final TextColor COMING_SOON_COLOR = TextColor.fromHexString("#FFA500");
+    private static final TextColor ACCENT = GuiKit.ACCENT;
+    private static final TextColor ON_GREEN = GuiKit.ON_GREEN;
+    private static final TextColor OFF_RED = GuiKit.OFF_RED;
+    private static final TextColor VALUE_YELLOW = GuiKit.VALUE_YELLOW;
+    private static final TextColor YELLOW = GuiKit.YELLOW;
+    private static final TextColor GRAY = GuiKit.GRAY;
+    private static final TextColor DARK_GRAY = GuiKit.DARK_GRAY;
+    private static final TextColor WHITE = GuiKit.WHITE;
+    private static final TextColor COMING_SOON_COLOR = GuiKit.COMING_SOON_COLOR;
 
     private static final int SIZE = 54;
     private static final int SETTINGS_PER_PAGE = 45;
@@ -95,8 +93,6 @@ public final class SettingGui implements Listener {
 
     private final Category[] categories;
 
-    private final CopyOnWriteArrayList<FppSettingsTab> extensionTabs = new CopyOnWriteArrayList<>();
-
     public SettingGui(FakePlayerPlugin plugin) {
         this.plugin = plugin;
         this.categories = new Category[] {general(), body(), debug()};
@@ -109,14 +105,6 @@ public final class SettingGui implements Listener {
     public void open(Player player) {
         sessions.put(player.getUniqueId(), new int[] {0, 0, 0});
         build(player);
-    }
-
-    public void registerExtensionTab(FppSettingsTab tab) {
-        extensionTabs.addIfAbsent(tab);
-    }
-
-    public void unregisterExtensionTab(FppSettingsTab tab) {
-        extensionTabs.remove(tab);
     }
 
     @EventHandler
@@ -168,6 +156,11 @@ public final class SettingGui implements Listener {
 
         if (slot == SLOT_CLOSE) {
             playUiClick(player, 0.8f);
+            if (event.isShiftClick() && Perm.has(player, Perm.LIST)) {
+                // Switching inventories still fires the close event, so settings save as usual.
+                player.performCommand("fpp list");
+                return;
+            }
             player.closeInventory();
             return;
         }
@@ -190,6 +183,17 @@ public final class SettingGui implements Listener {
             if (entryIdx >= settings.size()) return;
 
             SettingEntry entry = settings.get(entryIdx);
+
+            if (PATHFINDING_DEBUG_ALL_KEY.equals(entry.configKey)) {
+                boolean newState = !PathfindingDebugManager.isViewingAny(player.getUniqueId());
+                for (FakePlayer fp : plugin.getFakePlayerManager().getActivePlayers()) {
+                    PathfindingDebugManager.setViewing(player.getUniqueId(), fp.getUuid(), newState);
+                }
+                playUiClick(player, newState ? 1.2f : 0.85f);
+                sendActionBarConfirm(player, entry.label, newState ? "✔ ᴇɴᴀʙʟᴇᴅ" : "✘ ᴅɪꜱᴀʙʟᴇᴅ");
+                build(player);
+                return;
+            }
 
             if (entry.type == SettingType.COMING_SOON) {
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, SoundCategory.MASTER, 0.8f, 1.0f);
@@ -464,7 +468,7 @@ public final class SettingGui implements Listener {
         int startIdx = pageIdx * SETTINGS_PER_PAGE;
         int endIdx = Math.min(startIdx + SETTINGS_PER_PAGE, settingsCount);
         for (int i = startIdx; i < endIdx; i++) {
-            inv.setItem(i - startIdx, buildSettingItem(settings.get(i)));
+            inv.setItem(i - startIdx, buildSettingItem(settings.get(i), player));
         }
 
         inv.setItem(SLOT_RESET, buildResetAllButton());
@@ -503,7 +507,7 @@ public final class SettingGui implements Listener {
         return localIdx;
     }
 
-    private ItemStack buildSettingItem(SettingEntry entry) {
+    private ItemStack buildSettingItem(SettingEntry entry, Player viewer) {
 
         if (entry.type == SettingType.COMING_SOON) {
 
@@ -543,7 +547,10 @@ public final class SettingGui implements Listener {
         }
 
         boolean isToggle = entry.type == SettingType.TOGGLE;
-        boolean isOn = isToggle && plugin.getConfig().getBoolean(entry.configKey, false);
+        boolean isOn = isToggle
+                && (PATHFINDING_DEBUG_ALL_KEY.equals(entry.configKey)
+                        ? PathfindingDebugManager.isViewingAny(viewer.getUniqueId())
+                        : plugin.getConfig().getBoolean(entry.configKey, false));
 
         TextColor nameColor = isToggle ? (isOn ? ON_GREEN : OFF_RED) : ACCENT;
 
@@ -562,7 +569,9 @@ public final class SettingGui implements Listener {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.empty());
 
-        String valStr = entry.currentValueString(plugin);
+        String valStr = PATHFINDING_DEBUG_ALL_KEY.equals(entry.configKey)
+                ? (isOn ? "✔ ᴇɴᴀʙʟᴇᴅ" : "✘ ᴅɪꜱᴀʙʟᴇᴅ")
+                : entry.currentValueString(plugin);
         TextColor valColor = isToggle ? (isOn ? ON_GREEN : OFF_RED) : VALUE_YELLOW;
         lore.add(Component.empty()
                 .decoration(TextDecoration.ITALIC, false)
@@ -606,12 +615,9 @@ public final class SettingGui implements Listener {
     }
 
     private List<SettingsTabRef> visibleTabs(Player viewer) {
-        List<SettingsTabRef> tabs = new ArrayList<>(categories.length + extensionTabs.size());
+        List<SettingsTabRef> tabs = new ArrayList<>(categories.length);
         for (Category category : categories) {
             tabs.add(new SettingsTabRef(category));
-        }
-        for (FppSettingsTab tab : extensionTabs) {
-            if (tab.isVisible(viewer)) tabs.add(new SettingsTabRef(tab));
         }
         return tabs;
     }
@@ -652,81 +658,26 @@ public final class SettingGui implements Listener {
         return item;
     }
 
-    private ItemStack buildExtensionSettingItem(FppSettingsItem item) {
-        ItemStack stack = new ItemStack(item.getIcon());
-        ItemMeta meta = stack.getItemMeta();
-        meta.displayName(Component.empty()
-                .decoration(TextDecoration.ITALIC, false)
-                .append(Component.text(item.getLabel()).color(ACCENT).decoration(TextDecoration.BOLD, true)));
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.empty());
-        String value = item.getValue();
-        if (value != null && !value.isBlank()) {
-            lore.add(Component.empty()
-                    .decoration(TextDecoration.ITALIC, false)
-                    .append(Component.text("ᴠᴀʟᴜᴇ  ").color(DARK_GRAY))
-                    .append(Component.text(value).color(VALUE_YELLOW).decoration(TextDecoration.BOLD, true)));
-            lore.add(Component.empty());
-        }
-        for (String line : item.getDescription().split("\\\\n|\n")) {
-            if (!line.isBlank()) {
-                lore.add(Component.empty()
-                        .decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text(line).color(GRAY)));
-            }
-        }
-        lore.add(Component.empty());
-        lore.add(Component.empty()
-                .decoration(TextDecoration.ITALIC, false)
-                .append(Component.text("⚠ ").color(OFF_RED))
-                .append(Component.text("ᴄʟɪᴄᴋ ᴛᴏ ᴇxᴇᴄᴜᴛᴇ").color(DARK_GRAY)));
-        meta.lore(lore);
-        stack.setItemMeta(meta);
-        return stack;
-    }
-
-    private record SettingsTabRef(Category builtin, FppSettingsTab extension) {
-        SettingsTabRef(Category builtin) {
-            this(builtin, null);
-        }
-
-        SettingsTabRef(FppSettingsTab extension) {
-            this(null, extension);
-        }
-
-        boolean isExtension() {
-            return extension != null;
-        }
+    private record SettingsTabRef(Category builtin) {
 
         String label() {
-            return isExtension() ? extension.getLabel() : builtin.label;
+            return builtin.label;
         }
 
         Material activeMat() {
-            return isExtension() ? extension.getActiveMaterial() : builtin.activeMat;
+            return builtin.activeMat;
         }
 
         Material inactiveMat() {
-            return isExtension() ? extension.getInactiveMaterial() : builtin.inactiveMat;
+            return builtin.inactiveMat;
         }
 
         Material separatorGlass() {
-            return isExtension() ? extension.getSeparatorGlass() : builtin.separatorGlass;
+            return builtin.separatorGlass;
         }
 
         List<SettingEntry> entries(Player viewer) {
-            if (!isExtension()) return builtin.settings;
-            List<SettingEntry> out = new ArrayList<>();
-            for (FppSettingsItem item : extension.getItems(viewer)) {
-                out.add(SettingEntry.action(
-                        item.getId(),
-                        item.getLabel(),
-                        item.getDescription(),
-                        item.getIcon(),
-                        item.getValue(),
-                        () -> item.onClick(viewer)));
-            }
-            return out;
+            return builtin.settings;
         }
     }
 
@@ -753,9 +704,14 @@ public final class SettingGui implements Listener {
         meta.displayName(Component.empty()
                 .decoration(TextDecoration.ITALIC, false)
                 .append(Component.text("✕  ᴄʟᴏꜱᴇ").color(OFF_RED).decoration(TextDecoration.BOLD, true)));
-        meta.lore(List.of(Component.empty()
-                .decoration(TextDecoration.ITALIC, false)
-                .append(Component.text("ꜱᴀᴠᴇ & ᴄʟᴏꜱᴇ ᴛʜᴇ ꜱᴇᴛᴛɪɴɢꜱ ᴍᴇɴᴜ.").color(DARK_GRAY))));
+        meta.lore(List.of(
+                Component.empty()
+                        .decoration(TextDecoration.ITALIC, false)
+                        .append(Component.text("ᴄʟɪᴄᴋ — ꜱᴀᴠᴇ & ᴄʟᴏꜱᴇ").color(DARK_GRAY)),
+                Component.empty()
+                        .decoration(TextDecoration.ITALIC, false)
+                        .append(Component.text("ꜱʜɪꜰᴛ-ᴄʟɪᴄᴋ — ꜱᴀᴠᴇ & ᴏᴘᴇɴ ᴛʜᴇ ʙᴏᴛ ʟɪꜱᴛ")
+                                .color(DARK_GRAY))));
         item.setItemMeta(meta);
         return item;
     }
@@ -843,12 +799,7 @@ public final class SettingGui implements Listener {
     }
 
     private ItemStack glassFiller(Material mat) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.empty());
-        meta.lore(List.of());
-        item.setItemMeta(meta);
-        return item;
+        return GuiKit.glassFiller(mat);
     }
 
     private void applyLiveEffect(String configKey) {
@@ -995,7 +946,7 @@ public final class SettingGui implements Listener {
     }
 
     private static void playUiClick(Player player, float pitch) {
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, SoundCategory.MASTER, 0.5f, pitch);
+        GuiKit.playUiClick(player, pitch);
     }
 
     private Category general() {
@@ -1036,7 +987,7 @@ public final class SettingGui implements Listener {
                         SettingEntry.cycleInt(
                                 "chunk-loading.radius",
                                 "ᴄʜᴜɴᴋ ʟᴏᴀᴅ ʀᴀᴅɪᴜꜱ",
-                                "ʟᴏɴɡᴇꜱᴛ ʀᴀɴᴅᴏᴍ ᴅᴇʟᴀʏ ʙᴇꜰᴏʀᴇ\nᴀ ʙᴏᴛ ʟᴇᴀᴠᴇꜱ. 20 = 1 ꜱᴇᴄᴏɴᴅ.",
+                                "ʟᴏɴɢᴇꜱᴛ ʀᴀɴᴅᴏᴍ ᴅᴇʟᴀʏ ʙᴇꜰᴏʀᴇ\nᴀ ʙᴏᴛ ʟᴇᴀᴠᴇꜱ. 20 = 1 ꜱᴇᴄᴏɴᴅ.",
                                 Material.COMPASS,
                                 new int[] {0, 2, 4, 6, 8, 12, 16}),
                         SettingEntry.cycleInt(
@@ -1127,6 +1078,8 @@ public final class SettingGui implements Listener {
                                 new int[] {1, 5, 10, 15, 20, 40, 60, 100})));
     }
 
+    private static final String PATHFINDING_DEBUG_ALL_KEY = "pathfinding_debug_all";
+
     private Category debug() {
         return new Category(
                 "🐛 ᴅᴇʙᴜɢ",
@@ -1134,6 +1087,15 @@ public final class SettingGui implements Listener {
                 Material.LEVER,
                 Material.RED_STAINED_GLASS_PANE,
                 List.of(
+                        SettingEntry.toggle(
+                                PATHFINDING_DEBUG_ALL_KEY,
+                                "ꜱʜᴏᴡ ᴀʟʟ ᴘᴀᴛʜꜱ",
+                                "ᴛᴏɢɢʟᴇꜱ ᴛʜᴇ ᴘᴀᴛʜꜰɪɴᴅɪɴɢ ᴘᴀʀᴛɪᴄʟᴇ ᴛʀᴀɪʟ (ꜱᴀᴍᴇ ᴏɴᴇ ᴀꜱ ᴀ\n"
+                                        + "ʙᴏᴛ'ꜱ ᴏᴡɴ ꜱᴇᴛᴛɪɴɢꜱ) ꜰᴏʀ ᴇᴠᴇʀʏ ᴄᴜʀʀᴇɴᴛʟʏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ᴀᴛ\n"
+                                        + "ᴏɴᴄᴇ, ᴠɪꜱɪʙʟᴇ ᴏɴʟʏ ᴛᴏ ʏᴏᴜ. ᴅᴏᴇꜱɴ'ᴛ ᴀᴜᴛᴏ-ᴀᴘᴘʟʏ ᴛᴏ ʙᴏᴛꜱ\n"
+                                        + "ꜱᴘᴀᴡɴᴇᴅ ᴀꜰᴛᴇʀ ʏᴏᴜ ᴛᴏɢɢʟᴇ ᴛʜɪꜱ — ʀᴇ-ᴄʟɪᴄᴋ ᴛᴏ ᴘɪᴄᴋ ᴛʜᴇᴍ ᴜᴘ.",
+                                Material.MAP),
+                        // ── Core switches ────────────────────────────────────
                         SettingEntry.debugToggle(
                                 "enabled", "ᴍᴀꜱᴛᴇʀ ᴅᴇʙᴜɢ", "ᴇɴᴀʙʟᴇꜱ ᴀʟʟ ᴅᴇʙᴜɢ ᴏᴜᴛᴘᴜᴛ.", Material.BEACON),
                         SettingEntry.debugToggle(
@@ -1144,6 +1106,36 @@ public final class SettingGui implements Listener {
                         SettingEntry.debugToggle("general", "ɢᴇɴᴇʀᴀʟ", "ʙᴀꜱɪᴄ ᴅᴇʙᴜɢ ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ.", Material.PAPER),
                         SettingEntry.debugToggle(
                                 "startup", "ꜱᴛᴀʀᴛᴜᴘ", "ᴅᴇᴛᴀɪʟᴇᴅ ʟᴏɢɢɪɴɢ ᴅᴜʀɪɴɢ ɪɴɪᴛɪᴀʟɪᴢᴀᴛɪᴏɴ.", Material.CAMPFIRE),
+                        // ── Bot systems ──────────────────────────────────────
+                        SettingEntry.debugToggle(
+                                "pathfinding",
+                                "ᴘᴀᴛʜꜰɪɴᴅɪɴɢ",
+                                "ᴅᴇᴛᴀɪʟᴇᴅ ɴᴀᴠɪɢᴀᴛɪᴏɴ ᴅɪᴀɢɴᴏꜱᴛɪᴄꜱ (ꜱᴛᴜᴄᴋ/ʀᴇᴄᴀʟᴄ,\n"
+                                        + "ɢɪᴠᴇ-ᴜᴘꜱ, ᴡᴀᴛᴄʜᴅᴏɢ, ᴍɪɴᴇ ꜱᴛᴀʟʟꜱ) ʟᴏɢɢᴇᴅ ᴛᴏ ᴄᴏɴꜱᴏʟᴇ.",
+                                Material.TARGET),
+                        SettingEntry.debugToggle(
+                                "skin-pool",
+                                "ꜱᴋɪɴ ᴘᴏᴏʟ",
+                                "ꜰᴜʟʟ ꜱᴋɪɴ ᴘɪᴘᴇʟɪɴᴇ ᴛʀᴀᴄᴇ: ᴘᴏᴏʟ ʟᴏᴀᴅɪɴɢ, ʀᴀʀɪᴛʏ ʀᴏʟʟꜱ,\n"
+                                        + "ᴄᴀᴄʜᴇ ʜɪᴛꜱ, ᴅᴏᴡɴʟᴏᴀᴅꜱ, ᴍᴏᴅᴇʟ ᴅᴇᴛᴇᴄᴛɪᴏɴ, ᴍɪɴᴇꜱᴋɪɴ\n"
+                                        + "ꜱɪɢɴɪɴɢ, ᴀɴᴅ ꜱᴋɪɴ ᴀᴘᴘʟʏ.",
+                                Material.ARMOR_STAND),
+                        SettingEntry.debugToggle(
+                                "commands", "ᴄᴏᴍᴍᴀɴᴅꜱ", "ᴄᴏᴍᴍᴀɴᴅ ᴇxᴇᴄᴜᴛɪᴏɴ ᴅᴇʙᴜɢɢɪɴɢ.", Material.COMMAND_BLOCK),
+                        SettingEntry.debugToggle(
+                                "head-ai", "ʜᴇᴀᴅ ᴀɪ", "ʙᴏᴛ ʜᴇᴀᴅ ʀᴏᴛᴀᴛɪᴏɴ ᴀɴᴅ ᴀɪ ᴛᴀʀɢᴇᴛɪɴɢ.", Material.ENDER_EYE),
+                        SettingEntry.debugToggle("chat", "ᴄʜᴀᴛ", "ʙᴏᴛ ᴄʜᴀᴛ ꜱʏꜱᴛᴇᴍ ᴅᴇʙᴜɢɢɪɴɢ.", Material.OAK_SIGN),
+                        SettingEntry.debugToggle(
+                                "right-click",
+                                "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ",
+                                "ᴘʟᴀʏᴇʀ-ʙᴏᴛ ɪɴᴛᴇʀᴀᴄᴛɪᴏɴ (ʀɪɢʜᴛ-ᴄʟɪᴄᴋ).",
+                                Material.OAK_DOOR),
+                        SettingEntry.debugToggle(
+                                "right-click-head",
+                                "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ʜᴇᴀᴅ",
+                                "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ᴏɴ ʙᴏᴛ ʜᴇᴀᴅ.",
+                                Material.CARVED_PUMPKIN),
+                        // ── NMS internals ────────────────────────────────────
                         SettingEntry.debugToggle(
                                 "nms.enabled", "ɴᴍꜱ ᴍᴀꜱᴛᴇʀ", "ʟᴏᴡ-ʟᴇᴠᴇʟ ɴᴍꜱ ɪɴᴛᴇʀᴀᴄᴛɪᴏɴꜱ.", Material.COMPASS),
                         SettingEntry.debugToggle("nms.bot", "ɴᴍꜱ ʙᴏᴛ", "ʙᴏᴛ ʟɪꜰᴇᴄʏᴄʟᴇ ᴇᴠᴇɴᴛꜱ.", Material.PLAYER_HEAD),
@@ -1161,6 +1153,7 @@ public final class SettingGui implements Listener {
                                 "nms.physics", "ɴᴍꜱ ᴘʜʏꜱɪᴄꜱ", "ᴘʜʏꜱɪᴄꜱ ᴀɴᴅ ᴍᴏᴠᴇᴍᴇɴᴛ ᴛɪᴄᴋ ᴏᴘᴇʀᴀᴛɪᴏɴꜱ.", Material.ANVIL),
                         SettingEntry.debugToggle(
                                 "nms.skin", "ɴᴍꜱ ꜱᴋɪɴ", "ꜱᴋɪɴ ᴀᴘᴘʟɪᴄᴀᴛɪᴏɴ ᴀɴᴅ ʀᴇꜱᴏʟᴜᴛɪᴏɴ.", Material.LEATHER),
+                        // ── Storage & network ────────────────────────────────
                         SettingEntry.debugToggle(
                                 "database.enabled", "ᴅᴀᴛᴀʙᴀꜱᴇ ᴍᴀꜱᴛᴇʀ", "ᴀʟʟ ᴅᴀᴛᴀʙᴀꜱᴇ ᴅᴇʙᴜɢɢɪɴɢ.", Material.CHEST),
                         SettingEntry.debugToggle(
@@ -1183,24 +1176,8 @@ public final class SettingGui implements Listener {
                         SettingEntry.debugToggle(
                                 "config-sync",
                                 "ᴄᴏɴꜰɪɢ ꜱʏɴᴄ",
-                                "ᴄᴏɴꜰɪɢ ꜱʏɴᴄʀᴏɴɪᴢᴀᴛɪᴏɴ ᴀᴄʀᴏꜱꜱ ɴᴇᴛᴡᴏʀᴋ.",
-                                Material.REPEATER),
-                        SettingEntry.debugToggle("chat", "ᴄʜᴀᴛ", "ʙᴏᴛ ᴄʜᴀᴛ ꜱʏꜱᴛᴇᴍ ᴅᴇʙᴜɢɢɪɴɢ.", Material.OAK_SIGN),
-                        SettingEntry.debugToggle("swap", "ꜱᴡᴀᴘ", "ʙᴏᴛ ꜱᴡᴀᴘ ᴀɪ ᴀɴᴅ ʙᴇʜᴀᴠɪᴏʀ.", Material.TRIPWIRE_HOOK),
-                        SettingEntry.debugToggle(
-                                "commands", "ᴄᴏᴍᴍᴀɴᴅꜱ", "ᴄᴏᴍᴍᴀɴᴅ ᴇxᴇᴄᴜᴛɪᴏɴ ᴅᴇʙᴜɢɢɪɴɢ.", Material.COMMAND_BLOCK),
-                        SettingEntry.debugToggle(
-                                "head-ai", "ʜᴇᴀᴅ ᴀɪ", "ʙᴏᴛ ʜᴇᴀᴅ ʀᴏᴛᴀᴛɪᴏɴ ᴀɴᴅ ᴀɪ ᴛᴀʀɢᴇᴛɪɴɢ.", Material.ENDER_EYE),
-                        SettingEntry.debugToggle(
-                                "right-click",
-                                "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ",
-                                "ᴘʟᴀʏᴇʀ-ʙᴏᴛ ɪɴᴛᴇʀᴀᴄᴛɪᴏɴ (ʀɪɢʜᴛ-ᴄʟɪᴄᴋ).",
-                                Material.OAK_DOOR),
-                        SettingEntry.debugToggle(
-                                "right-click-head",
-                                "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ʜᴇᴀᴅ",
-                                "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ᴏɴ ʙᴏᴛ ʜᴇᴀᴅ.",
-                                Material.CARVED_PUMPKIN)));
+                                "ᴄᴏɴꜰɪɢ ꜱʏɴᴄʜʀᴏɴɪᴢᴀᴛɪᴏɴ ᴀᴄʀᴏꜱꜱ ɴᴇᴛᴡᴏʀᴋ.",
+                                Material.REPEATER)));
     }
 
     private static final class GuiHolder implements InventoryHolder {
@@ -1328,21 +1305,6 @@ public final class SettingGui implements Listener {
     }
 
     private static List<String> wrapText(String text, int maxLen) {
-        if (text == null || text.isEmpty()) return List.of();
-        if (text.length() <= maxLen) return List.of(text);
-        List<String> lines = new ArrayList<>();
-        String[] words = text.split(" ");
-        StringBuilder sb = new StringBuilder();
-        for (String word : words) {
-            if (word.isEmpty()) continue;
-            if (!sb.isEmpty() && sb.length() + 1 + word.length() > maxLen) {
-                lines.add(sb.toString().trim());
-                sb.setLength(0);
-            }
-            if (!sb.isEmpty()) sb.append(' ');
-            sb.append(word);
-        }
-        if (!sb.isEmpty()) lines.add(sb.toString().trim());
-        return lines;
+        return GuiKit.wrapText(text, maxLen);
     }
 }

@@ -112,7 +112,7 @@ public class InventoryCommand implements FppCommand, Listener {
 
     @Override
     public String getUsage() {
-        return "/fpp inventory <bot>";
+        return "<bot>";
     }
 
     @Override

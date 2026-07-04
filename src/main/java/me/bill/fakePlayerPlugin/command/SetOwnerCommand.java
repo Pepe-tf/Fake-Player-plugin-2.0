@@ -14,10 +14,8 @@ import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
+import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
-
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 public final class SetOwnerCommand implements FppCommand {
     private final FakePlayerPlugin plugin;
@@ -56,24 +54,25 @@ public final class SetOwnerCommand implements FppCommand {
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(Component.text("Usage: /fpp setowner <bot> <player>", NamedTextColor.RED));
+            sender.sendMessage(Lang.get("setowner-usage"));
             return true;
         }
         FakePlayer fp = manager.getByName(args[0]);
         if (fp == null) {
-            sender.sendMessage(Component.text("Bot not found: " + args[0], NamedTextColor.RED));
+            sender.sendMessage(Lang.get("setowner-not-found", "name", args[0]));
             return true;
         }
         OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
         UUID uuid = target.getUniqueId();
         String name = target.getName() != null ? target.getName() : args[1];
         fp.setSpawnedBy(name, uuid);
+        me.bill.fakePlayerPlugin.fakeplayer.FakePlayerBody.refreshNametag(fp);
         fp.clearSharedControllers();
         if (Config.databaseEnabled() && plugin.getDatabaseManager() != null) {
             plugin.getDatabaseManager().updateBotOwner(fp.getUuid().toString(), name, uuid.toString());
         }
         manager.persistBotSettings(fp);
-        sender.sendMessage(Component.text("Set owner of " + fp.getName() + " to " + name + ".", NamedTextColor.YELLOW));
+        sender.sendMessage(Lang.get("setowner-success", "name", fp.getName(), "player", name));
         return true;
     }
 

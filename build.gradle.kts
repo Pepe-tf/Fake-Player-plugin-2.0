@@ -20,7 +20,7 @@ tasks.compileJava {
 }
 
 group = "me.bill.fpp"
-version = "1.6.6.12.8"
+version = "2.0.0"
 
 repositories {
     mavenCentral()
@@ -36,7 +36,11 @@ dependencies {
 
     implementation("dev.faststats.metrics:bukkit:0.22.0")
 
-    compileOnly("net.luckperms:api:5.5")
+    // Pathetic — async A* pathfinding engine backing FakePlayerManager's bot navigation.
+    // https://github.com/bsommerfeld/pathetic
+    implementation("de.bsommerfeld.pathetic:engine:5.5.2")
+    implementation("de.bsommerfeld.pathetic:api:5.5.2")
+
     compileOnly("me.clip:placeholderapi:2.12.2")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.12") {
         exclude("com.google.code.gson", "gson")

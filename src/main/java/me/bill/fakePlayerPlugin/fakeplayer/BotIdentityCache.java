@@ -1,41 +1,22 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.InvalidConfigurationException;
-import org.bukkit.configuration.file.YamlConfiguration;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.database.DatabaseManager;
-import me.bill.fakePlayerPlugin.util.BotDataYaml;
-import me.bill.fakePlayerPlugin.util.FppLogger;
-import me.bill.fakePlayerPlugin.util.FppScheduler;
-
+/**
+ * Deterministic bot UUIDs, derived from the bot name alone — no storage, no Mojang contact.
+ *
+ * <p>This used to be a stateful name→UUID identity cache backed by YAML/DB with Mojang premium-UUID
+ * resolution; that whole system was removed. What remains is the pure derivation, so the class is
+ * now static-only. Old persisted identities (the {@code identities.by-name} YAML section /
+ * {@code bot_identities} DB rows) are left on disk untouched but are no longer read or written.
+ */
 public final class BotIdentityCache {
 
-    private static final String YAML_FILE = "bot-identities.yml";
-    private static final String ROOT = "identities.by-name";
     private static final String OFFLINE_UUID_NAMESPACE = "OfflinePlayer:";
-    private static final String USER_AGENT = "FakePlayerPlugin/1.6.6.11";
-    private static final long MOJANG_RATE_LIMIT_COOLDOWN_MS = TimeUnit.MINUTES.toMillis(5);
     private static final ThreadLocal<MessageDigest> MD5 = ThreadLocal.withInitial(() -> {
         try {
             return MessageDigest.getInstance("MD5");
@@ -44,66 +25,81 @@ public final class BotIdentityCache {
         }
     });
 
-    private final FakePlayerPlugin pluginRef;
-    private final DatabaseManager db;
-    private final File yamlFile;
+    private BotIdentityCache() {}
 
-    private final Map<String, UUID> cache = new ConcurrentHashMap<>();
-    private final Map<String, IdentityResolution> resolvedCache = new ConcurrentHashMap<>();
-    private volatile long mojangRateLimitedUntilMs = 0;
-    private volatile boolean yamlSaveQueued = false;
-    private volatile boolean yamlSaveDirty = false;
+    /**
+     * High 64 bits shared by every bot UUID — makes bots instantly recognizable ("FB07" ≈ F-BOT)
+     * and guarantees zero collision with real accounts (premium UUIDs are random v4, offline-mode
+     * ones are MD5 v3; neither can land in a fixed-prefix range). Deliberately non-zero: Floodgate
+     * gives Bedrock players UUIDs with {@code getMostSignificantBits() == 0}, and plugins detect
+     * them by exactly that check, so an all-zero prefix would misclassify bots as Bedrock players.
+     */
+    private static final long UUID_MSB_SEQUENTIAL = 0xFB07_0000_0000_0000L;
 
-    private YamlConfiguration yamlConfig = null;
+    /** Same prefix, low bit set: marks a custom-named bot whose low 64 bits are a name hash. */
+    private static final long UUID_MSB_NAMED = 0xFB07_0000_0000_0001L;
 
-    public BotIdentityCache(FakePlayerPlugin plugin, DatabaseManager db) {
-        this.pluginRef = plugin;
-        this.db = db;
-        this.yamlFile = new File(new File(plugin.getDataFolder(), "data"), YAML_FILE);
+    private static final long UUID_MSB_PREFIX_MASK = 0xFFFF_FFFF_0000_0000L;
 
-        if (db == null) {
-            loadYaml();
-        } else {
-            loadDbAsync();
-        }
-    }
-
-    public UUID lookupOrCreate(String botName) {
-        String key = normalizeKey(botName);
-
-        UUID cached = cache.get(key);
-        if (cached != null) return cached;
-
-        return db != null ? lookupOrCreateDb(botName, key) : lookupOrCreateYaml(botName, key);
-    }
-
-    public UUID refresh(String botName) {
-        String key = normalizeKey(botName);
-        IdentityResolution resolved = resolvePreferredUuid(botName);
-        UUID safeUuid = resolved.uuid();
-
-        cache.put(key, safeUuid);
-        if (db != null) {
-            String serverId = Config.serverId();
-            UUID fromDb = db.lookupBotUuid(botName, serverId);
-            if (fromDb == null) {
-                db.registerBotUuid(botName, safeUuid, serverId);
-            } else if (!safeUuid.equals(fromDb)) {
-                db.migrateBotUuid(botName, serverId, fromDb, safeUuid);
-            }
-        } else {
-            if (yamlConfig == null) yamlConfig = new YamlConfiguration();
-            yamlConfig.set(ROOT + "." + key, safeUuid.toString());
-            saveYaml();
-        }
-        Config.debugDatabase("BotIdentityCache: refreshed identity for '" + botName + "' → " + safeUuid);
-        return safeUuid;
-    }
-
+    /**
+     * Deterministic bot UUID, derived from the name alone — no storage, no Mojang contact.
+     *
+     * <p>Default sequential names embed their number directly: {@code bot} →
+     * {@code fb070000-0000-0000-0000-000000000001}, {@code bot2} → {@code …-000000000002}, and so
+     * on. Custom names get the same recognizable prefix with a 64-bit hash of the lowercase name in
+     * the low bits (UUIDs are hex-only, so the name itself can't be embedded literally); the marker
+     * bit in the high half keeps the two forms from ever colliding — a bot custom-named
+     * {@code bot1} hashes instead of claiming {@code bot}'s number 1.
+     */
     public static UUID deterministicBotUuid(String botName) {
-        return offlineModeUuid(botName);
+        long seq = canonicalSequentialNumber(botName);
+        if (seq > 0) return new UUID(UUID_MSB_SEQUENTIAL, seq);
+        return new UUID(UUID_MSB_NAMED, nameHash64(botName));
     }
 
+    /** True if this UUID carries the FPP bot prefix (either sequential or named form). */
+    public static boolean isBotUuid(UUID uuid) {
+        return uuid != null && (uuid.getMostSignificantBits() & UUID_MSB_PREFIX_MASK) == UUID_MSB_SEQUENTIAL;
+    }
+
+    /**
+     * The bot number when (and only when) the name is exactly what {@code nextSequentialName}
+     * generates for that number — {@code bot} → 1, {@code bot2} → 2 … Non-canonical spellings
+     * ({@code bot1}, {@code bot02}) return -1 so they fall through to the named-hash form instead
+     * of colliding with the canonical name's UUID.
+     */
+    private static long canonicalSequentialNumber(String botName) {
+        if (botName == null) return -1;
+        String lower = botName.toLowerCase(Locale.ROOT);
+        if (lower.equals("bot")) return 1;
+        if (!lower.startsWith("bot")) return -1;
+        String digits = lower.substring(3);
+        if (digits.isEmpty() || digits.length() > 18) return -1;
+        for (int i = 0; i < digits.length(); i++) {
+            if (!Character.isDigit(digits.charAt(i))) return -1;
+        }
+        long n;
+        try {
+            n = Long.parseLong(digits);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+        return n >= 2 && lower.equals("bot" + n) ? n : -1;
+    }
+
+    private static long nameHash64(String botName) {
+        MessageDigest md5 = MD5.get();
+        md5.reset();
+        byte[] bytes = md5.digest(("fpp-bot:" + normalizeKey(botName)).getBytes(StandardCharsets.UTF_8));
+        long h = 0;
+        for (int i = 0; i < 8; i++) h = (h << 8) | (bytes[i] & 0xffL);
+        return h;
+    }
+
+    /**
+     * Legacy pre-2.0 bot UUID (vanilla offline-mode formula). Only used to recognize and migrate
+     * old persisted identities — new UUIDs come from {@link #deterministicBotUuid}.
+     */
     public static UUID offlineModeUuid(String botName) {
         MessageDigest md5 = MD5.get();
         md5.reset();
@@ -119,314 +115,7 @@ public final class BotIdentityCache {
         return new UUID(most, least);
     }
 
-    private UUID lookupOrCreateDb(String botName, String cacheKey) {
-        UUID safeUuid = offlineModeUuid(botName);
-        UUID existing = cache.putIfAbsent(cacheKey, safeUuid);
-        if (existing != null) return existing;
-
-        db.registerBotUuid(botName, safeUuid, Config.serverId());
-        Config.debugDatabase("BotIdentityCache: new identity for '" + botName + "' → " + safeUuid);
-        return safeUuid;
-    }
-
-    private void loadDbAsync() {
-        FppScheduler.runAsync(pluginRef, () -> {
-            String serverId = Config.serverId();
-            int loaded = 0;
-            for (DatabaseManager.BotIdentityRow row : db.getBotIdentityRows()) {
-                if (row == null
-                        || row.botName() == null
-                        || row.botName().isBlank()
-                        || !serverId.equals(row.serverId())) {
-                    continue;
-                }
-                try {
-                    cache.putIfAbsent(normalizeKey(row.botName()), UUID.fromString(row.botUuid()));
-                    loaded++;
-                } catch (Exception e) {
-                    FppLogger.warn("BotIdentityCache: skipping malformed DB UUID for '"
-                            + row.botName()
-                            + "': "
-                            + row.botUuid());
-                }
-            }
-            if (loaded > 0) {
-                FppLogger.info("BotIdentityCache: asynchronously loaded " + loaded + " DB identity mapping(s).");
-            }
-        });
-    }
-
-    private void loadYaml() {
-        yamlConfig = BotDataYaml.load(pluginRef);
-        ConfigurationSection root = yamlConfig.getConfigurationSection(ROOT);
-        if (root == null && yamlFile.exists()) {
-            YamlConfiguration legacy = YamlConfiguration.loadConfiguration(yamlFile);
-            if (!legacy.getKeys(false).isEmpty()) {
-                root = legacy;
-                try {
-                    BotDataYaml.replaceSection(pluginRef, ROOT, section -> {
-                        for (String key : legacy.getKeys(false)) {
-                            section.set(key, legacy.getString(key));
-                        }
-                    });
-                    if (yamlFile.exists()) yamlFile.delete();
-                    yamlConfig = BotDataYaml.load(pluginRef);
-                    root = yamlConfig.getConfigurationSection(ROOT);
-                } catch (IOException e) {
-                    FppLogger.warn("BotIdentityCache: failed to migrate " + YAML_FILE + ": " + e.getMessage());
-                }
-            }
-        }
-        if (root == null) {
-            yamlConfig = new YamlConfiguration();
-            Config.debugDatabase("BotIdentityCache: no YAML data yet - will create on first spawn.");
-            return;
-        }
-        int loaded = 0;
-        for (String key : root.getKeys(false)) {
-            String val = root.getString(key);
-            if (val == null || val.isBlank()) continue;
-            try {
-                cache.put(normalizeKey(key), UUID.fromString(val));
-                loaded++;
-            } catch (IllegalArgumentException e) {
-                FppLogger.warn("BotIdentityCache: skipping malformed entry '" + key + "': " + val);
-            }
-        }
-        if (loaded > 0) {
-            FppLogger.info("BotIdentityCache: loaded " + loaded + " name→UUID mapping(s) from " + YAML_FILE + ".");
-        }
-    }
-
-    private UUID lookupOrCreateYaml(String botName, String cacheKey) {
-        synchronized (this) {
-            if (yamlConfig == null) yamlConfig = new YamlConfiguration();
-
-            String stored = yamlConfig.getString(ROOT + "." + cacheKey);
-            if (stored != null && !stored.isBlank()) {
-                try {
-                    UUID fromYaml = UUID.fromString(stored);
-                    cache.putIfAbsent(cacheKey, fromYaml);
-                    Config.debugDatabase("BotIdentityCache: YAML hit for '" + botName + "' → " + fromYaml);
-                    return fromYaml;
-                } catch (IllegalArgumentException e) {
-                    FppLogger.warn("BotIdentityCache: malformed YAML entry for '" + botName + "' - regenerating UUID.");
-                }
-            }
-
-            UUID safeUuid = offlineModeUuid(botName);
-            UUID existing = cache.putIfAbsent(cacheKey, safeUuid);
-            if (existing != null) return existing;
-            yamlConfig.set(ROOT + "." + cacheKey, safeUuid.toString());
-            scheduleYamlSave();
-            Config.debugDatabase("BotIdentityCache: new YAML identity for '" + botName + "' → " + safeUuid);
-            return safeUuid;
-        }
-    }
-
-    private void scheduleYamlSave() {
-        yamlSaveDirty = true;
-        if (yamlSaveQueued) return;
-        yamlSaveQueued = true;
-        FppScheduler.runSyncLater(
-                pluginRef,
-                () -> {
-                    yamlSaveDirty = false;
-                    YamlConfiguration snapshot = snapshotYamlIdentities();
-                    FppScheduler.runAsync(pluginRef, () -> {
-                        try {
-                            BotDataYaml.save(pluginRef, snapshot);
-                        } catch (IOException e) {
-                            FppLogger.warn("BotIdentityCache: failed to save " + YAML_FILE + ": " + e.getMessage());
-                        } finally {
-                            yamlSaveQueued = false;
-                            if (yamlSaveDirty) scheduleYamlSave();
-                        }
-                    });
-                },
-                20L);
-    }
-
-    private synchronized YamlConfiguration snapshotYamlIdentities() {
-        YamlConfiguration snapshot = new YamlConfiguration();
-        if (yamlConfig != null) {
-            try {
-                snapshot.loadFromString(yamlConfig.saveToString());
-            } catch (InvalidConfigurationException e) {
-                FppLogger.warn("BotIdentityCache: failed to snapshot identity YAML: " + e.getMessage());
-            }
-        }
-        for (Map.Entry<String, UUID> entry : cache.entrySet()) {
-            snapshot.set(ROOT + "." + entry.getKey(), entry.getValue().toString());
-        }
-        return snapshot;
-    }
-
-    private void migrateLegacyDbMappings() {
-        if (db == null) return;
-        int migrated = 0;
-        for (DatabaseManager.BotIdentityRow row : db.getBotIdentityRows()) {
-            if (row == null || row.botName() == null || row.botName().isBlank()) continue;
-            IdentityResolution resolved = resolvePreferredUuid(row.botName());
-            UUID target = resolved.uuid();
-            UUID current;
-            try {
-                current = UUID.fromString(row.botUuid());
-            } catch (Exception e) {
-                cache.put(normalizeKey(row.botName()), target);
-                FppLogger.warn("BotIdentityCache: malformed DB UUID for '"
-                        + row.botName()
-                        + "' on server '"
-                        + row.serverId()
-                        + "' - using resolved bot UUID "
-                        + target
-                        + " for this runtime.");
-                continue;
-            }
-            cache.put(normalizeKey(row.botName()), resolved.authoritative() ? target : current);
-            if (resolved.authoritative()
-                    && !target.equals(current)
-                    && db.migrateBotUuid(row.botName(), row.serverId(), current, target)) {
-                migrated++;
-            }
-        }
-        if (migrated > 0) {
-            FppLogger.info(
-                    "BotIdentityCache: migrated " + migrated + " legacy bot UUID mapping(s) to premium/offline UUIDs.");
-        }
-    }
-
-    private void migrateLegacyYamlMappings() {
-        if (yamlConfig == null) yamlConfig = new YamlConfiguration();
-        boolean changed = false;
-        int migrated = 0;
-        for (Map.Entry<String, UUID> entry : Map.copyOf(cache).entrySet()) {
-            IdentityResolution resolved = resolvePreferredUuid(entry.getKey());
-            if (!resolved.authoritative()) continue;
-            UUID target = resolved.uuid();
-            cache.put(entry.getKey(), target);
-            if (!target.equals(entry.getValue())) {
-                yamlConfig.set(ROOT + "." + entry.getKey(), target.toString());
-                changed = true;
-                migrated++;
-            }
-        }
-        if (changed) {
-            saveYaml();
-            FppLogger.info("BotIdentityCache: migrated "
-                    + migrated
-                    + " legacy YAML bot UUID mapping(s) to premium/offline UUIDs.");
-        }
-    }
-
-    private void saveYaml() {
-        try {
-            File parent = yamlFile.getParentFile();
-            if (parent != null && !parent.exists()) parent.mkdirs();
-            BotDataYaml.save(pluginRef, yamlConfig);
-            if (yamlFile.exists()) yamlFile.delete();
-        } catch (IOException e) {
-            FppLogger.warn("BotIdentityCache: failed to save " + YAML_FILE + ": " + e.getMessage());
-        }
-    }
-
     private static String normalizeKey(String botName) {
         return botName == null ? "" : botName.toLowerCase(Locale.ROOT);
     }
-
-    private IdentityResolution resolvePreferredUuid(String botName) {
-        String key = normalizeKey(botName);
-        IdentityResolution cached = resolvedCache.get(key);
-        if (cached != null) return cached;
-
-        UUID offlineUuid = offlineModeUuid(botName);
-        if (!isPotentialPremiumName(botName)) {
-            IdentityResolution result = new IdentityResolution(offlineUuid, true);
-            resolvedCache.put(key, result);
-            return result;
-        }
-
-        long now = System.currentTimeMillis();
-        if (now < mojangRateLimitedUntilMs) {
-            Config.debugDatabase("BotIdentityCache: Mojang UUID lookup skipped for '"
-                    + botName
-                    + "' during rate-limit cooldown; using offline UUID for new identities.");
-            return new IdentityResolution(offlineUuid, false);
-        }
-
-        try {
-            UUID premiumUuid = fetchMojangUuid(botName);
-            IdentityResolution result = premiumUuid != null
-                    ? new IdentityResolution(premiumUuid, true)
-                    : new IdentityResolution(offlineUuid, true);
-            resolvedCache.put(key, result);
-            return result;
-        } catch (RateLimitException e) {
-            mojangRateLimitedUntilMs = System.currentTimeMillis() + MOJANG_RATE_LIMIT_COOLDOWN_MS;
-            FppLogger.warn("BotIdentityCache: Mojang UUID lookups are rate-limited; using offline UUID fallback for "
-                    + TimeUnit.MILLISECONDS.toMinutes(MOJANG_RATE_LIMIT_COOLDOWN_MS)
-                    + " minutes.");
-            return new IdentityResolution(offlineUuid, false);
-        } catch (Exception e) {
-            Config.debugDatabase("BotIdentityCache: Mojang UUID lookup failed for '"
-                    + botName
-                    + "' ("
-                    + e.getMessage()
-                    + "); using offline UUID fallback for new identities.");
-            return new IdentityResolution(offlineUuid, false);
-        }
-    }
-
-    private static boolean isPotentialPremiumName(String botName) {
-        return botName != null && botName.matches("[A-Za-z0-9_]{3,16}");
-    }
-
-    private static UUID fetchMojangUuid(String botName) throws Exception {
-        HttpURLConnection conn =
-                (HttpURLConnection) URI.create("https://api.mojang.com/users/profiles/minecraft/" + botName)
-                        .toURL()
-                        .openConnection();
-        conn.setRequestMethod("GET");
-        conn.setConnectTimeout(2_500);
-        conn.setReadTimeout(2_500);
-        conn.setRequestProperty("User-Agent", USER_AGENT);
-        int code = conn.getResponseCode();
-        if (code == 429) {
-            conn.disconnect();
-            throw new RateLimitException();
-        }
-        if (code == 204 || code == 404) {
-            conn.disconnect();
-            return null;
-        }
-        try (InputStreamReader reader = new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)) {
-            JsonElement element = JsonParser.parseReader(reader);
-            if (element == null || !element.isJsonObject()) return null;
-            JsonObject json = element.getAsJsonObject();
-            JsonElement id = json.get("id");
-            if (id == null || !id.isJsonPrimitive()) return null;
-            return parseMojangUuid(id.getAsString());
-        } finally {
-            conn.disconnect();
-        }
-    }
-
-    private static UUID parseMojangUuid(String value) {
-        if (value == null) return null;
-        String compact = value.replace("-", "");
-        if (!compact.matches("[0-9a-fA-F]{32}")) return null;
-        return UUID.fromString(compact.substring(0, 8)
-                + "-"
-                + compact.substring(8, 12)
-                + "-"
-                + compact.substring(12, 16)
-                + "-"
-                + compact.substring(16, 20)
-                + "-"
-                + compact.substring(20));
-    }
-
-    private record IdentityResolution(UUID uuid, boolean authoritative) {}
-
-    private static final class RateLimitException extends RuntimeException {}
 }

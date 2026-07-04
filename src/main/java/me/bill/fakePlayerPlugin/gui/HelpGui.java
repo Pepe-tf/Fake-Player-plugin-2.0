@@ -10,8 +10,6 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -30,7 +28,6 @@ import org.bukkit.plugin.Plugin;
 import com.destroystokyo.paper.profile.PlayerProfile;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.api.FppCommandExtension;
 import me.bill.fakePlayerPlugin.command.CommandManager;
 
 import net.kyori.adventure.text.Component;
@@ -40,13 +37,13 @@ import net.kyori.adventure.text.format.TextDecoration;
 
 public final class HelpGui implements Listener {
 
-    private static final TextColor ACCENT = TextColor.fromHexString("#0079FF");
-    private static final TextColor ON_GREEN = TextColor.fromHexString("#66CC66");
-    private static final TextColor ORANGE = TextColor.fromHexString("#FFA500");
-    private static final TextColor DARK_GRAY = NamedTextColor.DARK_GRAY;
-    private static final TextColor GRAY = NamedTextColor.GRAY;
-    private static final TextColor WHITE = NamedTextColor.WHITE;
-    private static final TextColor YELLOW = NamedTextColor.YELLOW;
+    private static final TextColor ACCENT = GuiKit.ACCENT;
+    private static final TextColor ON_GREEN = GuiKit.ON_GREEN;
+    private static final TextColor ORANGE = GuiKit.COMING_SOON_COLOR;
+    private static final TextColor DARK_GRAY = GuiKit.DARK_GRAY;
+    private static final TextColor GRAY = GuiKit.GRAY;
+    private static final TextColor WHITE = GuiKit.WHITE;
+    private static final TextColor YELLOW = GuiKit.YELLOW;
 
     private static final TextColor ARG_REQUIRED = TextColor.fromHexString("#FF8C00");
     private static final TextColor ARG_OPTIONAL = TextColor.fromHexString("#AAAAAA");
@@ -57,7 +54,6 @@ public final class HelpGui implements Listener {
     private static final TextColor CAT_CORE = TextColor.fromHexString("#5B9BD5");
     private static final TextColor CAT_BOT = TextColor.fromHexString("#70AD47");
     private static final TextColor CAT_ACTION = TextColor.fromHexString("#ED7D31");
-    private static final TextColor CAT_ADDON = TextColor.fromHexString("#9E7FD4");
 
     private enum Category {
         ALL("ᴀʟʟ", CAT_ALL, Material.COMPASS, Material.COMPASS, "ꜱʜᴏᴡꜱ ᴇᴠᴇʀʏ ᴀᴠᴀɪʟᴀʙʟᴇ ᴄᴏᴍᴍᴀɴᴅ."),
@@ -68,13 +64,7 @@ public final class HelpGui implements Listener {
                 CAT_ACTION,
                 Material.DIAMOND_PICKAXE,
                 Material.IRON_PICKAXE,
-                "ɴᴀᴠ, ᴍɪɴɪɴɢ, ꜰɪɴᴅ, ꜰᴏʟʟᴏᴡ, ꜱʟᴇᴇᴘ & ᴍᴏʀᴇ."),
-        ADDONS(
-                "ᴀᴅᴅᴏɴꜱ",
-                CAT_ADDON,
-                Material.WRITABLE_BOOK,
-                Material.BOOK,
-                "ᴄᴏᴍᴍᴀɴᴅꜱ ᴀᴅᴅᴇᴅ ʙʏ ɪɴꜱᴛᴀʟʟᴇᴅ ꜰᴘᴘ ᴇxᴛᴇɴꜱɪᴏɴꜱ.");
+                "ɴᴀᴠ, ᴍɪɴɪɴɢ, ꜰɪɴᴅ, ᴄᴏᴍʙᴀᴛ, ꜱᴛᴏʀᴀɢᴇ & ᴍᴏʀᴇ.");
 
         final String label;
         final TextColor color;
@@ -116,14 +106,7 @@ public final class HelpGui implements Listener {
     }
 
     private record HelpEntry(
-            String name,
-            List<String> aliases,
-            String usage,
-            String description,
-            String permission,
-            boolean addon,
-            Material icon,
-            List<FppCommandExtension> modifiers) {}
+            String name, List<String> aliases, String usage, String description, String permission, Material icon) {}
 
     private final Plugin plugin;
     private final CommandManager commandManager;
@@ -251,8 +234,7 @@ public final class HelpGui implements Listener {
     }
 
     private List<HelpEntry> filteredCommands(Player player, Category cat) {
-        List<HelpEntry> entries = new ArrayList<>();
-        commandManager.getCommands().stream()
+        return commandManager.getCommands().stream()
                 .filter(cmd -> cmd.canUse(player))
                 .map(cmd -> new HelpEntry(
                         cmd.getName(),
@@ -260,27 +242,8 @@ public final class HelpGui implements Listener {
                         cmd.getUsage(),
                         cmd.getDescription(),
                         cmd.getPermission(),
-                        false,
-                        iconFor(cmd.getName()),
-                        commandManager.getCommandExtensions(cmd.getName()).stream()
-                                .filter(extension -> extension.canUse(player))
-                                .toList()))
-                .forEach(entries::add);
-        commandManager.getAddonCommands().stream()
-                .filter(cmd -> cmd.canUse(player))
-                .filter(cmd -> cat == Category.ADDONS)
-                .map(cmd -> new HelpEntry(
-                        cmd.getName(),
-                        cmd.getAliases(),
-                        cmd.getUsage(),
-                        cmd.getDescription(),
-                        cmd.getPermission(),
-                        true,
-                        cmd.getIcon(),
-                        List.of()))
-                .forEach(entries::add);
-        return entries.stream()
-                .filter(cmd -> cat == Category.ALL || categoryFor(cmd) == cat)
+                        iconFor(cmd.getName())))
+                .filter(cmd -> cat == Category.ALL || categoryFor(cmd.name()) == cat)
                 .toList();
     }
 
@@ -325,7 +288,7 @@ public final class HelpGui implements Listener {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.empty());
 
-        Category cat = categoryFor(cmd);
+        Category cat = categoryFor(cmd.name());
         lore.add(Component.empty()
                 .decoration(TextDecoration.ITALIC, false)
                 .append(Component.text(cat.label).color(cat.color).decoration(TextDecoration.BOLD, true)));
@@ -363,29 +326,6 @@ public final class HelpGui implements Listener {
                     row = row.append(Component.text(", ").color(DARK_GRAY));
             }
             lore.add(row);
-        }
-
-        if (!cmd.modifiers().isEmpty()) {
-            lore.add(Component.empty());
-            lore.add(Component.empty()
-                    .decoration(TextDecoration.ITALIC, false)
-                    .append(Component.text("ᴀᴅᴅᴏɴꜱ  ").color(DARK_GRAY).decoration(TextDecoration.BOLD, true)));
-            for (FppCommandExtension modifier : cmd.modifiers()) {
-                String modifierDesc = modifier.getDescription();
-                String modifierUsage = modifier.getUsage();
-                Component line = Component.empty()
-                        .decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text("  + ").color(ACCENT))
-                        .append(Component.text(
-                                        modifierDesc == null || modifierDesc.isBlank()
-                                                ? "Extends this command."
-                                                : modifierDesc)
-                                .color(GRAY));
-                lore.add(line);
-                if (modifierUsage != null && !modifierUsage.isBlank()) {
-                    lore.add(buildUsageLine(name, modifierUsage, alias));
-                }
-            }
         }
 
         String perm = cmd.permission();
@@ -447,46 +387,21 @@ public final class HelpGui implements Listener {
         return modes.isEmpty() ? List.of(usage) : modes;
     }
 
-    private static Category categoryFor(HelpEntry entry) {
-        if (entry.addon()) return Category.ADDONS;
-        return categoryFor(entry.name());
-    }
-
     private static Category categoryFor(String name) {
         return switch (name.toLowerCase()) {
             case "spawn",
                     "despawn",
+                    "delete",
                     "list",
                     "info",
+                    "check",
+                    "perf",
                     "help",
-                    "stats",
                     "reload",
                     "settings",
-                    "migrate",
                     "save" -> Category.CORE;
-            case "tp", "tph", "freeze", "rename", "inventory", "inv", "xp", "setowner" -> Category.BOTS;
-            case "move", "storage", "attack", "find", "follow", "sleep", "stop", "left-click", "right-click" -> Category
-                    .ACTIONS;
-            case "mine", "place", "use" -> Category.ACTIONS;
-            case "badword" -> Category.CORE;
-            case "chat",
-                    "personality",
-                    "persona",
-                    "skin",
-                    "rank",
-                    "lpinfo",
-                    "groups",
-                    "bots",
-                    "mybots",
-                    "botmenu",
-                    "cmd",
-                    "command",
-                    "peaks",
-                    "swap",
-                    "sync",
-                    "ping",
-                    "waypoint",
-                    "waypoints" -> Category.ADDONS;
+            case "tp", "tph", "freeze", "inventory", "inv", "xp", "setowner", "rename" -> Category.BOTS;
+            case "move", "storage", "attack", "find", "sneak", "stop", "left-click", "right-click" -> Category.ACTIONS;
             default -> Category.CORE;
         };
     }
@@ -501,7 +416,6 @@ public final class HelpGui implements Listener {
             case "chat" -> Material.PAPER;
             case "reload" -> Material.NETHER_STAR;
             case "freeze" -> Material.PACKED_ICE;
-            case "stats" -> Material.CLOCK;
             case "tp" -> Material.ENDER_PEARL;
             case "tph" -> Material.ENDER_EYE;
             case "rank" -> Material.GOLDEN_CHESTPLATE;
@@ -514,14 +428,10 @@ public final class HelpGui implements Listener {
             case "attack" -> Material.IRON_SWORD;
             case "left-click" -> Material.DIAMOND_PICKAXE;
             case "right-click" -> Material.WOODEN_AXE;
-            case "peaks" -> Material.SUNFLOWER;
             case "settings" -> Material.COMPARATOR;
-            case "migrate" -> Material.ANVIL;
             case "sync" -> Material.OBSERVER;
             case "save" -> Material.ENDER_CHEST;
             case "xp" -> Material.EXPERIENCE_BOTTLE;
-            case "badword" -> Material.BARRIER;
-            case "rename" -> Material.NAME_TAG;
             case "personality", "persona" -> Material.WRITABLE_BOOK;
             case "storage" -> Material.BARREL;
             case "place" -> Material.OAK_PLANKS;
@@ -531,7 +441,7 @@ public final class HelpGui implements Listener {
             case "stop" -> Material.BARRIER;
             case "bots", "mybots", "botmenu" -> Material.PLAYER_HEAD;
             case "setowner" -> Material.NAME_TAG;
-            case "skin" -> Material.PLAYER_HEAD;
+            case "rename" -> Material.OAK_SIGN;
             default -> Material.COMMAND_BLOCK;
         };
     }
@@ -662,12 +572,7 @@ public final class HelpGui implements Listener {
     }
 
     private static ItemStack glassFiller(Material mat) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.empty().decoration(TextDecoration.ITALIC, false));
-        meta.lore(List.of());
-        item.setItemMeta(meta);
-        return item;
+        return GuiKit.glassFiller(mat);
     }
 
     private static Component divider() {
@@ -684,26 +589,11 @@ public final class HelpGui implements Listener {
     }
 
     private static void playClick(Player player, float pitch) {
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, SoundCategory.MASTER, 0.5f, pitch);
+        GuiKit.playUiClick(player, pitch);
     }
 
     private static List<String> wrapText(String text, int maxLen) {
-        if (text == null || text.isEmpty()) return List.of();
-        if (text.length() <= maxLen) return List.of(text);
-        List<String> lines = new ArrayList<>();
-        String[] words = text.split(" ");
-        StringBuilder sb = new StringBuilder();
-        for (String word : words) {
-            if (word.isEmpty()) continue;
-            if (!sb.isEmpty() && sb.length() + 1 + word.length() > maxLen) {
-                lines.add(sb.toString().trim());
-                sb.setLength(0);
-            }
-            if (!sb.isEmpty()) sb.append(' ');
-            sb.append(word);
-        }
-        if (!sb.isEmpty()) lines.add(sb.toString().trim());
-        return lines;
+        return GuiKit.wrapText(text, maxLen);
     }
 
     public static final class Holder implements InventoryHolder {

@@ -47,15 +47,22 @@ public final class SkinProfileInjector {
         }
 
         ClassLoader cl = gameProfileClass.getClassLoader();
+        Class<?> propertyClass = cl.loadClass("com.mojang.authlib.properties.Property");
         Class<?> propertyMapClass = cl.loadClass("com.mojang.authlib.properties.PropertyMap");
         Class<?> multimapClass = cl.loadClass("com.google.common.collect.Multimap");
         Class<?> arrayListMultimapClass = cl.loadClass("com.google.common.collect.ArrayListMultimap");
+
+        // Insert the texture property into the backing multimap BEFORE wrapping it in a
+        // PropertyMap/GameProfile. This is a normal Multimap.put (mutating the multimap's contents),
+        // never a reflective mutation of PropertyMap's final backing field — so it does not trip the
+        // JVM "Final field ... mutated reflectively" warning.
         Object multimap = arrayListMultimapClass.getMethod("create").invoke(null);
+        Object property = createProperty(propertyClass, skin.getValue(), skin.getSignature());
+        multimapClass.getMethod("put", Object.class, Object.class).invoke(multimap, TEXTURES_KEY, property);
+
         Object propertyMap = propertyMapClass.getConstructor(multimapClass).newInstance(multimap);
         Constructor<?> ctor = gameProfileClass.getConstructor(UUID.class, String.class, propertyMapClass);
-        Object profile = ctor.newInstance(uuid, name, propertyMap);
-        apply(profile, skin);
-        return profile;
+        return ctor.newInstance(uuid, name, propertyMap);
     }
 
     private static Object createProperty(Class<?> propertyClass, String value, String signature) throws Exception {
@@ -114,72 +121,55 @@ public final class SkinProfileInjector {
     private static boolean tryApply(Object candidate, Object property) {
         if (candidate == null) return false;
 
+        // Old authlib: PropertyMap IS a Multimap (extends ForwardingMultimap), so put/removeAll
+        // on the candidate itself delegate to its backing multimap. No field mutation.
         clearExistingTextures(candidate);
         if (invokePut(candidate, property)) return true;
-        if (replaceBackingProperties(candidate, property)) return true;
 
-        for (Field field : getAllFields(candidate.getClass())) {
-            if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic()) continue;
-            try {
-                field.setAccessible(true);
-                Object nested = field.get(candidate);
-                if (nested == null || nested == candidate) continue;
-                clearExistingTextures(nested);
-                if (invokePut(nested, property)) return true;
-                if (replaceBackingProperties(nested, property)) return true;
-            } catch (Exception ignored) {
-            }
+        // Newer authlib (1.21.11): PropertyMap wraps a *final* backing Multimap in a `properties`
+        // field/accessor and no longer exposes put/removeAll. Read that multimap and mutate its
+        // CONTENTS — never reflectively reassign the final field (which the JVM now warns about and
+        // will block in a future release).
+        Object backing = resolveBackingMultimap(candidate);
+        if (backing != null && backing != candidate) {
+            clearExistingTextures(backing);
+            if (invokePut(backing, property)) return true;
         }
         return false;
     }
 
-    private static boolean replaceBackingProperties(Object propertyMap, Object property) {
-        Field backingField = null;
+    /**
+     * Reads (never writes) the mutable backing {@code Multimap} that a {@code PropertyMap} delegates
+     * to, via its record-style {@code properties()} accessor or the {@code properties} field.
+     */
+    private static Object resolveBackingMultimap(Object propertyMap) {
+        Object viaAccessor = invokeNoArg(propertyMap, "properties");
+        if (isMultimap(viaAccessor)) return viaAccessor;
+
         for (Field field : getAllFields(propertyMap.getClass())) {
             if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic()) continue;
-            if ("properties".equals(field.getName())) {
-                backingField = field;
-                break;
+            if (!"properties".equals(field.getName())) continue;
+            try {
+                field.setAccessible(true);
+                Object value = field.get(propertyMap);
+                if (isMultimap(value)) return value;
+            } catch (Exception ignored) {
             }
         }
-        if (backingField == null) return false;
+        return null;
+    }
 
+    private static boolean isMultimap(Object obj) {
+        if (obj == null) return false;
         try {
-            Method entriesMethod = findNoArgMethod(propertyMap.getClass(), "entries");
-            if (entriesMethod == null) return false;
-            entriesMethod.setAccessible(true);
-            Object entries = entriesMethod.invoke(propertyMap);
-            if (!(entries instanceof Iterable<?> iterable)) return false;
-
-            ClassLoader cl = property.getClass().getClassLoader();
-            Class<?> builderClass = cl.loadClass("com.google.common.collect.ImmutableMultimap$Builder");
-            Object builder = cl.loadClass("com.google.common.collect.ImmutableMultimap")
-                    .getMethod("builder")
-                    .invoke(null);
-            Method builderPut = builderClass.getMethod("put", Object.class, Object.class);
-            Method build = builderClass.getMethod("build");
-
-            for (Object entry : iterable) {
-                Object key = invokeNoArg(entry, "getKey");
-                if (TEXTURES_KEY.equals(key)) continue;
-                Object value = invokeNoArg(entry, "getValue");
-                builderPut.invoke(builder, key, value);
-            }
-
-            builderPut.invoke(builder, TEXTURES_KEY, property);
-            backingField.setAccessible(true);
-            backingField.set(propertyMap, build.invoke(builder));
-            return true;
+            ClassLoader cl = obj.getClass().getClassLoader();
+            Class<?> multimapClass = cl != null
+                    ? cl.loadClass("com.google.common.collect.Multimap")
+                    : Class.forName("com.google.common.collect.Multimap");
+            return multimapClass.isInstance(obj);
         } catch (Exception ignored) {
             return false;
         }
-    }
-
-    private static Method findNoArgMethod(Class<?> type, String methodName) {
-        for (Method method : getAllMethods(type)) {
-            if (method.getName().equals(methodName) && method.getParameterCount() == 0) return method;
-        }
-        return null;
     }
 
     private static boolean invokePut(Object propertyMap, Object property) {

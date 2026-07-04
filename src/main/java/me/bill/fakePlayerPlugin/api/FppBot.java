@@ -48,15 +48,6 @@ public interface FppBot {
 
     boolean isRespawning();
 
-    boolean isChatEnabled();
-
-    void setChatEnabled(boolean enabled);
-
-    @Nullable
-    String getChatTier();
-
-    void setChatTier(@Nullable String tier);
-
     @Nullable
     String getAiPersonality();
 
@@ -233,11 +224,6 @@ public interface FppBot {
 
     void setBotTypeName(@NotNull String type);
 
-    @Nullable
-    String getLuckpermsGroup();
-
-    void setLuckpermsGroup(@Nullable String group);
-
     // ── Messaging / permissions ───────────────────────────────────────────────
     void sendMessage(@NotNull String message);
 
@@ -268,7 +254,7 @@ public interface FppBot {
 
     void performRespawn();
 
-    // ── Addon metadata ────────────────────────────────────────────────────────
+    // ── Plugin metadata ────────────────────────────────────────────────────────
     void setMetadata(@NotNull String key, @Nullable Object value);
 
     @Nullable

@@ -14,7 +14,7 @@ import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 
 /**
- * /fpp stop [&lt;bot&gt;|all]
+ * /fpp stop [&lt;bot&gt;|--all]
  * <p>
  * Immediately cancels every active core task for one bot or all bots.
  */
@@ -85,7 +85,7 @@ public final class StopCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "[<bot>|all]";
+        return "[<bot>|--all]";
     }
 
     @Override

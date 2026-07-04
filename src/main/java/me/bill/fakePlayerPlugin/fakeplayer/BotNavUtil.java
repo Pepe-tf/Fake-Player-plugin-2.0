@@ -106,7 +106,7 @@ public final class BotNavUtil {
         }
     }
 
-    private static boolean canStandOn(World world, int x, int y, int z) {
+    public static boolean canStandOn(World world, int x, int y, int z) {
         if (y < world.getMinHeight() || y > world.getMaxHeight()) return false;
         try {
             if (!world.isChunkLoaded(x >> 4, z >> 4)) return false;
@@ -137,7 +137,7 @@ public final class BotNavUtil {
         }
     }
 
-    private static boolean isClimbable(Material mat) {
+    public static boolean isClimbable(Material mat) {
         return mat == Material.LADDER
                 || mat == Material.VINE
                 || mat == Material.TWISTING_VINES

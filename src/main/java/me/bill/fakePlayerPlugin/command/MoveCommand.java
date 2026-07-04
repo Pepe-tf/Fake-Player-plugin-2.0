@@ -3,37 +3,40 @@ package me.bill.fakePlayerPlugin.command;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
+import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
-import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
+import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.BotAccess;
-import me.bill.fakePlayerPlugin.util.FppScheduler;
 
+/**
+ * Pathfinding-only bot movement: walk to another bot/player (following live if they move) or to
+ * fixed coordinates. Directional raw-input movement was removed — {@code --to}/{@code --coords}
+ * cover every real use case and are simpler to reason about.
+ */
 public final class MoveCommand implements FppCommand {
 
     private final FakePlayerManager manager;
-    private final Set<UUID> movingBots = ConcurrentHashMap.newKeySet();
-    private final Map<UUID, Integer> stopTaskIds = new ConcurrentHashMap<>();
-    private final Map<UUID, Long> movementTokens = new ConcurrentHashMap<>();
-    private final AtomicLong movementSequence = new AtomicLong();
+    private final PathfindingService pathfinding;
 
-    public MoveCommand(FakePlayerManager manager) {
+    public MoveCommand(FakePlayerManager manager, PathfindingService pathfinding) {
         this.manager = manager;
+        this.pathfinding = pathfinding;
     }
 
     @Override
@@ -43,12 +46,12 @@ public final class MoveCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "<bot|all> --direction <forward|backward|left|right> [--seconds <n>|--ticks <n>]  |  <bot|all> --stop";
+        return "<bot|--all> --to <bot|player>  |  <bot|--all> --coords <x> <y> <z> [world]  |  <bot|--all> --stop";
     }
 
     @Override
     public String getDescription() {
-        return "Move bot bodies in a simple direction. Pathfinding is extension-owned.";
+        return "Pathfind a bot to another bot/player (follows live) or to fixed coordinates.";
     }
 
     @Override
@@ -70,7 +73,7 @@ public final class MoveCommand implements FppCommand {
 
         String target = args[0];
         String flag = args[1].toLowerCase(Locale.ROOT);
-        if (!flag.equals("--direction") && !flag.equals("--stop")) {
+        if (!flag.equals("--stop") && !flag.equals("--to") && !flag.equals("--coords")) {
             sender.sendMessage(Lang.get("move-usage"));
             return true;
         }
@@ -98,17 +101,22 @@ public final class MoveCommand implements FppCommand {
         }
 
         if (flag.equals("--stop")) {
-            stopDirectionalMove(fp);
+            stopMovement(fp);
             sender.sendMessage(Lang.get("move-stopped", "name", fp.getDisplayName()));
             return true;
         }
 
-        MoveOptions options = parseMoveOptions(sender, args);
-        if (options == null) return true;
+        if (!Perm.has(sender, flag.equals("--to") ? Perm.MOVE_TO : Perm.MOVE_COORDS)) {
+            sender.sendMessage(Lang.get("no-permission"));
+            return true;
+        }
 
-        startDirectionalMove(fp, bot, options.direction(), options.durationTicks());
-        sender.sendMessage(Lang.get(
-                "move-direction-started", "name", fp.getDisplayName(), "direction", options.direction().label));
+        PathfindTarget dest =
+                flag.equals("--to") ? parseToTarget(sender, fp, args) : parseCoordsTarget(sender, bot, args);
+        if (dest == null) return true;
+
+        startPathfindMove(fp, dest.locationSupplier(), dest.label(), sender);
+        sender.sendMessage(Lang.get("move-pathfind-started", "name", fp.getDisplayName(), "destination", dest.label()));
         return true;
     }
 
@@ -121,167 +129,219 @@ public final class MoveCommand implements FppCommand {
         if (flag.equals("--stop")) {
             int stopped = 0;
             for (FakePlayer fp : manager.getActivePlayers()) {
-                if (movingBots.contains(fp.getUuid())) {
-                    stopDirectionalMove(fp);
+                if (pathfinding.isNavigating(fp.getUuid(), PathfindingService.Owner.MOVE)) {
+                    stopMovement(fp);
                     stopped++;
                 }
             }
+            pathfinding.cancelAll(PathfindingService.Owner.MOVE);
             sender.sendMessage(Lang.get("move-all-stopped", "count", String.valueOf(stopped)));
             return true;
         }
 
-        MoveOptions options = parseMoveOptions(sender, args);
-        if (options == null) return true;
+        if (!Perm.has(sender, flag.equals("--to") ? Perm.MOVE_TO : Perm.MOVE_COORDS)) {
+            sender.sendMessage(Lang.get("no-permission"));
+            return true;
+        }
+
+        // Resolve the destination once, up front — not per bot in the loop, otherwise a "--to"
+        // target that happens to be one of the "all" bots would abort the whole batch on its own
+        // turn (self-target) instead of just being skipped.
+        UUID excludeUuid = null;
+        PathfindTarget dest;
+        if (flag.equals("--to")) {
+            if (args.length < 3) {
+                sender.sendMessage(Lang.get("move-usage"));
+                return true;
+            }
+            ResolvedTarget resolved = resolveToTarget(sender, args[2]);
+            if (resolved == null) return true;
+            dest = resolved.target();
+            excludeUuid = resolved.excludeUuid();
+        } else {
+            Player referenceBot = manager.getActivePlayers().stream()
+                    .map(FakePlayer::getPlayer)
+                    .filter(p -> p != null && p.isOnline())
+                    .findFirst()
+                    .orElse(null);
+            if (referenceBot == null) {
+                sender.sendMessage(Lang.get("move-coords-invalid"));
+                return true;
+            }
+            dest = parseCoordsTarget(sender, referenceBot, args);
+            if (dest == null) return true;
+        }
 
         int started = 0;
         int skipped = 0;
         for (FakePlayer fp : manager.getActivePlayers()) {
-            Player bot = fp.getPlayer();
-            if (bot == null || !bot.isOnline()) {
+            if (excludeUuid != null && fp.getUuid().equals(excludeUuid)) {
                 skipped++;
                 continue;
             }
-            startDirectionalMove(fp, bot, options.direction(), options.durationTicks());
+            Player bot = fp.getPlayer();
+            Location initial = dest.locationSupplier().get();
+            if (bot == null || !bot.isOnline() || initial == null || initial.getWorld() != bot.getWorld()) {
+                skipped++;
+                continue;
+            }
+            startPathfindMove(fp, dest.locationSupplier(), dest.label(), sender);
             started++;
         }
         sender.sendMessage(Lang.get(
-                "move-all-direction-started",
+                "move-all-pathfind-started",
                 "count",
                 String.valueOf(started),
-                "direction",
-                options.direction().label,
+                "destination",
+                dest.label(),
                 "skipped",
                 String.valueOf(skipped)));
         return true;
     }
 
     private boolean isAllTarget(String target) {
-        return target.equalsIgnoreCase("all") || target.equalsIgnoreCase("--all");
+        return target.equalsIgnoreCase("--all");
     }
 
-    private MoveOptions parseMoveOptions(CommandSender sender, String[] args) {
+    /** Resolves a {@code --to} target by name: an active bot first, then a real online player. */
+    @Nullable
+    private PathfindTarget parseToTarget(CommandSender sender, FakePlayer fp, String[] args) {
         if (args.length < 3) {
             sender.sendMessage(Lang.get("move-usage"));
             return null;
         }
+        ResolvedTarget resolved = resolveToTarget(sender, args[2]);
+        if (resolved == null) return null;
+        if (resolved.excludeUuid() != null && resolved.excludeUuid().equals(fp.getUuid())) {
+            sender.sendMessage(Lang.get("move-to-self"));
+            return null;
+        }
+        return resolved.target();
+    }
 
-        Direction direction = Direction.parse(args[2]);
-        if (direction == null) {
-            sender.sendMessage(Lang.get("move-direction-invalid"));
+    /**
+     * @return {@code null} if the sender was already messaged with a failure. {@code excludeUuid} is
+     *     non-null only when the target is itself an active bot (used for self-target checks).
+     */
+    @Nullable
+    private ResolvedTarget resolveToTarget(CommandSender sender, String targetName) {
+        FakePlayer targetBot = manager.getByName(targetName);
+        if (targetBot != null) {
+            Player targetPlayer = targetBot.getPlayer();
+            if (targetPlayer == null || !targetPlayer.isOnline()) {
+                sender.sendMessage(Lang.get("move-bot-not-online", "name", targetName));
+                return null;
+            }
+            UUID targetUuid = targetBot.getUuid();
+            Supplier<Location> live = () -> {
+                FakePlayer live2 = manager.getByUuid(targetUuid);
+                Player p = live2 != null ? live2.getPlayer() : null;
+                return p != null && p.isOnline() ? p.getLocation() : null;
+            };
+            return new ResolvedTarget(new PathfindTarget(live, targetBot.getDisplayName()), targetUuid);
+        }
+
+        Player realPlayer = Bukkit.getPlayer(targetName);
+        if (realPlayer == null || !realPlayer.isOnline()) {
+            sender.sendMessage(Lang.get("move-to-target-not-found", "name", targetName));
+            return null;
+        }
+        UUID playerUuid = realPlayer.getUniqueId();
+        Supplier<Location> live = () -> {
+            Player p = Bukkit.getPlayer(playerUuid);
+            return p != null && p.isOnline() ? p.getLocation() : null;
+        };
+        return new ResolvedTarget(new PathfindTarget(live, realPlayer.getName()), null);
+    }
+
+    private record ResolvedTarget(PathfindTarget target, @Nullable UUID excludeUuid) {}
+
+    @Nullable
+    private PathfindTarget parseCoordsTarget(CommandSender sender, Player bot, String[] args) {
+        if (args.length < 5) {
+            sender.sendMessage(Lang.get("move-coords-invalid"));
+            return null;
+        }
+        double x, y, z;
+        try {
+            x = Double.parseDouble(args[2]);
+            y = Double.parseDouble(args[3]);
+            z = Double.parseDouble(args[4]);
+        } catch (NumberFormatException ex) {
+            sender.sendMessage(Lang.get("move-coords-invalid"));
+            return null;
+        }
+        if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)) {
+            sender.sendMessage(Lang.get("move-coords-invalid"));
             return null;
         }
 
-        long durationTicks = 0L;
-        for (int i = 3; i < args.length; i++) {
-            String flag = args[i].toLowerCase(Locale.ROOT);
-            if (!flag.equals("--seconds") && !flag.equals("--ticks")) {
-                sender.sendMessage(Lang.get("move-usage"));
-                return null;
-            }
-            if (durationTicks > 0L || i + 1 >= args.length) {
-                sender.sendMessage(Lang.get("move-duration-invalid"));
-                return null;
-            }
-
-            String raw = args[++i];
-            try {
-                if (flag.equals("--seconds")) {
-                    double seconds = Double.parseDouble(raw);
-                    if (!Double.isFinite(seconds) || seconds <= 0.0D) {
-                        sender.sendMessage(Lang.get("move-duration-invalid"));
-                        return null;
-                    }
-                    durationTicks = Math.max(1L, (long) Math.ceil(seconds * 20.0D));
-                } else {
-                    durationTicks = Long.parseLong(raw);
-                    if (durationTicks <= 0L) {
-                        sender.sendMessage(Lang.get("move-duration-invalid"));
-                        return null;
-                    }
-                }
-            } catch (NumberFormatException ex) {
-                sender.sendMessage(Lang.get("move-duration-invalid"));
+        World world = bot.getWorld();
+        if (args.length >= 6) {
+            world = Bukkit.getWorld(args[5]);
+            if (world == null) {
+                sender.sendMessage(Lang.get("move-world-not-found", "world", args[5]));
                 return null;
             }
         }
-        return new MoveOptions(direction, durationTicks);
+
+        Location loc = new Location(world, x, y, z);
+        String label = (int) x + ", " + (int) y + ", " + (int) z;
+        return new PathfindTarget(() -> loc, label);
     }
 
-    private void startDirectionalMove(FakePlayer fp, Player bot, Direction direction, long durationTicks) {
-        stopMovementInput(bot);
-        cancelScheduledStop(fp.getUuid());
-        NmsPlayerSpawner.setMovementForward(bot, direction.forward);
-        NmsPlayerSpawner.setMovementStrafe(bot, direction.strafe);
-        bot.setSprinting(direction.forward > 0f);
-        movingBots.add(fp.getUuid());
-        long token = movementSequence.incrementAndGet();
-        movementTokens.put(fp.getUuid(), token);
-        if (durationTicks > 0L) {
-            scheduleStop(fp.getUuid(), bot, token, durationTicks);
-        }
+    /**
+     * @param sender if non-null, notified on arrival/failure (the controller invokes these callbacks
+     *     on the main/region thread already, so no extra scheduling is needed here).
+     */
+    private void startPathfindMove(
+            FakePlayer fp, Supplier<Location> destination, String destinationLabel, CommandSender sender) {
+        UUID uuid = fp.getUuid();
+        pathfinding.navigate(
+                fp,
+                new PathfindingService.NavigationRequest(
+                        PathfindingService.Owner.MOVE,
+                        destination,
+                        Config.pathfindingArrivalDistance(),
+                        Config.pathfindingFollowRecalcDistance(),
+                        Integer.MAX_VALUE,
+                        () -> {
+                            if (sender != null) {
+                                sender.sendMessage(Lang.get(
+                                        "move-pathfind-arrived",
+                                        "name",
+                                        fp.getDisplayName(),
+                                        "destination",
+                                        destinationLabel));
+                            }
+                        },
+                        null,
+                        () -> {
+                            if (sender != null) {
+                                sender.sendMessage(Lang.get(
+                                        "move-pathfind-no-path",
+                                        "name",
+                                        fp.getDisplayName(),
+                                        "destination",
+                                        destinationLabel));
+                            }
+                        }));
         FppApiImpl.fireTaskEvent(fp, "move", FppBotTaskEvent.Action.START);
     }
 
-    private void stopDirectionalMove(FakePlayer fp) {
-        cancelScheduledStop(fp.getUuid());
-        movementTokens.remove(fp.getUuid());
-        Player bot = fp.getPlayer();
-        if (bot != null && bot.isOnline()) {
-            stopMovementInput(bot);
-        }
-        movingBots.remove(fp.getUuid());
+    private void stopMovement(FakePlayer fp) {
+        pathfinding.cancel(fp.getUuid());
         FppApiImpl.fireTaskEvent(fp, "move", FppBotTaskEvent.Action.STOP);
     }
 
-    private void scheduleStop(UUID botUuid, Player bot, long token, long durationTicks) {
-        FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
-        if (plugin == null) return;
-        int taskId = FppScheduler.runAtEntityLaterWithId(
-                plugin, bot, () -> stopDirectionalMoveIfCurrent(botUuid, token), durationTicks);
-        if (taskId >= 0) {
-            stopTaskIds.put(botUuid, taskId);
-        }
-    }
-
-    private void stopDirectionalMoveIfCurrent(UUID botUuid, long token) {
-        Long current = movementTokens.get(botUuid);
-        if (current == null || current != token || !movingBots.contains(botUuid)) return;
-        FakePlayer fp = manager.getByUuid(botUuid);
-        if (fp != null) {
-            stopDirectionalMove(fp);
-        } else {
-            movingBots.remove(botUuid);
-            movementTokens.remove(botUuid);
-            cancelScheduledStop(botUuid);
-        }
-    }
-
-    private void cancelScheduledStop(UUID botUuid) {
-        Integer taskId = stopTaskIds.remove(botUuid);
-        if (taskId != null) {
-            FppScheduler.cancelTask(taskId);
-        }
-    }
-
-    private void stopMovementInput(Player bot) {
-        NmsPlayerSpawner.setMovementForward(bot, 0f);
-        NmsPlayerSpawner.setMovementStrafe(bot, 0f);
-        NmsPlayerSpawner.setJumping(bot, false);
-        bot.setSprinting(false);
-    }
+    private record PathfindTarget(Supplier<Location> locationSupplier, String label) {}
 
     public void cancelAll() {
-        new ArrayList<>(movingBots).forEach(this::cleanupBot);
+        pathfinding.cancelAll(PathfindingService.Owner.MOVE);
     }
 
     public void cleanupBot(@NotNull UUID botUuid) {
-        FakePlayer fp = manager.getByUuid(botUuid);
-        if (fp != null) stopDirectionalMove(fp);
-        else {
-            movingBots.remove(botUuid);
-            movementTokens.remove(botUuid);
-            cancelScheduledStop(botUuid);
-        }
+        pathfinding.cancel(botUuid);
     }
 
     @Override
@@ -291,55 +351,31 @@ public final class MoveCommand implements FppCommand {
 
         if (args.length == 1) {
             String in = args[0].toLowerCase(Locale.ROOT);
-            if ("all".startsWith(in)) out.add("all");
             if ("--all".startsWith(in)) out.add("--all");
             for (FakePlayer fp : manager.getActivePlayers()) {
                 if (fp.getName().toLowerCase(Locale.ROOT).startsWith(in)) out.add(fp.getName());
             }
         } else if (args.length == 2) {
             String in = args[1].toLowerCase(Locale.ROOT);
-            for (String flag : List.of("--direction", "--stop")) {
+            for (String flag : List.of("--to", "--coords", "--stop")) {
                 if (flag.startsWith(in)) out.add(flag);
             }
-        } else if (args.length == 3 && args[1].equalsIgnoreCase("--direction")) {
+        } else if (args.length == 3 && args[1].equalsIgnoreCase("--to")) {
             String in = args[2].toLowerCase(Locale.ROOT);
-            for (Direction direction : Direction.values()) {
-                if (direction.label.startsWith(in)) out.add(direction.label);
+            for (FakePlayer fp : manager.getActivePlayers()) {
+                if (fp.getName().toLowerCase(Locale.ROOT).startsWith(in)) out.add(fp.getName());
             }
-        } else if (args.length >= 4 && args[1].equalsIgnoreCase("--direction")) {
-            String previous = args[args.length - 2].toLowerCase(Locale.ROOT);
-            if (previous.equals("--seconds") || previous.equals("--ticks")) return out;
-            String in = args[args.length - 1].toLowerCase(Locale.ROOT);
-            for (String flag : List.of("--seconds", "--ticks")) {
-                if (!List.of(args).contains(flag) && flag.startsWith(in)) out.add(flag);
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (p.getName().toLowerCase(Locale.ROOT).startsWith(in) && !out.contains(p.getName())) {
+                    out.add(p.getName());
+                }
+            }
+        } else if (args.length == 6 && args[1].equalsIgnoreCase("--coords")) {
+            String in = args[5].toLowerCase(Locale.ROOT);
+            for (World w : Bukkit.getWorlds()) {
+                if (w.getName().toLowerCase(Locale.ROOT).startsWith(in)) out.add(w.getName());
             }
         }
         return out;
-    }
-
-    private record MoveOptions(Direction direction, long durationTicks) {}
-
-    private enum Direction {
-        FORWARD("forward", 1f, 0f),
-        BACKWARD("backward", -1f, 0f),
-        LEFT("left", 0f, 1f),
-        RIGHT("right", 0f, -1f);
-
-        private final String label;
-        private final float forward;
-        private final float strafe;
-
-        Direction(String label, float forward, float strafe) {
-            this.label = label;
-            this.forward = forward;
-            this.strafe = strafe;
-        }
-
-        private static Direction parse(String raw) {
-            for (Direction direction : values()) {
-                if (direction.label.equalsIgnoreCase(raw)) return direction;
-            }
-            return null;
-        }
     }
 }

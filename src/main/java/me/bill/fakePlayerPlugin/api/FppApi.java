@@ -1,15 +1,12 @@
 package me.bill.fakePlayerPlugin.api;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -43,11 +40,6 @@ public interface FppApi {
     @NotNull
     Optional<FppBot> spawnBot(@NotNull Location location, @Nullable Player spawner, @Nullable String name);
 
-    default @NotNull Optional<FppBot> spawnBot(
-            @NotNull Location location, @Nullable Player spawner, @NotNull String name, @NotNull UUID uuid) {
-        return Optional.empty();
-    }
-
     boolean despawnBot(@NotNull String name);
 
     boolean despawnBot(@NotNull FppBot bot);
@@ -55,14 +47,6 @@ public interface FppApi {
     default boolean despawnBotForLoginHandoff(@NotNull String name) {
         return despawnBot(name);
     }
-
-    void registerCommand(@NotNull FppAddonCommand command);
-
-    void unregisterCommand(@NotNull FppAddonCommand command);
-
-    void registerCommandExtension(@NotNull FppCommandExtension extension);
-
-    void unregisterCommandExtension(@NotNull FppCommandExtension extension);
 
     @NotNull
     List<FppCommandInfo> getRegisteredCommands();
@@ -74,33 +58,11 @@ public interface FppApi {
 
     void unregisterTickHandler(@NotNull FppBotTickHandler handler);
 
-    void registerSettingsTab(@NotNull FppSettingsTab tab);
-
-    void unregisterSettingsTab(@NotNull FppSettingsTab tab);
-
-    void registerBotSettingsTab(@NotNull FppSettingsTab tab);
-
-    void unregisterBotSettingsTab(@NotNull FppSettingsTab tab);
-
-    void registerAddon(@NotNull FppAddon addon);
-
-    void unregisterAddon(@NotNull FppAddon addon);
-
-    void sayAsBot(@NotNull FppBot bot, @NotNull String message);
-
     void setBotPing(@NotNull FppBot bot, int pingMs);
 
     void resetBotPing(@NotNull FppBot bot);
 
     void persistBotSettings(@NotNull FppBot bot);
-
-    void setBotExtensionData(
-            @NotNull FppBot bot, @NotNull String extensionKey, @NotNull String dataKey, @Nullable String dataValue);
-
-    void removeBotExtensionData(@NotNull FppBot bot, @NotNull String extensionKey, @NotNull String dataKey);
-
-    @NotNull
-    Map<String, String> getBotExtensionData(@NotNull FppBot bot, @NotNull String extensionKey);
 
     void navigateTo(@NotNull FppBot bot, @NotNull Location destination, @Nullable Runnable onArrive);
 
@@ -149,22 +111,4 @@ public interface FppApi {
     Player getOnlinePlayer(@NotNull String name);
 
     int getOnlineCount();
-
-    // ── Service registry ────────────────────────────────────────────────────────
-    <T> void registerService(@NotNull Class<T> serviceClass, @NotNull T instance);
-
-    <T> void unregisterService(@NotNull Class<T> serviceClass, @NotNull T instance);
-
-    <T> @Nullable T getService(@NotNull Class<T> serviceClass);
-
-    boolean hasService(@NotNull Class<?> serviceClass);
-
-    // ── Extension config & resources ────────────────────────────────────────────
-    @Nullable
-    File getExtensionDataFolder(@NotNull String extensionName);
-
-    void saveDefaultExtensionConfig(@NotNull String extensionName);
-
-    @Nullable
-    YamlConfiguration getExtensionConfig(@NotNull String extensionName);
 }

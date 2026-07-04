@@ -14,22 +14,33 @@
 ### Q: Can I use this on a server with ViaVersion?
 **A:** Yes, but the server itself must be Paper 1.21+. ViaVersion only affects client versions.
 
-### Q: Why is there so much debug spam on startup?
-**A:** In v1.6.6.12.2, license verification runs silently by default. If you see debug messages, check `plugins/FakePlayerPlugin/debug.yml` and ensure all categories are set to `false`, or use `/fpp settings` → **🐛 ᴅᴇʙᴜɢ** to toggle them interactively. Run `/fpp reload` after manual edits.
+### Q: How do I see what a bot is doing?
+**A:** The nametag above every bot shows its live activity (idle / moving / mining / fighting /
+searching / sneaking …), updated twice a second. The `/fpp list` GUI shows the same activity per
+bot, and the pathfinding particle debug view (per-bot settings → 🧭 ᴘᴀᴛʜꜰɪɴᴅɪɴɢ → ꜱʜᴏᴡ ᴘᴀᴛʜ, or
+globally via `/fpp settings` → 🐛 ᴅᴇʙᴜɢ → ꜱʜᴏᴡ ᴀʟʟ ᴘᴀᴛʜꜱ) renders each bot's route.
 
 ### Q: Can I see debug output in-game instead of the console?
 **A:** Yes. Enable `debug-chat: true` in `debug.yml` (or via `/fpp settings` → Debug). All debug output will be sent to online players with `fpp.op` or `fpp.notify` as chat messages.
 
-### Q: License verification fails on startup.
-**A:** The plugin requires internet access to verify the license from `app.lukittu.com`. If your server is offline, the plugin will run in limited mode. Check firewall rules and ensure outbound HTTPS (port 443) is allowed.
-
 ## Bots & Spawning
 
-### Q: Bots are not showing in the tab list.
-**A:** Verify no other plugin is overriding tab list packets. The `fpp-list` extension handles tab-list team management if installed.
+### Q: Why don't bots show in the tab list or server-list player count?
+**A:** By design. Bots are unlisted in the tab, subtracted from the server-list ping count, and
+removed from its hover sample. They also earn no advancements and send no join/leave/death chat
+messages.
 
 ### Q: Bots appear but have no skin.
-**A:** Check `config.yml` skin settings. If `skin.mode` is `none`, skins are disabled. Set to `player` or `random`. The user-facing `/fpp skin` command is provided by the `fpp-skin` extension. The Mojang API can also rate-limit; try again later.
+**A:** Skins come from the rarity pools in `plugins/FakePlayerPlugin/skins/` (`main_skin.txt` +
+`1-<N>%.txt` files of NameMC URLs). A fresh skin needs one MineSkin signing round-trip (a few
+seconds) the first time it's ever used; after that it's cached forever in `data/skin-cache.yml`.
+Enable the `skin-pool` debug topic to trace the pipeline. To disable skins set
+`skin.rare-pools: false`.
+
+### Q: How do bot UUIDs work?
+**A:** Deterministic and name-derived with a recognizable `fb07` prefix: `bot` →
+`fb070000-0000-0000-0000-000000000001`, `bot2` → `…-000000000002`; custom names hash into the low
+bits. They can never collide with real accounts.
 
 ### Q: Spawn cooldown is blocking players.
 **A:** Set `spawn-cooldown: 0` in `config.yml` or grant `fpp.bypass.cooldown`.
@@ -37,16 +48,33 @@
 ### Q: "Max bots reached" but I have fewer than the limit.
 **A:** The limit is both global (`limits.max-bots`) and personal (`fpp.spawn.limit.N`). Check both.
 
-## Tasks & Pathfinding
+### Q: Can I spawn several bots at once?
+**A:** No — `/fpp spawn` intentionally creates exactly one bot per command (auto-named, or
+`--name <name>` for a custom name).
 
-### Q: What's the difference between core `/fpp attack` and extension combat?
-**A:** Core `/fpp attack` is a basic swing/attack command only (`--once`, `--stop`). Rich PvE/PvP combat with hunting, mob targeting, priority, range, and movement is extension-owned (e.g., `fpp-spoof` or other combat extensions).
+## Tasks, Combat & Pathfinding
+
+### Q: How do I make a bot fight mobs?
+**A:** Open its settings (shift+right-click the bot or click it in `/fpp list`) → `🗡 ᴘᴠᴇ` → set
+**ꜱᴍᴀʀᴛ ᴀᴛᴛᴀᴄᴋ** to "on" (attack in reach) or "on with movement" (chase via pathfinding). Pick
+target mob types, detect range, and priority there too. The **ᴘᴠᴇ ꜱᴛᴀᴛᴜꜱ** tile shows the live
+state (off / scanning / fighting).
 
 ### Q: Can I make bots pathfind to coordinates or follow players?
-**A:** Core `/fpp move` is directional input only (`--direction forward|backward|left|right`). Pathfinding to coordinates, roaming, and following players are extension-owned behaviors.
+**A:** Yes — `/fpp move <bot> --to <bot|player>` follows a target live, and
+`/fpp move <bot> --coords <x> <y> <z> [world]` walks to a fixed point. Both are backed by the
+core Pathetic A* engine.
 
 ### Q: Bot is stuck and won't move.
-**A:** Try `/fpp stop <bot>` then re-issue the task. Bots may also get stuck in unloaded chunks; chunk-loading helps but is not guaranteed.
+**A:** The pathfinder auto-recalculates when stuck, and abandons a target after a few fruitless
+cycles (`pathfinding.max-stuck-cycles`). Enable the `pathfinding` debug topic for grep-friendly
+`event=STUCK/PATH_REJECTED/…` console lines explaining exactly what happened. `/fpp stop <bot>`
+cancels everything manually.
+
+### Q: How does `/fpp find` work?
+**A:** Search → path → mine loops: it auto-equips the best tool from the bot's inventory, gives up
+on unreachable/unbreakable blocks instead of looping, and when inventory runs low it deposits into
+the bot's nearest registered storage (`/fpp storage`) before resuming.
 
 ## Database
 
@@ -56,17 +84,6 @@
 ### Q: Database connection fails on startup.
 **A:** Verify credentials, firewall rules, and that the MySQL user has CREATE/ALTER permissions (schema migrations need them).
 
-## Extensions
-
-### Q: Where do I put extension JARs?
-**A:** `plugins/FakePlayerPlugin/extensions/`. Create the folder if it doesn't exist, then `/fpp reload`.
-
-### Q: Where are the old spoof/chat/ping/skin features?
-**A:** They are first-party extensions now. Install the relevant individual jar or `fpp-spoof.jar` from the first-party `fpp-extensions` build.
-
-### Q: Why do some config keys (fake-chat, swap, peak-hours, ping) not do anything?
-**A:** Those systems are owned by first-party extensions such as `fpp-chat`, `fpp-swap`, `fpp-peaks`, and `fpp-ping`. Check the extension's own config under `plugins/FakePlayerPlugin/extensions/<extension-name>/config.yml`.
-
 ## Performance
 
 ### Q: Server lag with many bots.
@@ -75,11 +92,12 @@
 - Reduce `head-ai.tick-rate`
 - Increase `performance.position-sync-distance` (or set to `128`)
 - Reduce bot count or spawn in batches
+- Use `/fpp perf top` / `/fpp perf report` to measure
 
 ## Building
 
-### Q: Build fails with "cannot find symbol" for NMS classes.
-**A:** Ensure `libs/paper-1.21.11-mojang-mapped.jar` exists. This is a system-scoped dependency; the build cannot proceed without it.
+### Q: How do I build from source?
+**A:** JDK 21+ and `./gradlew clean shadowJar`. The paperweight dev bundle downloads automatically.
 
 ### Q: `velocity-companion` or `bungee-companion` build fails.
 **A:** These directories are `.gitignored` and may not exist. Only build them if you have the companion source.

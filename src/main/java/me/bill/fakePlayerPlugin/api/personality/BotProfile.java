@@ -22,7 +22,6 @@ public final class BotProfile {
     private final Set<String> interests;
     private final Set<String> preferredTopics;
     private final ActivityLevel activityLevel;
-    private final ChatFrequency chatFrequency;
     private final Map<UUID, Double> friendships;
     private final Map<UUID, Double> rivalries;
     private final String aiPromptModifier;
@@ -46,7 +45,6 @@ public final class BotProfile {
         this.interests = Set.copyOf(builder.interests);
         this.preferredTopics = Set.copyOf(builder.preferredTopics);
         this.activityLevel = builder.activityLevel != null ? builder.activityLevel : ActivityLevel.MODERATE;
-        this.chatFrequency = builder.chatFrequency != null ? builder.chatFrequency : ChatFrequency.NORMAL;
         this.friendships = Map.copyOf(builder.friendships);
         this.rivalries = Map.copyOf(builder.rivalries);
         this.aiPromptModifier = builder.aiPromptModifier;
@@ -75,7 +73,6 @@ public final class BotProfile {
                 .interests(interests)
                 .preferredTopics(preferredTopics)
                 .activityLevel(activityLevel)
-                .chatFrequency(chatFrequency)
                 .friendships(friendships)
                 .rivalries(rivalries)
                 .aiPromptModifier(aiPromptModifier)
@@ -125,10 +122,6 @@ public final class BotProfile {
 
     public @NotNull ActivityLevel getActivityLevel() {
         return activityLevel;
-    }
-
-    public @NotNull ChatFrequency getChatFrequency() {
-        return chatFrequency;
     }
 
     public @NotNull Map<UUID, Double> getFriendships() {
@@ -244,7 +237,6 @@ public final class BotProfile {
         private Set<String> interests = Set.of();
         private Set<String> preferredTopics = Set.of();
         private ActivityLevel activityLevel = ActivityLevel.MODERATE;
-        private ChatFrequency chatFrequency = ChatFrequency.NORMAL;
         private Map<UUID, Double> friendships = Map.of();
         private Map<UUID, Double> rivalries = Map.of();
         private String aiPromptModifier;
@@ -300,11 +292,6 @@ public final class BotProfile {
 
         public Builder activityLevel(ActivityLevel activityLevel) {
             this.activityLevel = activityLevel != null ? activityLevel : ActivityLevel.MODERATE;
-            return this;
-        }
-
-        public Builder chatFrequency(ChatFrequency chatFrequency) {
-            this.chatFrequency = chatFrequency != null ? chatFrequency : ChatFrequency.NORMAL;
             return this;
         }
 

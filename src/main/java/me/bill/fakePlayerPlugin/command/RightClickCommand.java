@@ -17,6 +17,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Switch;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -47,6 +48,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 public final class RightClickCommand implements FppCommand {
 
@@ -81,7 +83,7 @@ public final class RightClickCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "<bot> [--once|--repeat|--hold|--stop]";
+        return "<bot> [--once|--repeat|--hold|--stop]  |  --stop";
     }
 
     @Override
@@ -435,21 +437,39 @@ public final class RightClickCommand implements FppCommand {
         ServerPlayer nms = ((CraftPlayer) bot).getHandle();
         FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "=== performUseAction for " + bot.getName() + " ===");
 
-        RayTraceResult ray = bot.getWorld()
-                .rayTraceBlocks(
+        // Single combined block+entity ray trace, matching how a real client resolves a right-click
+        // target: whichever is actually closer along the look vector wins, instead of always
+        // preferring a block even when an entity is standing nearer.
+        RayTraceResult hit = bot.getWorld()
+                .rayTrace(
                         bot.getEyeLocation(),
                         bot.getEyeLocation().getDirection(),
                         CLICK_REACH,
                         FluidCollisionMode.NEVER,
-                        false);
+                        false,
+                        0.0,
+                        entity -> entity != null && entity.isValid() && !entity.isDead() && !isSelfTarget(bot, entity));
 
-        if (ray != null && ray.getHitBlock() != null && ray.getHitBlockFace() != null) {
-            Block hitBlock = ray.getHitBlock();
-            BlockFace face = ray.getHitBlockFace();
+        Entity hitEntity = hit != null ? hit.getHitEntity() : null;
+        Block hitBlock = hit != null ? hit.getHitBlock() : null;
+        BlockFace face = hit != null ? hit.getHitBlockFace() : null;
+
+        // 1. Entity interaction takes priority when the entity is the nearer hit — a real client
+        //    tries entity interact() first and only falls through to block/item use on PASS.
+        if (hitEntity != null) {
+            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "Ray hit entity: " + hitEntity.getType());
+            if (tryEntityInteract(bot, nms, hitEntity, hit.getHitPosition(), state)) {
+                FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   SUCCESS: Entity interaction consumed");
+                return true;
+            }
+            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   PASSED: falling through to block/item use");
+        }
+
+        if (hitBlock != null && face != null) {
             FppLogger.debug(
                     "RIGHTCLICK",
                     Config.debugRightClick(),
-                    "Ray hit: " + hitBlock.getType().name() + " face=" + face);
+                    "Ray hit block: " + hitBlock.getType().name() + " face=" + face);
 
             Block actualBlock = checkForAttachedInteractiveBlock(hitBlock, face);
             if (actualBlock != null) {
@@ -460,11 +480,11 @@ public final class RightClickCommand implements FppCommand {
                 hitBlock = actualBlock;
             }
 
-            state.hitPosition = ray.getHitPosition();
+            state.hitPosition = hit.getHitPosition();
             FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "Hit position: " + state.hitPosition);
 
             FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "1. Trying NMS block interaction (useItemOn)");
-            boolean interacted = triggerBlockInteraction(bot, hitBlock, face, ray);
+            boolean interacted = triggerBlockInteraction(bot, hitBlock, face, hit);
             if (interacted) {
                 FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   SUCCESS: Block interaction consumed");
                 state.target = hitBlock;
@@ -502,16 +522,8 @@ public final class RightClickCommand implements FppCommand {
             FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "No block hit (ray=null or no hitBlock/face)");
         }
 
-        FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "5. Trying entity interaction");
-        boolean acted = tryEntityUse(bot, state);
-        if (acted) {
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   SUCCESS: Entity interacted");
-            return true;
-        }
-        FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   FAILED: No entity hit");
-
-        FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "6. Trying item use (eat/drink/potion)");
-        acted = tryUseItem(bot, state);
+        FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "5. Trying item use (eat/drink/potion/bow/shield)");
+        boolean acted = tryUseItem(bot, state);
         if (acted) {
             FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   SUCCESS: Item used");
             return true;
@@ -573,25 +585,34 @@ public final class RightClickCommand implements FppCommand {
         return false;
     }
 
-    private boolean tryEntityUse(Player bot, ClickState state) {
-        RayTraceResult entityRay = bot.getWorld()
-                .rayTrace(
-                        bot.getEyeLocation(),
-                        bot.getEyeLocation().getDirection(),
-                        CLICK_REACH,
-                        FluidCollisionMode.NEVER,
-                        true,
-                        0.1,
-                        entity -> entity != null && entity.isValid() && !entity.isDead() && !isSelfTarget(bot, entity));
+    /**
+     * Right-clicks an entity exactly like a real player would: fires the FPP interact event (so
+     * extensions/plugins can cancel it), then routes through the real NMS
+     * {@code Player#interactOn(Entity, InteractionHand, Vec3)} — trying main hand first, then off
+     * hand — so feeding, taming, breeding, shearing, milking, mounting, leashing, name-tagging,
+     * villager trading, etc. all actually happen instead of just swinging the arm.
+     */
+    private boolean tryEntityInteract(
+            Player bot, ServerPlayer nms, Entity entity, org.bukkit.util.Vector hitPosVec, ClickState state) {
+        FakePlayer fp = manager.getByUuid(bot.getUniqueId());
+        if (fp != null) {
+            var interactEvent = new FppBotInteractEvent(new FppBotImpl(fp), entity, EquipmentSlot.HAND);
+            Bukkit.getPluginManager().callEvent(interactEvent);
+            if (interactEvent.isCancelled()) return false;
+        }
 
-        if (entityRay != null && entityRay.getHitEntity() != null) {
-            Entity entity = entityRay.getHitEntity();
-            FakePlayer fp = manager.getByUuid(bot.getUniqueId());
-            if (fp != null) {
-                var interactEvent = new FppBotInteractEvent(new FppBotImpl(fp), entity, EquipmentSlot.HAND);
-                Bukkit.getPluginManager().callEvent(interactEvent);
-            }
+        net.minecraft.world.entity.Entity nmsTarget = ((CraftEntity) entity).getHandle();
+        Vec3 hitPos = hitPosVec != null
+                ? new Vec3(hitPosVec.getX(), hitPosVec.getY(), hitPosVec.getZ())
+                : nmsTarget.position();
+
+        if (NmsPlayerSpawner.interactOnEntity(nms, nmsTarget, InteractionHand.MAIN_HAND, hitPos)) {
             bot.swingMainHand();
+            state.target = entity;
+            return true;
+        }
+        if (NmsPlayerSpawner.interactOnEntity(nms, nmsTarget, InteractionHand.OFF_HAND, hitPos)) {
+            bot.swingOffHand();
             state.target = entity;
             return true;
         }

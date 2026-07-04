@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,6 +26,9 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -61,7 +63,6 @@ import me.bill.fakePlayerPlugin.util.AttributionManager;
 import me.bill.fakePlayerPlugin.util.BadwordFilter;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
-import me.bill.fakePlayerPlugin.util.RandomNameGenerator;
 import me.bill.fakePlayerPlugin.util.TextUtil;
 
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -162,10 +163,6 @@ public class FakePlayerManager {
     private BotPersistence persistence;
     private final AtomicBoolean dbLocationFlushRunning = new AtomicBoolean(false);
 
-    private BotSwapController botSwapAI;
-
-    private BotIdentityCache identityCache;
-
     public void setChunkLoader(ChunkLoader cl) {
         this.chunkLoader = cl;
     }
@@ -176,14 +173,6 @@ public class FakePlayerManager {
 
     public void setBotPersistence(BotPersistence p) {
         this.persistence = p;
-    }
-
-    public void setBotSwapAI(BotSwapController ai) {
-        this.botSwapAI = ai;
-    }
-
-    public void setIdentityCache(BotIdentityCache ic) {
-        this.identityCache = ic;
     }
 
     public void refreshCleanNamePool() {
@@ -197,14 +186,6 @@ public class FakePlayerManager {
         cleanNamePool = Collections.unmodifiableList(clean);
         Config.debugStartup(
                 "Clean name pool refreshed: " + clean.size() + "/" + raw.size() + " names pass the badword filter.");
-    }
-
-    public BotChatController getBotChatAI() {
-        return plugin.getBotChatAI();
-    }
-
-    public BotSwapController getBotSwapAI() {
-        return botSwapAI;
     }
 
     public FakePlayerManager(FakePlayerPlugin plugin) {
@@ -263,62 +244,32 @@ public class FakePlayerManager {
                         fp.clearTabListDirty();
                         for (Player p : online) {
                             PacketHelper.sendTabListDisplayNameUpdate(p, fp);
-                            if (fp.hasCustomPing() || fp.isPingSimulated()) {
-                                PacketHelper.sendTabListLatencyUpdate(p, fp);
-                            }
                         }
                     }
                 },
                 20L,
                 20L);
 
-        final int pingInterval = Math.max(20, Config.pingUpdateInterval());
         FppScheduler.runSyncRepeating(
                 plugin,
                 () -> {
-                    if (!Config.pingEnabled()) return;
                     if (activePlayers.isEmpty()) return;
-                    List<Player> online = cachedOnlinePlayers;
-                    int variability = Config.pingVariability();
-                    double spikeChance = Config.pingSpikeChance();
-                    int spikeMin = Config.pingSpikeMin();
-                    int spikeMax = Config.pingSpikeMax();
-                    long currentMs = System.currentTimeMillis();
-                    int rampTicks = Config.pingJoinRampTicks();
-                    int rampMs = rampTicks * 50;
-                    ThreadLocalRandom rng = ThreadLocalRandom.current();
                     for (FakePlayer fp : activePlayers.values()) {
-                        if (fp.hasCustomPing()) continue;
-                        if (!fp.isPingSimulated()) continue;
-                        int base = fp.getBasePing();
-                        if (base < 0) continue;
-                        int jitter = variability > 0 ? rng.nextInt(-variability, variability + 1) : 0;
-                        int newPing = base + jitter;
-                        if (spikeChance > 0 && rng.nextDouble() < spikeChance) {
-                            int spike = spikeMin + rng.nextInt(Math.max(1, spikeMax - spikeMin + 1));
-                            newPing += spike;
-                        }
-                        if (rampMs > 0 && fp.getSpawnTick() > 0) {
-                            long elapsed = currentMs - fp.getSpawnTick();
-                            if (elapsed < rampMs) {
-                                double progress = (double) elapsed / rampMs;
-                                newPing = Math.max(1, (int) (newPing * progress));
-                            }
-                        }
-                        newPing = Math.max(1, Math.min(9999, newPing));
-                        fp.setPing(newPing);
-                        Player bot = fp.getPlayer();
-                        if (bot != null && !NmsPlayerSpawner.isFoliaServer() && bot.isOnline()) {
-                            NmsPlayerSpawner.setPing(bot, newPing);
-                        }
-                        if (online == null || online.isEmpty()) continue;
-                        for (Player p : online) {
-                            PacketHelper.sendTabListLatencyUpdate(p, fp);
+                        // Per-bot guard: one bad bot must never kill this repeating task — a dead
+                        // refresh loop freezes every nametag's activity row on its last value.
+                        try {
+                            if (fp.getNametagEntity() == null) continue;
+                            String label = BotActivity.currentLabel(fp);
+                            if (label.equals(fp.getLastRenderedActionLabel())) continue;
+                            fp.setLastRenderedActionLabel(label);
+                            FakePlayerBody.refreshNametag(fp);
+                        } catch (Throwable t) {
+                            Config.debug("Nametag activity refresh failed for '" + fp.getName() + "': " + t);
                         }
                     }
                 },
-                pingInterval,
-                pingInterval);
+                10L,
+                10L);
 
         FppScheduler.runSyncRepeating(
                 plugin,
@@ -579,6 +530,19 @@ public class FakePlayerManager {
                                     }
                                 }
                             }
+
+                            // Keep the name tag (a free display) glued above the bot. teleportDuration
+                            // smooths the motion; only move it when the bot actually shifted.
+                            var nameTag = fp.getNametagEntity();
+                            if (nameTag != null && nameTag.isValid()) {
+                                Location tl = nameTag.getLocation();
+                                double expectedY = after.getY() + Config.nametagSecondLineYOffset();
+                                boolean off = tl.getWorld() != after.getWorld()
+                                        || Math.abs(tl.getX() - after.getX()) > 0.02
+                                        || Math.abs(tl.getZ() - after.getZ()) > 0.02
+                                        || Math.abs(tl.getY() - expectedY) > 0.02;
+                                if (off) FakePlayerBody.moveNametag(fp, after);
+                            }
                         };
                         if (foliaServer) {
                             FppScheduler.runAtEntity(plugin, bot, botTick);
@@ -748,10 +712,9 @@ public class FakePlayerManager {
         if (player == null) player = fp.getPhysicsEntity();
         if (player == null) return;
 
-        Component defaultMessage = useDefaultMessage && displayName != null && !displayName.isBlank()
-                ? BotBroadcast.leaveComponent(fp)
-                : null;
-        PlayerQuitEvent quitEvent = new PlayerQuitEvent(player, defaultMessage, reason);
+        // Bot leave messages were removed with the chat system; fire the quit event with no
+        // default message. The synthetic quit event itself is still required for despawn handling.
+        PlayerQuitEvent quitEvent = new PlayerQuitEvent(player, (Component) null, reason);
         Bukkit.getPluginManager().callEvent(quitEvent);
         syntheticQuitBotIds.add(fp.getUuid());
 
@@ -869,39 +832,32 @@ public class FakePlayerManager {
         String spawnerName = spawner.getName();
         UUID spawnerUuid = spawner.getUniqueId();
 
-        int alreadyOwned = getBotsOwnedBy(spawnerUuid).size();
-
         List<FakePlayer> batch = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            UserBotName ubn = generateUserBotName(spawnerName, alreadyOwned + i);
-            UUID uuid = resolveUuid(ubn.internalName());
-            PlayerProfile profile = Bukkit.createProfile(uuid, ubn.internalName());
-            FakePlayer fp = new FakePlayer(uuid, ubn.internalName(), profile);
+            String name = nextSequentialName();
+            if (name == null) break;
+            UUID uuid = resolveUuid(name);
+            PlayerProfile profile = Bukkit.createProfile(uuid, name);
+            FakePlayer fp = new FakePlayer(uuid, name, profile);
             fp.setBotType(botType);
 
             fp.setSkinName(spawnerName);
             applyDespawnSnapshotSkin(fp);
 
-            String cleanBotName = "bot" + (alreadyOwned + i + 1);
-            String rawUserName = Config.userBotNameFormat()
-                    .replace("{spawner}", spawnerName)
-                    .replace("{num}", String.valueOf(alreadyOwned + i + 1))
-                    .replace("{bot_name}", cleanBotName);
-
+            String rawUserName = Config.adminBotNameFormat().replace("{bot_name}", name);
             fp.setRawDisplayName(rawUserName);
-            String userDisplay = finalizeDisplayName(rawUserName, ubn.internalName());
-            fp.setDisplayName(userDisplay);
+            fp.setDisplayName(finalizeDisplayName(rawUserName, name));
             fp.setSpawnLocation(location.clone());
             fp.setSpawnedBy(spawnerName, spawnerUuid);
             fp.setSpawnTick(System.currentTimeMillis());
             activePlayers.put(uuid, fp);
-            nameIndex.put(ubn.internalName().toLowerCase(), fp);
+            nameIndex.put(name.toLowerCase(), fp);
             batch.add(fp);
 
             if (db != null) {
                 BotRecord record = new BotRecord(
                         0,
-                        ubn.internalName(),
+                        name,
                         uuid,
                         spawnerName,
                         spawnerUuid,
@@ -915,9 +871,7 @@ public class FakePlayerManager {
                         null,
                         null);
                 fp.setDbRecord(record);
-                db.recordSpawn(
-                        record,
-                        PlainTextComponentSerializer.plainText().serialize(TextUtil.colorize(ubn.displayName())));
+                db.recordSpawn(record, name);
                 persistActiveSkin(fp);
             }
         }
@@ -934,23 +888,12 @@ public class FakePlayerManager {
 
     public int spawn(
             Location location, int count, Player spawner, String customName, boolean bypassMax, BotType botType) {
-        return spawn(location, count, spawner, customName, bypassMax, botType, false);
-    }
-
-    public int spawn(
-            Location location,
-            int count,
-            Player spawner,
-            String customName,
-            boolean bypassMax,
-            BotType botType,
-            boolean forceRandomName) {
-        return spawn(location, count, spawner, customName, bypassMax, botType, forceRandomName, null);
+        return spawn(location, count, spawner, customName, bypassMax, botType, (UUID) null);
     }
 
     public int spawn(
             Location location, int count, Player spawner, String customName, boolean bypassMax, UUID explicitUuid) {
-        return spawn(location, count, spawner, customName, bypassMax, BotType.AFK, false, explicitUuid);
+        return spawn(location, count, spawner, customName, bypassMax, BotType.AFK, explicitUuid);
     }
 
     private int spawn(
@@ -960,7 +903,6 @@ public class FakePlayerManager {
             String customName,
             boolean bypassMax,
             BotType botType,
-            boolean forceRandomName,
             UUID explicitUuid) {
         int maxBots = Config.maxBots();
         if (!bypassMax && maxBots > 0) {
@@ -1005,7 +947,7 @@ public class FakePlayerManager {
                 baseName = customName;
                 name = customName;
             } else {
-                name = generateName(forceRandomName);
+                name = nextSequentialName();
                 baseName = name;
             }
 
@@ -1139,18 +1081,7 @@ public class FakePlayerManager {
     }
 
     private int computeInitialPing(FakePlayer fp) {
-        if (fp.hasCustomPing()) {
-            return Math.max(0, fp.getPing());
-        }
-        if (Config.pingEnabled()) {
-            int min = Config.pingMin();
-            int max = Config.pingMax();
-            int base = min + ThreadLocalRandom.current().nextInt(Math.max(1, max - min + 1));
-            fp.setBasePing(base);
-            fp.setPing(base);
-            return base;
-        }
-        return -1;
+        return fp.hasCustomPing() ? Math.max(0, fp.getPing()) : -1;
     }
 
     private boolean isExplicitUuidSpawn(FakePlayer fp) {
@@ -1406,20 +1337,10 @@ public class FakePlayerManager {
                                     Player restoredBot = restoredFp.getPlayer();
                                     if (restoredBot == null || !restoredBot.isValid()) return;
                                     applyDespawnSnapshot(restoredBot, despawnSnap);
-                                    Config.debugSwap("[DespawnSnapshot] Restored inventory+XP to '"
-                                            + restoredFp.getName() + "'.");
+                                    Config.debug("[DespawnSnapshot] Restored inventory+XP to '" + restoredFp.getName()
+                                            + "'.");
                                 },
                                 5L);
-                    }
-
-                    if (botSwapAI != null) {
-                        FppScheduler.runSyncLater(
-                                plugin,
-                                () -> {
-                                    if (!activePlayers.containsKey(fp.getUuid())) return;
-                                    botSwapAI.schedule(fp);
-                                },
-                                10L);
                     }
 
                     // Fire API spawn event.
@@ -1674,7 +1595,7 @@ public class FakePlayerManager {
                         fp.getResolvedSkin() != null ? fp.getResolvedSkin().getSignature() : null);
                 despawnSnapshots.put(botName.toLowerCase(), snap);
                 persistDespawnSnapshot(botName.toLowerCase(), snap);
-                Config.debugSwap("[DespawnSnapshot] Saved despawn state for '" + botName + "' (bulk despawn).");
+                Config.debug("[DespawnSnapshot] Saved despawn state for '" + botName + "' (bulk despawn).");
                 snapshotCount++;
             }
         }
@@ -2096,7 +2017,7 @@ public class FakePlayerManager {
                                 : null);
                 despawnSnapshots.put(botName.toLowerCase(), snap);
                 persistDespawnSnapshot(botName.toLowerCase(), snap);
-                Config.debugSwap("[DespawnSnapshot] Saved despawn state for '" + botName + "'.");
+                Config.debug("[DespawnSnapshot] Saved despawn state for '" + botName + "'.");
             }
         }
 
@@ -2397,9 +2318,17 @@ public class FakePlayerManager {
     }
 
     public void removeByName(String name) {
+        removeByName(name, null);
+    }
+
+    /**
+     * @param effectFallbackLoc where to play the despawn effect if the bot's entity reference is
+     *     already null by the time this runs (e.g. the death-without-respawn path nulls it first).
+     */
+    public void removeByName(String name, @Nullable Location effectFallbackLoc) {
         FakePlayer fp = getByName(name);
         if (fp != null) {
-            unregisterBotState(fp, "DIED");
+            unregisterBotState(fp, "DIED", effectFallbackLoc);
             restoreExplicitUuidSourceState(fp);
             fp.clearMetadata();
             Config.debug("Removed from registry: " + name);
@@ -2410,6 +2339,10 @@ public class FakePlayerManager {
     }
 
     private void unregisterBotState(FakePlayer fp, String removalReason) {
+        unregisterBotState(fp, removalReason, null);
+    }
+
+    private void unregisterBotState(FakePlayer fp, String removalReason, @Nullable Location effectFallbackLoc) {
         if (fp == null) return;
 
         UUID uuid = fp.getUuid();
@@ -2420,10 +2353,20 @@ public class FakePlayerManager {
         usedNames.remove(name);
         suppressDespawnSnapshotIds.remove(uuid);
 
-        Player body = fp.getPhysicsEntity();
-        if (body != null) entityIdIndex.remove(body.getEntityId(), fp);
+        // Central cleanup: remove the tag on every despawn/death path (some remove the body
+        // directly via NmsPlayerSpawner, bypassing FakePlayerBody.removeAll).
+        FakePlayerBody.removeNametag(fp);
 
-        if (botSwapAI != null) botSwapAI.cancel(uuid);
+        Player body = fp.getPhysicsEntity();
+        if (body != null) {
+            entityIdIndex.remove(body.getEntityId(), fp);
+            playDespawnEffect(body.isOnline() ? body.getLocation() : effectFallbackLoc);
+        } else {
+            // Some despawn paths (e.g. death-without-respawn) null the entity reference before
+            // reaching here — the caller-supplied fallback (captured while the entity was still
+            // valid) keeps the effect playing at the right spot instead of silently no-op'ing.
+            playDespawnEffect(effectFallbackLoc);
+        }
 
         botHeadRotation.remove(uuid);
         botSpawnRotation.remove(uuid);
@@ -2444,9 +2387,26 @@ public class FakePlayerManager {
         if (leftClickCmd != null) leftClickCmd.stopClicking(uuid);
         var rightClickCmd = plugin.getRightClickCommand();
         if (rightClickCmd != null) rightClickCmd.stopClicking(uuid);
+        var findCmd = plugin.getFindCommand();
+        if (findCmd != null) findCmd.cleanupBot(uuid);
+        var pve = plugin.getPveController();
+        if (pve != null) pve.cleanupBot(uuid);
 
         if (chunkLoader != null) chunkLoader.releaseForBot(fp);
         if (db != null && removalReason != null) db.recordRemoval(uuid, removalReason);
+    }
+
+    /** Small poof cloud + sound at the bot's location — plays on every despawn/delete/death-removal path. */
+    private void playDespawnEffect(@Nullable Location at) {
+        if (at == null) return;
+        try {
+            Location loc = at.clone().add(0, 1.0, 0);
+            World world = loc.getWorld();
+            if (world == null) return;
+            world.spawnParticle(Particle.POOF, loc, 25, 0.3, 0.5, 0.3, 0.02);
+            world.playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 0.6f, 1.4f);
+        } catch (Throwable ignored) {
+        }
     }
 
     public void syncToPlayer(Player player) {
@@ -2693,17 +2653,41 @@ public class FakePlayerManager {
         return nameIndex.get(name.toLowerCase());
     }
 
+    /**
+     * Changes a bot's visible display name (the floating name-tag name row, the entity display name
+     * and the tab-list entry) without touching its login name or fb07 UUID — identity is immutable.
+     * The mandatory "ʙᴏᴛ ʙʏ {owner}" disclosure row is preserved. The new name is persisted so it
+     * survives restarts.
+     */
     public void renameBot(FakePlayer bot, String newName) {
+        if (bot == null || newName == null) return;
         String oldDisplay = bot.getDisplayName();
-        if (oldDisplay.equalsIgnoreCase(newName)) return;
+        if (oldDisplay != null && oldDisplay.equals(newName)) return;
 
         bot.setDisplayName(newName);
         bot.setRawDisplayName(newName);
 
-        if (Config.tabListEnabled() && bot.getPlayer() != null) {
+        // Refresh the floating name-tag (name row) and the entity's own display name.
+        FakePlayerBody.refreshNametag(bot);
+        Player body = bot.getPlayer();
+        if (body != null) {
+            try {
+                body.displayName(TextUtil.colorize(newName));
+            } catch (Exception ignored) {
+            }
+        }
+
+        if (Config.tabListEnabled() && body != null) {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 PacketHelper.sendTabListDisplayNameUpdate(p, bot);
             }
+        }
+
+        // Persist: the YAML active-bot snapshot captures display-name on its next save; update the
+        // DB active-bots row immediately so a restart from the database also keeps the new name.
+        DatabaseManager db = plugin.getDatabaseManager();
+        if (Config.databaseEnabled() && db != null) {
+            db.updateBotDisplay(bot.getUuid().toString(), newName);
         }
     }
 
@@ -3046,6 +3030,11 @@ public class FakePlayerManager {
         return sanitized.isBlank() ? context : sanitized;
     }
 
+    /**
+     * Sets an explicit ping value for the given bot, or clears it back to "no ping" (honest, not a
+     * simulated/fake network-realism value) when {@code pingMs} is negative. Automatic fake ping
+     * simulation was removed — bots never fabricate network jitter to seem like a real connection.
+     */
     public void applyPing(FakePlayer fp, int pingMs) {
         if (fp == null) return;
         if (pingMs >= 0) {
@@ -3053,38 +3042,18 @@ public class FakePlayerManager {
             fp.setBasePing(-1);
         } else {
             fp.setUserPing(-1);
-            if (Config.pingEnabled()) {
-                int min = Config.pingMin();
-                int max = Config.pingMax();
-                int base = min + ThreadLocalRandom.current().nextInt(Math.max(1, max - min + 1));
-                fp.setBasePing(base);
-                fp.setPing(base);
-            } else {
-                fp.setPing(-1);
-            }
+            fp.setBasePing(-1);
+            fp.setPing(-1);
         }
         NmsPlayerSpawner.setPing(fp.getPlayer(), fp.getEffectivePing());
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            PacketHelper.sendTabListLatencyUpdate(p, fp);
-        }
     }
 
     private boolean shouldSendLaggedVisualUpdate(FakePlayer fp) {
-        if (!Config.pingLatencyEffect()) return true;
-        int cadence = visualSyncCadenceTicks(fp);
-        if (cadence <= 1) return true;
-        long tick = visualSyncTickCounter;
-        int offset = Math.floorMod(fp.getUuid().hashCode(), cadence);
-        return Math.floorMod(tick, cadence) == offset;
+        return true;
     }
 
     private boolean shouldRunLaggedBehaviorUpdate(FakePlayer fp) {
-        if (!Config.pingLatencyEffect() || !Config.pingBehaviorEffect()) return true;
-        int cadence = behaviorUpdateCadenceTicks(fp);
-        if (cadence <= 1) return true;
-        long tick = visualSyncTickCounter;
-        int offset = Math.floorMod(fp.getUuid().hashCode(), cadence);
-        return Math.floorMod(tick, cadence) == offset;
+        return true;
     }
 
     private List<Player> currentOnlineSnapshot() {
@@ -3097,120 +3066,41 @@ public class FakePlayerManager {
         return online;
     }
 
-    private int visualSyncCadenceTicks(FakePlayer fp) {
-        int eff = fp.getEffectivePing();
-        if (eff <= 0) return 1;
-        if (eff <= 100) return 1;
-        return Math.min(10, (eff + 99) / 100);
-    }
-
-    private int behaviorUpdateCadenceTicks(FakePlayer fp) {
-        int eff = fp.getEffectivePing();
-        if (eff <= 0) return 1;
-        if (eff <= 150) return 1;
-        return Math.min(Config.pingMaxBehaviorSkipTicks(), Math.max(2, (eff + 149) / 150));
-    }
-
     private String resolveDespawnDisplayName(FakePlayer fp) {
         return BotBroadcast.resolveDisplayName(fp);
     }
 
     private String pickRandomSkinName() {
-        String skinMode = Config.skinMode();
-        if (skinMode != null) {
-            String normalized = skinMode.trim().toLowerCase();
-            if ("player".equals(normalized) || "auto".equals(normalized)) {
-
-                return SkinManager.pickRandomPoolName();
-            }
-        }
-
-        List<String> pool = Config.namePool();
-        if (pool.isEmpty()) return fallbackName();
-        return pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
+        // Skin/name pools removed; simple fallback for stray display-name placeholders.
+        return "bot";
     }
 
     private UUID resolveUuid(String botName) {
-        if (identityCache != null) return identityCache.lookupOrCreate(botName);
+        // Deterministic, name-derived, never contacts Mojang: sequential names embed their number
+        // (bot → fb07…-000000000001, bot2 → …-000000000002), custom names get the same fb07 prefix
+        // with a name hash in the low bits — so a bot never inherits a real account's identity.
         return BotIdentityCache.deterministicBotUuid(botName);
     }
 
     public UUID refreshIdentity(String botName) {
-        if (identityCache != null) return identityCache.refresh(botName);
         return BotIdentityCache.deterministicBotUuid(botName);
     }
 
-    private String generateName() {
-        return generateName(false);
-    }
-
-    private String generateName(boolean forceRandom) {
-        if (forceRandom || "random".equals(Config.botNameMode())) {
-            return generateRandomName();
+    /**
+     * Returns the next available sequential bot name: {@code bot}, {@code bot2}, {@code bot3}, …
+     *
+     * <p>Picks the lowest-numbered name not already in use by an active bot or an online player, so
+     * despawned names are reused. Replaces the old random name generator and name-pool modes.
+     */
+    private String nextSequentialName() {
+        for (int n = 1; n <= 1_000_000; n++) {
+            String candidate = n == 1 ? "bot" : "bot" + n;
+            if (usedNames.contains(candidate)) continue;
+            if (Bukkit.getPlayerExact(candidate) != null) continue;
+            usedNames.add(candidate);
+            return candidate;
         }
-
-        List<String> pool = cleanNamePool;
-        if (pool.isEmpty()) return fallbackName();
-
-        String chosen = null;
-        int count = 0;
-        for (String n : pool) {
-
-            if (n == null || n.isEmpty() || n.length() > 16 || !n.matches("[a-zA-Z0-9_]+")) continue;
-            if (usedNames.contains(n) || Bukkit.getPlayerExact(n) != null) continue;
-            count++;
-            if (ThreadLocalRandom.current().nextInt(count) == 0) chosen = n;
-        }
-        if (chosen != null) {
-            usedNames.add(chosen);
-            return chosen;
-        }
-        return fallbackName();
-    }
-
-    private String generateRandomName() {
-        String generated;
-        int attempts = 0;
-        do {
-            generated = RandomNameGenerator.generate();
-            if (++attempts > 200) return fallbackName();
-        } while (generated == null || usedNames.contains(generated) || Bukkit.getPlayerExact(generated) != null);
-        usedNames.add(generated);
-        return generated;
-    }
-
-    private String fallbackName() {
-        String generated;
-        int attempts = 0;
-        do {
-            generated = "Bot" + ThreadLocalRandom.current().nextInt(1000, 9999);
-            if (++attempts > 200) return null;
-        } while (usedNames.contains(generated) || Bukkit.getPlayerExact(generated) != null);
-        usedNames.add(generated);
-        return generated;
-    }
-
-    public record UserBotName(String internalName, String displayName) {}
-
-    public UserBotName generateUserBotName(String spawnerName, int existingCount) {
-        String suffix = String.valueOf(existingCount + 1);
-        final String PREFIX = "ubot_";
-        final String SEP = "_";
-        int maxSpawnerLen = 16 - PREFIX.length() - SEP.length() - suffix.length();
-        String truncated = spawnerName.length() > maxSpawnerLen
-                ? spawnerName.substring(0, Math.max(1, maxSpawnerLen))
-                : spawnerName;
-        String internal = PREFIX + truncated + SEP + suffix;
-        if (internal.length() > 16) internal = internal.substring(0, 16);
-        usedNames.add(internal);
-
-        String display = sanitizeDisplayName(
-                Config.userBotNameFormat()
-                        .replace("{spawner}", spawnerName)
-                        .replace("{num}", suffix)
-                        .replace("{bot_name}", internal),
-                internal);
-        return new UserBotName(internal, display);
+        return null;
     }
 
     public void updateAllBotPrefixes() {

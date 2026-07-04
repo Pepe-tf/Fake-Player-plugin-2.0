@@ -65,7 +65,7 @@ database:
 ### Core Tables (All Modes)
 - `fpp_sessions` — Bot spawn/death session history
 - `fpp_bot_data` — Persistent bot settings (XP, inventory, tasks)
-- `fpp_skin_cache` — Cached skin profiles
+- `fpp_skin_cache` — legacy skin cache (dormant — skins are now cached in `data/skin-cache.yml`)
 
 ### Network Tables (NETWORK Mode Only)
 - `fpp_network_bots` — Live bot registry across all backends
@@ -76,17 +76,13 @@ database:
 
 When `persistence.enabled: true`:
 - Bot positions saved on shutdown
-- Tasks (move/mine/use/attack/follow/sleep) restored on restart
+- Tasks (mine/use/place) restored on restart
 - Inventories and XP preserved
-- Skin data cached
+- Rolled pool skins preserved (a bot keeps its skin across restarts)
 
 ## Migration
 
-Use `/fpp migrate db` to:
-- Export SQLite → MySQL
-- Export MySQL → SQLite
-- Backup database
-- Restore from backup
+There is no longer a `/fpp migrate` command. Config-file and database-schema migrations run **automatically** on startup (`ConfigMigrator`, `DatabaseManager` schema versioning), each creating a backup first via `BackupManager`. Manual SQLite ↔ MySQL export/backup/restore is not currently exposed via any command.
 
 ## Troubleshooting
 

@@ -18,10 +18,10 @@ FPP spawns server-side bot entities that behave like players — useful for **AF
    - `config.yml` — main configuration
    - `debug.yml` — debug logging control (all categories disabled by default)
    - `language/en.yml` — messages and translations
-   - `bot-names.yml` — name pool
+   - `bot-names.yml` — reserved-name configuration
    - `bad-words.yml` — profanity filter word list
    - `data/` — SQLite database and persistence files
-   - `extensions/` — extension JARs and extension data folders
+   - `skins/` — bot skin pools (`main_skin.txt` + `1-<N>%.txt` rarity tiers)
 5. Configure permissions (see [Permissions](Permissions)).
 6. Run `/fpp reload` to apply most changes without restarting.
 
@@ -44,4 +44,4 @@ The build depends on the **paperweight** Paper dev bundle (`paper-1.21.11-R0.1-S
 2. Spawn a bot: `/fpp spawn`
 3. Open its settings: shift+right-click the bot entity
 4. Teleport it to you: `/fpp tph <bot>`
-5. Make it move: `/fpp move <bot> --direction forward --seconds 3`
+5. Make it move: `/fpp move <bot> --coords ~ ~ ~` or follow you: `/fpp move <bot> --to <your name>`

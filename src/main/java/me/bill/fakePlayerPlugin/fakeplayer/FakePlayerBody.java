@@ -2,12 +2,19 @@ package me.bill.fakePlayerPlugin.fakeplayer;
 
 import java.util.function.Consumer;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.World;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,11 +27,19 @@ import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.TextUtil;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+
 public final class FakePlayerBody {
 
     public static final String VISUAL_PDC_VALUE = "fpp-visual";
 
     public static final String NAMETAG_PDC_VALUE = "fpp-nametag";
+
+    /** Scoreboard team used only to hide bots' vanilla over-head names (both rows live in the text_display). */
+    private static final String HIDDEN_NAME_TEAM = "fpp_hidden_names";
 
     private FakePlayerBody() {}
 
@@ -176,6 +191,8 @@ public final class FakePlayerBody {
                 + ", flying=false)");
 
         applyPaperSkin(player, fp.getResolvedSkin());
+
+        spawnNametag(fp, player);
     }
 
     public static void removeAll(FakePlayer fp) {
@@ -204,6 +221,7 @@ public final class FakePlayerBody {
 
     private static void removeAll(FakePlayer fp, boolean fast, String reason) {
         if (fp == null) return;
+        removeNametag(fp);
         try {
             Player player = fp.getPlayer();
             if (player != null && player.isOnline()) {
@@ -276,7 +294,13 @@ public final class FakePlayerBody {
     }
 
     private static void applyPaperSkin(Player bot, SkinProfile skin) {
-        if (skin == null || !skin.isValid()) return;
+        if (skin == null || !skin.isValid()) {
+            Config.debugSkinPool(
+                    "applyPaperSkin(" + bot.getName() + "): no valid resolved skin to apply - stays default.");
+            return;
+        }
+        Config.debugSkinPool("applyPaperSkin(" + bot.getName() + "): applying skin (" + skin.getSource() + ", folia="
+                + NmsPlayerSpawner.isFoliaServer() + ").");
         FakePlayerPlugin fpp = FakePlayerPlugin.getInstance();
         if (NmsPlayerSpawner.isFoliaServer()) {
             NmsPlayerSpawner.applySkinToGameProfile(bot, skin);
@@ -310,14 +334,157 @@ public final class FakePlayerBody {
         }
     }
 
-    public static void removeNametag(FakePlayer fp) {}
-
-    public static Entity spawnNametag(FakePlayer fp, Entity body) {
-
-        return null;
+    public static void removeNametag(FakePlayer fp) {
+        if (fp == null) return;
+        unhideVanillaName(fp);
+        Entity tag = fp.getNametagEntity();
+        if (tag != null) {
+            try {
+                tag.remove();
+            } catch (Throwable ignored) {
+            }
+            fp.setNametagEntity(null);
+        }
     }
 
-    public static void removeOrphanedNametags(String reason) {}
+    /**
+     * Spawns the mannequin-style name tag (a {@link TextDisplay}) that carries BOTH rows — the bot's
+     * name and the configured indicator (default {@code bot by <owner>}) — and hides the bot's vanilla
+     * over-head name so it does not overlay the display.
+     */
+    public static Entity spawnNametag(FakePlayer fp, Entity body) {
+        if (fp == null || body == null || !Config.nametagSecondLineEnabled()) return null;
+        Location base = body.getLocation();
+        if (base.getWorld() == null) return null;
+        removeNametag(fp);
+        try {
+            hideVanillaName(fp);
+            int interp = Math.max(0, Config.nametagInterpolationTicks());
+            Location loc = base.clone().add(0, Config.nametagSecondLineYOffset(), 0);
+            TextDisplay display = base.getWorld().spawn(loc, TextDisplay.class, td -> {
+                td.text(buildNametagComponent(fp));
+                td.setBillboard(Display.Billboard.CENTER);
+                td.setSeeThrough(false);
+                td.setShadowed(false);
+                td.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+                td.setPersistent(false);
+                td.setInvulnerable(true);
+                // Interpolate to each new position so it follows the bot smoothly instead of jumping
+                // (matched to the client-side entity lerp FPP uses for the bot's movement).
+                td.setTeleportDuration(interp);
+                if (FakePlayerManager.FAKE_PLAYER_KEY != null) {
+                    td.getPersistentDataContainer()
+                            .set(
+                                    FakePlayerManager.FAKE_PLAYER_KEY,
+                                    PersistentDataType.STRING,
+                                    NAMETAG_PDC_VALUE + ":" + fp.getName());
+                }
+            });
+            fp.setNametagEntity(display);
+            return display;
+        } catch (Throwable e) {
+            FppLogger.debug("FakePlayerBody.spawnNametag failed for " + fp.getName() + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    /** Rebuilds the tag text (e.g. after an owner change). */
+    public static void refreshNametag(FakePlayer fp) {
+        if (fp == null) return;
+        if (fp.getNametagEntity() instanceof TextDisplay td && td.isValid()) {
+            td.text(buildNametagComponent(fp));
+        }
+    }
+
+    private static void hideVanillaName(FakePlayer fp) {
+        try {
+            var mgr = Bukkit.getScoreboardManager();
+            if (mgr == null) return;
+            Scoreboard board = mgr.getMainScoreboard();
+            Team team = board.getTeam(HIDDEN_NAME_TEAM);
+            if (team == null) {
+                team = board.registerNewTeam(HIDDEN_NAME_TEAM);
+                team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
+                // Keep normal collision so bots still push each other (see BotCollisionListener).
+                team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.ALWAYS);
+            }
+            team.addEntry(fp.getName());
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static void unhideVanillaName(FakePlayer fp) {
+        try {
+            var mgr = Bukkit.getScoreboardManager();
+            if (mgr == null) return;
+            Team team = mgr.getMainScoreboard().getTeam(HIDDEN_NAME_TEAM);
+            if (team != null) team.removeEntry(fp.getName());
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** Keeps the second-line display glued below the moving bot. Called from the tick loop. */
+    public static void moveNametag(FakePlayer fp, Location botLoc) {
+        if (fp == null || botLoc == null) return;
+        Entity tag = fp.getNametagEntity();
+        if (tag == null) return;
+        if (!tag.isValid()) {
+            fp.setNametagEntity(null);
+            return;
+        }
+        Location target = botLoc.clone().add(0, Config.nametagSecondLineYOffset(), 0);
+        try {
+            if (NmsPlayerSpawner.isFoliaServer() || tag.getWorld() != target.getWorld()) {
+                tag.teleportAsync(target);
+            } else {
+                tag.teleport(target);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static Component buildNametagComponent(FakePlayer fp) {
+        String owner = fp.getSpawnedBy() != null && !fp.getSpawnedBy().isBlank() ? fp.getSpawnedBy() : "?";
+        String rawName = fp.getRawDisplayName() != null ? fp.getRawDisplayName() : fp.getDisplayName();
+        Component indicatorRow =
+                TextUtil.colorize(Config.nametagSecondLineFormat().replace("{owner}", owner));
+        // Rows below inherit color from whatever they're appended onto, so give each an explicit
+        // color instead of relying on defaults — otherwise a colorless row picks up its parent's.
+        Component nameRow = TextUtil.colorize(rawName != null && !rawName.isBlank() ? rawName : fp.getName());
+        if (nameRow.color() == null) nameRow = nameRow.color(NamedTextColor.WHITE);
+        TextColor indicatorColor = indicatorRow.color() != null ? indicatorRow.color() : NamedTextColor.GRAY;
+        Component actionRow = Component.text(BotActivity.currentLabel(fp))
+                .color(indicatorColor)
+                .decoration(TextDecoration.ITALIC, true);
+        // Root is colorless so each row keeps its own explicit color instead of inheriting one.
+        return Component.empty()
+                .append(actionRow)
+                .append(Component.newline())
+                .append(nameRow)
+                .append(Component.newline())
+                .append(indicatorRow);
+    }
+
+    public static void removeOrphanedNametags(String reason) {
+        FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
+        if (plugin == null || FakePlayerManager.FAKE_PLAYER_KEY == null) return;
+        FakePlayerManager mgr = plugin.getFakePlayerManager();
+        String prefix = NAMETAG_PDC_VALUE + ":";
+        for (World world : Bukkit.getWorlds()) {
+            for (TextDisplay td : world.getEntitiesByClass(TextDisplay.class)) {
+                String tag = td.getPersistentDataContainer()
+                        .get(FakePlayerManager.FAKE_PLAYER_KEY, PersistentDataType.STRING);
+                if (tag == null || !tag.startsWith(prefix)) continue;
+                String botName = tag.substring(prefix.length());
+                if (mgr == null || mgr.getByName(botName) == null) {
+                    try {
+                        td.remove();
+                    } catch (Throwable ignored) {
+                    }
+                }
+            }
+        }
+    }
 
     public static void removeOrphanedBodies(String reason) {}
 }

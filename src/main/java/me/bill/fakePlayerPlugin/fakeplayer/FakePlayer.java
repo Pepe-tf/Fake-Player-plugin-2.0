@@ -85,6 +85,9 @@ public final class FakePlayer {
 
     private BotType botType = BotType.AFK;
 
+    // Inert persistence fields: the chat system was removed, but these per-bot
+    // values are retained as dormant DB/YAML state to avoid risky schema migration.
+    // They are intentionally NOT exposed through the public FppBot API.
     private boolean chatEnabled = true;
 
     private String chatTier = null;
@@ -168,8 +171,11 @@ public final class FakePlayer {
 
     private volatile boolean tabListDirty = true;
 
+    /** Last action label rendered on the nametag's activity row — used to skip no-op refreshes. */
+    private volatile String lastRenderedActionLabel = null;
+
     /**
-     * Addon-attached metadata — transient, cleared on despawn.
+     * Plugin-attached metadata — transient, cleared on despawn.
      */
     private final Map<String, Object> metadata = new ConcurrentHashMap<>();
 
@@ -401,6 +407,7 @@ public final class FakePlayer {
         this.respawnOnDeath = v;
     }
 
+    // Inert persistence accessors for the removed chat system (internal use only).
     public boolean isChatEnabled() {
         return chatEnabled;
     }
@@ -610,6 +617,14 @@ public final class FakePlayer {
 
     public void markTabListDirty() {
         tabListDirty = true;
+    }
+
+    public String getLastRenderedActionLabel() {
+        return lastRenderedActionLabel;
+    }
+
+    public void setLastRenderedActionLabel(String label) {
+        this.lastRenderedActionLabel = label;
     }
 
     public SkinProfile getResolvedSkin() {
@@ -846,7 +861,7 @@ public final class FakePlayer {
         this.sleeping = sleeping;
     }
 
-    // ── Addon metadata ────────────────────────────────────────────────────────
+    // ── Plugin metadata ────────────────────────────────────────────────────────
 
     @Nullable
     public Object getMetadata(String key) {

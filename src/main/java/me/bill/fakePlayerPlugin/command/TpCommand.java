@@ -13,15 +13,7 @@ import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
-
-@SuppressWarnings("unused")
 public class TpCommand implements FppCommand {
-
-    private static final TextColor ACCENT = TextColor.fromHexString("#0079FF");
-    private static final TextColor MUTED = NamedTextColor.GRAY;
 
     private final FakePlayerManager manager;
 
@@ -64,9 +56,7 @@ public class TpCommand implements FppCommand {
         }
 
         if (!manager.physicalBodiesEnabled()) {
-            sender.sendMessage(Component.text("[ꜰᴘᴘ] ")
-                    .color(ACCENT)
-                    .append(Component.text("No body to tp to or from.").color(MUTED)));
+            sender.sendMessage(Lang.get("tp-no-body"));
             return true;
         }
 
@@ -103,11 +93,7 @@ public class TpCommand implements FppCommand {
         }
 
         FppScheduler.teleportAsync(player, dest);
-        sender.sendMessage(Component.empty()
-                .append(Component.text("[ꜰᴘᴘ] ").color(ACCENT))
-                .append(Component.text("Teleported you to ").color(MUTED))
-                .append(Component.text(target.getDisplayName()).color(ACCENT))
-                .append(Component.text(".").color(MUTED)));
+        sender.sendMessage(Lang.get("tp-success", "name", target.getDisplayName()));
         return true;
     }
 
@@ -121,11 +107,9 @@ public class TpCommand implements FppCommand {
     }
 
     private void listBots(CommandSender sender, List<FakePlayer> bots) {
-        sender.sendMessage(Component.empty()
-                .append(Component.text("  Active bots: ").color(MUTED))
-                .append(Component.text(String.join(
-                                ", ",
-                                bots.stream().map(FakePlayer::getDisplayName).toList()))
-                        .color(ACCENT)));
+        sender.sendMessage(Lang.get(
+                "tp-active-bots",
+                "bots",
+                String.join(", ", bots.stream().map(FakePlayer::getDisplayName).toList())));
     }
 }

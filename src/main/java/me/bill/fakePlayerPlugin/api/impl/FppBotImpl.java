@@ -102,26 +102,6 @@ public final class FppBotImpl implements FppBot {
     }
 
     @Override
-    public boolean isChatEnabled() {
-        return fp.isChatEnabled();
-    }
-
-    @Override
-    public void setChatEnabled(boolean enabled) {
-        fp.setChatEnabled(enabled);
-    }
-
-    @Override
-    public @Nullable String getChatTier() {
-        return fp.getChatTier();
-    }
-
-    @Override
-    public void setChatTier(@Nullable String t) {
-        fp.setChatTier(t);
-    }
-
-    @Override
     public @Nullable String getAiPersonality() {
         return fp.getAiPersonality();
     }
@@ -546,16 +526,6 @@ public final class FppBotImpl implements FppBot {
         fp.setBotType(BotType.parse(type));
     }
 
-    @Override
-    public @Nullable String getLuckpermsGroup() {
-        return fp.getLuckpermsGroup();
-    }
-
-    @Override
-    public void setLuckpermsGroup(@Nullable String group) {
-        fp.setLuckpermsGroup(group);
-    }
-
     // ── Messaging / permissions ─────────────────────────────────────────────
     @Override
     public void sendMessage(@NotNull String message) {
@@ -575,7 +545,7 @@ public final class FppBotImpl implements FppBot {
         return ent != null && ent.isOnline();
     }
 
-    // ── Addon metadata ────────────────────────────────────────────────────────
+    // ── Plugin metadata ────────────────────────────────────────────────────────
     @Override
     public void setMetadata(@NotNull String key, @Nullable Object value) {
         fp.setMetadata(key, value);

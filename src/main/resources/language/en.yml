@@ -56,17 +56,13 @@ invalid-number: "{prefix}<red>ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ. ᴘʟᴇᴀꜱ�
 spawn-success:            "{prefix}<#0079FF>{count}</#0079FF> <gray>ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ(ꜱ) <white>ꜱᴜᴍᴍᴏɴᴇᴅ<gray>. <dark_gray>(<#0079FF>{total}</#0079FF> <gray>ᴀᴄᴛɪᴠᴇ<dark_gray>)"
 spawn-max-reached:        "{prefix}<red>ᴍᴀx ʙᴏᴛ ʟɪᴍɪᴛ ʀᴇᴀᴄʜᴇᴅ <dark_gray>(<#0079FF>{max}</#0079FF> <gray>ʙᴏᴛꜱ<dark_gray>)<red>. ᴅᴇʟᴇᴛᴇ ꜱᴏᴍᴇ ꜰɪʀꜱᴛ."
 spawn-user-limit-reached: "{prefix}<red>ʏᴏᴜ'ᴠᴇ ʀᴇᴀᴄʜᴇᴅ ʏᴏᴜʀ ᴘᴇʀꜱᴏɴᴀʟ ʙᴏᴛ ʟɪᴍɪᴛ <dark_gray>(<#0079FF>{limit}</#0079FF> <gray>ʙᴏᴛ(ꜱ)<dark_gray>)<red>."
-spawn-invalid:            "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴜꜱᴀɢᴇ. <gray>ᴛʀʏ <#0079FF>/fpp spawn [afk] [amount] [--name <name>] [--random-name] [--notp]</#0079FF><gray>."
-spawn-invalid-name:       "{prefix}<red>ɪɴᴠᴀʟɪᴅ ʙᴏᴛ ɴᴀᴍᴇ. <gray>ᴜꜱᴇ <white>1–16 <gray>ᴄʜᴀʀꜱ <dark_gray>(<white>ʟᴇᴛᴛᴇʀꜱ<gray>, <white>ᴅɪɡɪᴛꜱ<gray>, <white>_<dark_gray>)<gray>."
-spawn-badword-rejected:   "{prefix}<red>ʙᴏᴛ ɴᴀᴍᴇ '<white>{name}<red>' ɪꜱ ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ <dark_gray>(<gray>ᴄᴏɴᴛᴀɪɴꜱ ʙᴀᴅᴡᴏʀᴅ: <white>{badword}<dark_gray>)<red>."
-spawn-badword-auto-prefixed: "{prefix}<yellow>⚠ <gray>ɴᴀᴍᴇ '<red>{original}<gray>' ᴄᴏɴᴛᴀɪɴᴇᴅ ᴀ ʙᴀᴅᴡᴏʀᴅ — ʀᴇɴᴀᴍᴇᴅ ᴛᴏ '<#0079FF>{name}</#0079FF><gray>'."
-badword-filter-empty-warning: "{prefix}<yellow>⚠ <gray>ʙᴀᴅᴡᴏʀᴅ ꜰɪʟᴛᴇʀ ɪꜱ <white>ᴇɴᴀʙʟᴇᴅ <gray>ʙᴜᴛ <red>ɴᴏ ꜱᴏᴜʀᴄᴇꜱ ᴀʀᴇ ᴀᴄᴛɪᴠᴇ<gray>. <dark_gray>ᴇɴᴀʙʟᴇ <white>badword-filter.use-global-list <dark_gray>ᴏʀ ᴀᴅᴅ ᴡᴏʀᴅꜱ ᴛᴏ <white>badword-filter.words <dark_gray>/ <white>bad-words.yml<dark_gray>, ᴛʜᴇɴ ʀᴜɴ <white>/fpp reload<dark_gray>."
-spawn-name-taken:         "{prefix}<red>ᴀ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name} <red>ɪꜱ ᴀʟʀᴇᴀᴅʏ ᴀᴄᴛɪᴠᴇ."
-spawn-name-taken-player:  "{prefix}<red>ᴀ ʀᴇᴀʟ ᴘʟᴀʏᴇʀ ɴᴀᴍᴇᴅ <white>{name} <red>ɪꜱ ᴀʟʀᴇᴀᴅʏ ᴏɴʟɪɴᴇ."
-spawn-name-taken-nick:    "{prefix}<red>ᴀ ᴘʟᴀʏᴇʀ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ɴɪᴄᴋᴇᴅ ᴀꜱ <white>{name}<red>. <gray>ᴄʜᴏᴏꜱᴇ ᴀ ᴅɪꜰꜰᴇʀᴇɴᴛ ʙᴏᴛ ɴᴀᴍᴇ."
-spawn-relog-not-found:    "{prefix}<red>ɴᴏ ꜱᴀᴠᴇᴅ ʙᴏᴛ ᴡᴀꜱ ꜰᴏᴜɴᴅ ɴᴀᴍᴇᴅ <white>{name}<red>."
-spawn-relog-world-missing: "{prefix}<red>ᴄᴀɴ'ᴛ ʀᴇʟᴏɢ <white>{name}<red> — ᴘʀᴇᴠɪᴏᴜꜱ ᴡᴏʀʟᴅ <white>{world}<red> ɪꜱ ɴᴏᴛ ʟᴏᴀᴅᴇᴅ."
 spawn-no-names-left:      "{prefix}<red>ᴀʟʟ ɴᴀᴍᴇꜱ ɪɴ ᴛʜᴇ ᴘᴏᴏʟ ᴀʀᴇ ɪɴ ᴜꜱᴇ. <gray>ʀᴇᴅᴜᴄᴇ ᴀᴄᴛɪᴠᴇ ʙᴏᴛꜱ ᴏʀ ᴀᴅᴅ ᴍᴏʀᴇ ɴᴀᴍᴇꜱ."
+# {name} — the rejected custom name (--name flag)
+spawn-invalid-name:       "{prefix}<red>'<white>{name}</white><red>' ɪꜱ ɴᴏᴛ ᴀ ᴠᴀʟɪᴅ ʙᴏᴛ ɴᴀᴍᴇ <dark_gray>(1-16 ʟᴇᴛᴛᴇʀꜱ, ɴᴜᴍʙᴇʀꜱ, ᴜɴᴅᴇʀꜱᴄᴏʀᴇꜱ)<red>."
+spawn-name-taken:         "{prefix}<red>ᴀ ʙᴏᴛ ɴᴀᴍᴇᴅ '<white>{name}</white><red>' ᴀʟʀᴇᴀᴅʏ ᴇxɪꜱᴛꜱ."
+spawn-name-online:        "{prefix}<red>ᴀ ʀᴇᴀʟ ᴘʟᴀʏᴇʀ ɴᴀᴍᴇᴅ '<white>{name}</white><red>' ɪꜱ ᴏɴʟɪɴᴇ — ᴘɪᴄᴋ ᴀɴᴏᴛʜᴇʀ ɴᴀᴍᴇ."
+# {name} — bot name  |  {rarity} — e.g. 1/5000; sent to the spawner when a rare pool skin is rolled
+skin-rare-rolled:         "{prefix}<gold>✨ <#0079FF>{name}</#0079FF> <gold>ꜱᴘᴀᴡɴᴇᴅ ᴡɪᴛʜ ᴀ ʀᴀʀᴇ ꜱᴋɪɴ! <dark_gray>(<white>{rarity}</white> ᴄʜᴀɴᴄᴇ<dark_gray>)"
 
 # ── Console / location errors ──────────────────────────────────────────────────
 # {world} — the world name that was not found
@@ -78,7 +74,7 @@ player-not-found:   "{prefix}<red>ᴘʟᴀʏᴇʀ <white>{player} <red>ɪꜱ ɴ�
 
 # ── Spawn cooldown ─────────────────────────────────────────────────────────────
 # {seconds} — seconds remaining
-spawn-cooldown: "{prefix}<red>ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ <white>{seconds}s<red> ʙᴇꜰᴏʀᴇ ꜱᴘᴀᴡɴɪɴɢ ᴀɡᴀɪɴ."
+spawn-cooldown: "{prefix}<red>ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ <white>{seconds}s<red> ʙᴇꜰᴏʀᴇ ꜱᴘᴀᴡɴɪɴɢ ᴀɢᴀɪɴ."
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -90,7 +86,7 @@ delete-success:        "{prefix}<#0079FF>{name}</#0079FF> <gray>ʜᴀꜱ ʙᴇ�
 delete-all:            "{prefix}<#0079FF>{count}</#0079FF> <gray>ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ(ꜱ) <white>ᴅɪꜱᴄᴏɴɴᴇᴄᴛᴇᴅ<gray>."
 delete-none:           "{prefix}<red>ɴᴏ ʙᴏᴛꜱ ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ ᴀᴄᴛɪᴠᴇ."
 # Shown when a bulk despawn is attempted while bot persistence restore is still running
-delete-restore-in-progress: "{prefix}<red>ʙᴏᴛ ʀᴇꜱᴛᴏʀᴀᴛɪᴏɴ ɪꜱ ɪɴ ᴘʀᴏɢʀᴇꜱꜱ — ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ ᴀ ꜰᴇᴡ ꜱᴇᴄᴏɴᴅꜱ ᴀɴᴅ ᴛʀʏ ᴀɡᴀɪɴ."
+delete-restore-in-progress: "{prefix}<red>ʙᴏᴛ ʀᴇꜱᴛᴏʀᴀᴛɪᴏɴ ɪꜱ ɪɴ ᴘʀᴏɢʀᴇꜱꜱ — ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ ᴀ ꜰᴇᴡ ꜱᴇᴄᴏɴᴅꜱ ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ."
 delete-not-found:      "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red> ᴡᴀꜱ ꜰᴏᴜɴᴅ."
 # {count} — number of bots randomly despawned
 delete-random-success: "{prefix}<#0079FF>{count}</#0079FF> <gray>ʀᴀɴᴅᴏᴍ ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ(ꜱ) <white>ᴅɪꜱᴄᴏɴɴᴇᴄᴛᴇᴅ<gray>."
@@ -99,6 +95,8 @@ delete-num-success:    "{prefix}<#0079FF>{count}</#0079FF> <gray>ꜰᴀᴋᴇ �
 # {count} — number of bots despawned that belong to the sender
 delete-own-success:    "{prefix}<#0079FF>{count}</#0079FF> <gray>ʏᴏᴜʀ ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ(ꜱ) <white>ᴅɪꜱᴄᴏɴɴᴇᴄᴛᴇᴅ<gray>."
 despawn-num-usage:     "{prefix}<red>ᴜꜱᴀɢᴇ: <white>/fpp despawn --num <num></white>."
+# Sent to the bot's owner when it dies and respawn-on-death is off (so it's despawned, not respawned)
+bot-died-despawned:    "{prefix}<#0079FF>{name}</#0079FF> <gray>ᴅɪᴇᴅ ᴀɴᴅ ᴡᴀꜱ <white>ʀᴇᴍᴏᴠᴇᴅ<gray> <dark_gray>(ʀᴇꜱᴘᴀᴡɴ ᴏɴ ᴅᴇᴀᴛʜ ɪꜱ ᴏꜰꜰ)<gray>."
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -112,63 +110,6 @@ list-none: "  <gray>ɴᴏ ʙᴏᴛꜱ ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ ᴀᴄᴛ�
 #  6 · BOT BROADCASTS
 # ═════════════════════════════════════════════════════════════════════════════
 
-# {name} — bot display name. Plain names are yellow by default; wrap in tags to override, e.g. <red>{name}</red>
-bot-join:  "<yellow>{name} joined the game</yellow>"
-bot-leave: "<yellow>{name} left the game</yellow>"
-
-# {old} — previous bot name · {new} — new bot name
-bot-rename: "{prefix}<#0079FF>{old}</#0079FF> <gray>ʜᴀꜱ ʙᴇᴇɴ ʀᴇɴᴀᴍᴇᴅ ᴛᴏ <#0079FF>{new}</#0079FF><gray>."
-rename-invalid-name: "{prefix}<red>ɪɴᴠᴀʟɪᴅ ʙᴏᴛ ɴᴀᴍᴇ. <gray>ᴜꜱᴇ <white>1–16 <gray>ᴄʜᴀʀꜱ <dark_gray>(<white>ʟᴇᴛᴛᴇʀꜱ<gray>, <white>ᴅɪɡɪᴛꜱ<gray>, <white>_<dark_gray>)<gray>."
-rename-same-name: "{prefix}<yellow>⚠ <gray>ᴛʜᴇ ɴᴇᴡ ɴᴀᴍᴇ ɪꜱ ᴛʜᴇ ꜱᴀᴍᴇ ᴀꜱ ᴛʜᴇ ᴄᴜʀʀᴇɴᴛ ɴᴀᴍᴇ."
-rename-name-taken: "{prefix}<red>ᴀ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red> ɪꜱ ᴀʟʀᴇᴀᴅʏ ᴀᴄᴛɪᴠᴇ."
-rename-name-taken-player: "{prefix}<red>ᴀ ʀᴇᴀʟ ᴘʟᴀʏᴇʀ ɴᴀᴍᴇᴅ <white>{name}<red> ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ᴏɴʟɪɴᴇ."
-rename-badword-rejected: "{prefix}<red>ʙᴏᴛ ɴᴀᴍᴇ '<white>{name}<red>' ɪꜱ ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ <dark_gray>(<gray>ᴄᴏɴᴛᴀɪɴꜱ ʙᴀᴅᴡᴏʀᴅ: <white>{badword}<dark_gray>)<red>."
-rename-badword-auto-renamed: "{prefix}<yellow>⚠ <gray>ɴᴀᴍᴇ '<red>{original}<gray>' ᴄᴏɴᴛᴀɪɴᴇᴅ ᴀ ʙᴀᴅᴡᴏʀᴅ — ʀᴇɴᴀᴍɪɴɢ ᴛᴏ '<#0079FF>{name}</#0079FF><gray>' ɪɴꜱᴛᴇᴀᴅ."
-rename-starting: "{prefix}<gray>ʀᴇɴᴀᴍɪɴɢ <#0079FF>{old}</#0079FF> <gray>→ <#0079FF>{new}</#0079FF><gray>…"
-rename-failed-no-location: "{prefix}<red>✘ <gray>ᴄᴀɴɴᴏᴛ ʀᴇꜱᴘᴀᴡɴ <#0079FF>{name}</#0079FF><gray> — ɴᴏ ʟᴏᴄᴀᴛɪᴏɴ ɪꜱ ʀᴇᴄᴏʀᴅᴇᴅ ꜰᴏʀ ᴛʜɪꜱ ʙᴏᴛ."
-rename-failed-spawn: "{prefix}<red>✘ <gray>ꜰᴀɪʟᴇᴅ ᴛᴏ ʀᴇꜱᴘᴀᴡɴ <#0079FF>{name}</#0079FF><gray>: <white>{reason}</white>."
-rename-timeout: "{prefix}<yellow>⚠ <gray>ᴛɪᴍᴇᴅ ᴏᴜᴛ ᴡᴀɪᴛɪɴɢ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray> ᴛᴏ ꜰɪɴɪꜱʜ ꜱᴘᴀᴡɴɪɴɢ. ʙᴏᴛ ɪꜱ ᴏɴʟɪɴᴇ ʙᴜᴛ ᴅᴀᴛᴀ ᴍᴀʏ ɴᴏᴛ ʙᴇ ꜰᴜʟʟʏ ʀᴇꜱᴛᴏʀᴇᴅ."
-rename-success: "{prefix}<green>✔ <#0079FF>{new}</#0079FF> <gray>ɪꜱ ᴏɴʟɪɴᴇ <dark_gray>(<red>{old}</red><gray> ʀᴇɴᴀᴍᴇᴅ — ɪɴᴠᴇɴᴛᴏʀʏ, xᴘ, ᴄʜᴀᴛ, ʟᴘ ɢʀᴏᴜᴘ ʀᴇꜱᴛᴏʀᴇᴅ."
-bot-not-found: "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  7 · FAKE CHAT
-# ═════════════════════════════════════════════════════════════════════════════
-
-# ── Global toggle ──────────────────────────────────────────────────────────────
-chat-enabled:    "{prefix}<#0079FF>ꜰᴀᴋᴇ ᴄʜᴀᴛ</#0079FF> <gray>ʜᴀꜱ ʙᴇᴇɴ <white>ᴇɴᴀʙʟᴇᴅ<gray>."
-chat-disabled:   "{prefix}<#0079FF>ꜰᴀᴋᴇ ᴄʜᴀᴛ</#0079FF> <gray>ʜᴀꜱ ʙᴇᴇɴ <white>ᴅɪꜱᴀʙʟᴇᴅ<gray>."
-chat-status-on:  "{prefix}<#0079FF>ꜰᴀᴋᴇ ᴄʜᴀᴛ</#0079FF> <gray>ɪꜱ <white>ᴇɴᴀʙʟᴇᴅ<gray>."
-chat-status-off: "{prefix}<#0079FF>ꜰᴀᴋᴇ ᴄʜᴀᴛ</#0079FF> <gray>ɪꜱ <white>ᴅɪꜱᴀʙʟᴇᴅ<gray>."
-chat-invalid:    "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp chat <on|off|status></#0079FF> <dark_gray>|</dark_gray> <#0079FF>/fpp chat <bot> [on|off|status|info|say <msg>|mute [sec]]</#0079FF><gray>."
-
-# ── Per-bot chat management ─────────────────────────────────────────────────────
-# {name}    — bot display name
-# {message} — message that was forced-sent
-# {seconds} — mute duration  |  {enabled} — enabled state
-chat-bot-not-found:    "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
-chat-bot-status-on:    "{prefix}<#0079FF>{name}</#0079FF> <gray>ᴄʜᴀᴛ ɪꜱ <white>ᴇɴᴀʙʟᴇᴅ<gray>."
-chat-bot-status-off:   "{prefix}<#0079FF>{name}</#0079FF> <gray>ᴄʜᴀᴛ ɪꜱ <white>ꜱɪʟᴇɴᴄᴇᴅ<gray>."
-chat-bot-enabled:      "{prefix}<#0079FF>{name}</#0079FF> <gray>ᴡɪʟʟ <white>ɴᴏᴡ ᴄʜᴀᴛ<gray>."
-chat-bot-disabled:     "{prefix}<#0079FF>{name}</#0079FF> <gray>ʜᴀꜱ ʙᴇᴇɴ <white>ꜱɪʟᴇɴᴄᴇᴅ<gray>."
-chat-bot-said:         "{prefix}<#0079FF>{name}</#0079FF> <gray>ꜱᴀɪᴅ: <white>{message}"
-chat-bot-info:         "{prefix}<#0079FF>{name}</#0079FF> <dark_gray>│ <gray>ᴇɴᴀʙʟᴇᴅ: <white>{enabled}"
-chat-bot-muted:        "{prefix}<#0079FF>{name}</#0079FF> <gray>ʜᴀꜱ ʙᴇᴇɴ <white>ᴘᴇʀᴍᴀɴᴇɴᴛʟʏ ꜱɪʟᴇɴᴄᴇᴅ<gray>."
-chat-bot-muted-timed:  "{prefix}<#0079FF>{name}</#0079FF> <gray>ꜱɪʟᴇɴᴄᴇᴅ ꜰᴏʀ <white>{seconds}ꜱ<gray>."
-chat-mute-usage:       "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp chat <bot> mute [seconds]</#0079FF><gray>."
-chat-say-usage:        "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp chat <bot> say <message></#0079FF><gray>."
-
-# ── Bulk bot chat  (/fpp chat all …) ───────────────────────────────────────────
-# {count}    — bots affected  |  {enabled}/{disabled} — status counts
-# {message} — message text
-chat-all-usage:        "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp chat all <on|off|status|say <msg>|mute [sec]></#0079FF><gray>."
-chat-all-say-usage:    "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp chat all say <message></#0079FF><gray>."
-chat-all-enabled:      "{prefix}<gray>ᴀʟʟ <white>{count}<gray> ʙᴏᴛ(ꜱ) ᴡɪʟʟ <white>ɴᴏᴡ ᴄʜᴀᴛ<gray>."
-chat-all-disabled:     "{prefix}<gray>ᴀʟʟ <white>{count}<gray> ʙᴏᴛ(ꜱ) ʜᴀᴠᴇ ʙᴇᴇɴ <white>ꜱɪʟᴇɴᴄᴇᴅ<gray>."
-chat-all-status:       "{prefix}<gray>ᴄʜᴀᴛ ᴇɴᴀʙʟᴇᴅ: <white>{enabled}<gray> | ꜱɪʟᴇɴᴄᴇᴅ: <white>{disabled}<gray>."
-chat-all-said:         "{prefix}<gray>ᴍᴇꜱꜱᴀɢᴇ ꜱᴇɴᴛ ᴛʜʀᴏᴜɢʜ <white>{count}<gray> ʙᴏᴛ(ꜱ): <white>{message}"
-
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  8 · INFO / DATABASE
@@ -176,7 +117,7 @@ chat-all-said:         "{prefix}<gray>ᴍᴇꜱꜱᴀɢᴇ ꜱᴇɴᴛ ᴛʜʀ�
 
 # {name} — bot or spawner name queried
 info-no-records:     "{prefix}<red>ɴᴏ ʀᴇᴄᴏʀᴅꜱ ꜰᴏᴜɴᴅ ꜰᴏʀ <white>{name}<red>."
-info-db-unavailable: "{prefix}<red>ᴅᴀᴛᴀʙᴀꜱᴇ ᴜɴᴀᴠᴀɪʟᴀʙʟᴇ. ᴄʜᴇᴄᴋ ʏᴏᴜʀ ᴄᴏɴꜰɪɡ ᴀɴᴅ ꜱᴇʀᴠᴇʀ ʟᴏɡꜱ."
+info-db-unavailable: "{prefix}<red>ᴅᴀᴛᴀʙᴀꜱᴇ ᴜɴᴀᴠᴀɪʟᴀʙʟᴇ. ᴄʜᴇᴄᴋ ʏᴏᴜʀ ᴄᴏɴꜰɪɢ ᴀɴᴅ ꜱᴇʀᴠᴇʀ ʟᴏɢꜱ."
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -192,6 +133,11 @@ tph-not-yours:    "{prefix}<red>ʏᴏᴜ ᴅᴏ ɴᴏᴛ ᴏᴡɴ ᴀ ʙᴏᴛ �
 tph-failed:       "{prefix}<red>ꜰᴀɪʟᴇᴅ ᴛᴏ ᴛᴇʟᴇᴘᴏʀᴛ <white>{name}<red>."
 tph-all-result:   "{prefix}<gray>ᴛᴇʟᴇᴘᴏʀᴛᴇᴅ <#0079FF>{count}</#0079FF> <gray>ʙᴏᴛ(ꜱ) ᴛᴏ ʏᴏᴜ. <dark_gray>(<gray>ꜰᴀɪʟᴇᴅ: <white>{failed}</white><dark_gray>)"
 tp-specify-name:  "{prefix}<red>ᴍᴜʟᴛɪᴘʟᴇ ʙᴏᴛꜱ ᴀʀᴇ ᴀᴄᴛɪᴠᴇ. <gray>ꜱᴘᴇᴄɪꜰʏ ᴡʜɪᴄʜ ᴏɴᴇ."
+tp-no-body:       "{prefix}<red>ɴᴏ ʙᴏᴛ ʙᴏᴅʏ ᴛᴏ ᴛᴇʟᴇᴘᴏʀᴛ ᴛᴏ ᴏʀ ꜰʀᴏᴍ."
+# {name} — bot display name
+tp-success:       "{prefix}<gray>ᴛᴇʟᴇᴘᴏʀᴛᴇᴅ ʏᴏᴜ ᴛᴏ <#0079FF>{name}</#0079FF><gray>."
+# {bots} — comma-separated list of active bot names
+tp-active-bots:   "  <gray>ᴀᴄᴛɪᴠᴇ ʙᴏᴛꜱ: <#0079FF>{bots}</#0079FF>"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -204,29 +150,7 @@ xp-success:         "{prefix}<#66CC66>✓</#66CC66> <gray>ᴄᴏʟʟᴇᴄᴛᴇ
 xp-no-xp:           "{prefix}<gray><#0079FF>{name}</#0079FF> <gray>ʜᴀꜱ ɴᴏ xᴘ."
 xp-usage:           "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp xp <bot></#0079FF><gray>."
 xp-cooldown-active: "{prefix}<red><white>{name}<red> ᴄᴀɴɴᴏᴛ ᴘɪᴄᴋ ᴜᴘ xᴘ ꜰᴏʀ ᴀɴᴏᴛʜᴇʀ <white>{seconds}<red>ꜱ."
-xp-disabled:        "{prefix}<red>xᴘ ꜱʏꜱᴛᴇᴍ ɪꜱ ᴅɪꜱᴀʙʟᴇᴅ ɪɴ ᴄᴏɴꜰɪɡ."
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  11 · RANK  (LuckPerms group assignment)
-# ═════════════════════════════════════════════════════════════════════════════
-
-# {bot}   — bot display name  |  {group} — LuckPerms group  |  {count} — bots assigned
-rank-no-luckperms:    "{prefix}<red>ʟᴜᴄᴋᴘᴇʀᴍꜱ ɪꜱ ɴᴏᴛ ɪɴꜱᴛᴀʟʟᴇᴅ ᴏʀ ᴇɴᴀʙʟᴇᴅ."
-rank-usage:           "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp rank <bot> <group|clear></#0079FF><gray> <dark_gray>|</dark_gray> <#0079FF>/fpp rank random <group> [num]</#0079FF><gray> <dark_gray>|</dark_gray> <#0079FF>/fpp rank list</#0079FF><gray>."
-rank-bot-not-found:   "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
-rank-group-not-found: "{prefix}<red>ʟᴜᴄᴋᴘᴇʀᴍꜱ ɢʀᴏᴜᴘ <white>{group}<red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
-
-skin-usage:           "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp skin <bot> <username|reset|--url <url>></#0079FF><gray>."
-skin-bot-not-found:   "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
-skin-invalid-url:     "{prefix}<red>ɪɴᴠᴀʟɪᴅ ꜱᴋɪɴ ᴜʀʟ<red>. <gray>ᴜꜱᴇ ᴀɴ <white>http(s)</white> <gray>ᴏʀ <white>data:image</white> ᴜʀʟ."
-skin-applying:        "{prefix}<gray>ᴀᴘᴘʟʏɪɴɢ ᴀ ᴄᴜꜱᴛᴏᴍ ꜱᴋɪɴ ᴛᴏ <#0079FF>{name}</#0079FF><gray>…"
-skin-applied:         "{prefix}<green>✔ <gray>ᴀᴘᴘʟɪᴇᴅ ᴄᴜꜱᴛᴏᴍ ꜱᴋɪɴ ᴛᴏ <#0079FF>{name}</#0079FF><gray>."
-skin-failed:          "{prefix}<red>✘ <gray>ꜰᴀɪʟᴇᴅ ᴛᴏ ᴀᴘᴘʟʏ ᴀ ᴄᴜꜱᴛᴏᴍ ꜱᴋɪɴ ᴛᴏ <#0079FF>{name}</#0079FF><gray>."
-skin-reset:           "{prefix}<green>✔ <gray>ʀᴇꜱᴇᴛ ꜱᴋɪɴ ᴏꜰ <#0079FF>{name}</#0079FF><gray> ᴛᴏ ᴅᴇꜰᴀᴜʟᴛ."
-skin-applying-player: "{prefix}<gray>ʀᴇꜱᴏʟᴠɪɴɢ ꜱᴋɪɴ ꜰᴏʀ ᴜꜱᴇʀɴᴀᴍᴇ <white>{player}</white> ᴛᴏ ᴀᴘᴘʟʏ ᴛᴏ <#0079FF>{name}</#0079FF><gray>…"
-skin-player-not-found: "{prefix}<red>ᴄᴏᴜʟᴅ ɴᴏᴛ ꜰɪɴᴅ ꜱᴋɪɴ ꜰᴏʀ ᴜꜱᴇʀɴᴀᴍᴇ <white>{player}</white><red>."
-skin-no-nametag:      "{prefix}<red>ᴄᴀɴɴᴏᴛ ᴄʜᴀɴɢᴇ ꜱᴋɪɴ ᴏꜰ ᴀ ɴᴀᴍᴇᴛᴀɢ-ᴍᴀɴᴀɢᴇᴅ ʙᴏᴛ."
+xp-disabled:        "{prefix}<red>xᴘ ꜱʏꜱᴛᴇᴍ ɪꜱ ᴅɪꜱᴀʙʟᴇᴅ ɪɴ ᴄᴏɴꜰɪɢ."
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -242,82 +166,21 @@ alert-received: "{prefix}<red><bold>ᴀʟᴇʀᴛ<reset> <dark_gray>» <white>{m
 # ═════════════════════════════════════════════════════════════════════════════
 
 # {file}  — config file name  |  {count} — files with local changes
-sync-not-available:     "{prefix}<red>ᴄᴏɴꜰɪɡ ꜱʏɴᴄ ɪꜱ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ <dark_gray>(ɴᴇᴛᴡᴏʀᴋ ᴍᴏᴅᴇ ᴏɴʟʏ<dark_gray>)<red>."
+sync-not-available:     "{prefix}<red>ᴄᴏɴꜰɪɢ ꜱʏɴᴄ ɪꜱ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ <dark_gray>(ɴᴇᴛᴡᴏʀᴋ ᴍᴏᴅᴇ ᴏɴʟʏ<dark_gray>)<red>."
 sync-usage:             "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp sync <push|pull|check|status> [file]</#0079FF><gray>."
 sync-push-success:      "{prefix}<#66CC66>✓</#66CC66> <gray>ᴘᴜꜱʜᴇᴅ <#0079FF>{file}</#0079FF> <gray>ᴛᴏ ᴅᴀᴛᴀʙᴀꜱᴇ."
 sync-push-failed:       "{prefix}<red>ꜰᴀɪʟᴇᴅ ᴛᴏ ᴘᴜꜱʜ <white>{file}<red> ᴛᴏ ᴅᴀᴛᴀʙᴀꜱᴇ."
-sync-push-all-success:  "{prefix}<#66CC66>✓</#66CC66> <gray>ᴘᴜꜱʜᴇᴅ <#0079FF>ᴀʟʟ ᴄᴏɴꜰɪɡ ꜰɪʟᴇꜱ</#0079FF> <gray>ᴛᴏ ᴅᴀᴛᴀʙᴀꜱᴇ."
+sync-push-all-success:  "{prefix}<#66CC66>✓</#66CC66> <gray>ᴘᴜꜱʜᴇᴅ <#0079FF>ᴀʟʟ ᴄᴏɴꜰɪɢ ꜰɪʟᴇꜱ</#0079FF> <gray>ᴛᴏ ᴅᴀᴛᴀʙᴀꜱᴇ."
 sync-pull-success:      "{prefix}<#66CC66>✓</#66CC66> <gray>ᴘᴜʟʟᴇᴅ <#0079FF>{file}</#0079FF> <gray>ꜰʀᴏᴍ ᴅᴀᴛᴀʙᴀꜱᴇ."
 sync-pull-failed:       "{prefix}<red>ꜰᴀɪʟᴇᴅ ᴛᴏ ᴘᴜʟʟ <white>{file}<red> ꜰʀᴏᴍ ᴅᴀᴛᴀʙᴀꜱᴇ."
-sync-pull-all-success:  "{prefix}<#66CC66>✓</#66CC66> <gray>ᴘᴜʟʟᴇᴅ <#0079FF>ᴀʟʟ ᴄᴏɴꜰɪɡ ꜰɪʟᴇꜱ</#0079FF> <gray>ꜰʀᴏᴍ ᴅᴀᴛᴀʙᴀꜱᴇ."
-sync-pull-no-updates:   "{prefix}<gray>ᴀʟʟ ᴄᴏɴꜰɪɡ ꜰɪʟᴇꜱ ᴀʀᴇ ᴀʟʀᴇᴀᴅʏ ᴜᴘ ᴛᴏ ᴅᴀᴛᴇ."
+sync-pull-all-success:  "{prefix}<#66CC66>✓</#66CC66> <gray>ᴘᴜʟʟᴇᴅ <#0079FF>ᴀʟʟ ᴄᴏɴꜰɪɢ ꜰɪʟᴇꜱ</#0079FF> <gray>ꜰʀᴏᴍ ᴅᴀᴛᴀʙᴀꜱᴇ."
+sync-pull-no-updates:   "{prefix}<gray>ᴀʟʟ ᴄᴏɴꜰɪɢ ꜰɪʟᴇꜱ ᴀʀᴇ ᴀʟʀᴇᴀᴅʏ ᴜᴘ ᴛᴏ ᴅᴀᴛᴇ."
 sync-pull-reload-hint:  "{prefix}<gray>ʀᴜɴ <#0079FF>/fpp reload</#0079FF> <gray>ᴛᴏ ᴀᴘᴘʟʏ ᴛʜᴇ ᴄʜᴀɴɢᴇꜱ."
 sync-check-has-changes: "{prefix}<yellow>⚠<reset> <#0079FF>{file}</#0079FF> <gray>ʜᴀꜱ ʟᴏᴄᴀʟ ᴄʜᴀɴɢᴇꜱ <dark_gray>(ᴅɪꜰꜰᴇʀᴇɴᴛ ꜰʀᴏᴍ ᴅᴀᴛᴀʙᴀꜱᴇ<dark_gray>)."
 sync-check-no-changes:  "{prefix}<#66CC66>✓</#66CC66> <#0079FF>{file}</#0079FF> <gray>ɪꜱ ᴜᴘ ᴛᴏ ᴅᴀᴛᴇ ᴡɪᴛʜ ᴅᴀᴛᴀʙᴀꜱᴇ."
-sync-check-all-clean:   "{prefix}<#66CC66>✓</#66CC66> <gray>ᴀʟʟ ᴄᴏɴꜰɪɡ ꜰɪʟᴇꜱ ꜱʏɴᴄʜʀᴏɴɪᴢᴇᴅ ᴡɪᴛʜ ᴅᴀᴛᴀʙᴀꜱᴇ."
+sync-check-all-clean:   "{prefix}<#66CC66>✓</#66CC66> <gray>ᴀʟʟ ᴄᴏɴꜰɪɢ ꜰɪʟᴇꜱ ꜱʏɴᴄʜʀᴏɴɪᴢᴇᴅ ᴡɪᴛʜ ᴅᴀᴛᴀʙᴀꜱᴇ."
 sync-check-summary:     "{prefix}<gray>ꜱʏɴᴄ ꜱᴛᴀᴛᴜꜱ: <#0079FF>{count}</#0079FF> <gray>ꜰɪʟᴇ(ꜱ) ᴡɪᴛʜ ʟᴏᴄᴀʟ ᴄʜᴀɴɢᴇꜱ."
 sync-status-no-network: "{prefix}<red>ꜱʏɴᴄ ɪꜱ ᴅɪꜱᴀʙʟᴇᴅ <dark_gray>(ɴᴏᴛ ɪɴ ɴᴇᴛᴡᴏʀᴋ ᴍᴏᴅᴇ<dark_gray>)<red>."
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  14 · SWAP  (session rotation)
-# ═════════════════════════════════════════════════════════════════════════════
-
-# {sessions}    — active session timers  |  {offline}  — bots waiting to rejoin
-# {name}        — bot name               |  {count}    — bot count
-# {next}        — time until next swap   |  {min}      — min-online floor
-# {personality} — bot personality        |  {swaps}    — swap cycle count
-# {time}        — time remaining in session
-swap-enabled:          "{prefix}<#0079FF>ꜱᴇꜱꜱɪᴏɴ ʀᴏᴛᴀᴛɪᴏɴ</#0079FF> <gray>ʜᴀꜱ ʙᴇᴇɴ <white>ᴇɴᴀʙʟᴇᴅ<gray>."
-swap-disabled:         "{prefix}<#0079FF>ꜱᴇꜱꜱɪᴏɴ ʀᴏᴛᴀᴛɪᴏɴ</#0079FF> <gray>ʜᴀꜱ ʙᴇᴇɴ <white>ᴅɪꜱᴀʙʟᴇᴅ<gray>."
-swap-status-on:        "{prefix}<#0079FF>ꜱᴇꜱɪᴏɴ ʀᴏᴛᴀᴛɪᴏɴ</#0079FF> <gray>ɪꜱ <white>ᴇɴᴀʙʟᴇᴅ <dark_gray>│ <gray>ꜱᴇꜱꜱɪᴏɴꜱ: <#0079FF>{sessions}</#0079FF> <dark_gray>│ <gray>ᴏꜰꜰʟɪɴᴇ: <#0079FF>{offline}</#0079FF> <dark_gray>│ <gray>ɴᴇxᴛ: <#0079FF>{next}</#0079FF> <dark_gray>│ <gray>ᴍɪɴ: <#0079FF>{min}</#0079FF>"
-swap-status-off:       "{prefix}<#0079FF>ꜱᴇꜱɪᴏɴ ʀᴏᴛᴀᴛɪᴏɴ</#0079FF> <gray>ɪꜱ <white>ᴅɪꜱᴀʙʟᴇᴅ<gray>."
-swap-invalid:          "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp swap</#0079FF> <dark_gray>[<gray>ᴛᴏɢɢʟᴇ<dark_gray>]</dark_gray> <dark_gray>│</dark_gray> <#0079FF>/fpp swap <on|off|status|now <bot>|list|info <bot>></#0079FF><gray>."
-swap-now-usage:        "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp swap now <bot></#0079FF><gray>."
-swap-not-available:    "{prefix}<red>ꜱᴡᴀᴘ ꜱʏꜱᴛᴇᴍ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ."
-swap-now-success:      "{prefix}<#66CC66>✓</#66CC66> <#0079FF>{name}</#0079FF> <gray>ɪꜱ ɴᴏᴡ ʟᴇᴀᴠɪɴɢ<gray>."
-swap-now-failed:       "{prefix}<red>ꜰᴀɪʟᴇᴅ ᴛᴏ ꜱᴡᴀᴘ ᴏᴜᴛ <white>{name}<red>."
-swap-list-empty:       "{prefix}<gray>ɴᴏ ʙᴏᴛꜱ ᴄᴜʀʀᴇɴᴛʟʏ ꜱᴄʜᴇᴅᴜʟᴇᴅ ꜰᴏʀ ꜱᴡᴀᴘ."
-swap-list-header:      "{prefix}<gray>ꜱᴄʜᴇᴅᴜʟᴇᴅ ʙᴏᴛꜱ<gray>: <#0079FF>{count}</#0079FF>"
-
-swap-list-entry:       "  <dark_gray>• <#0079FF>{name}</#0079FF> <dark_gray>│ <gray>{personality} <dark_gray>│ <gray>ᴄʏᴄʟᴇꜱ: <white>{swaps} <dark_gray>│ <gray>ʟᴇᴀᴠᴇꜱ: <white>{time}"
-swap-info-usage:       "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp swap info <bot></#0079FF><gray>."
-swap-info-not-found:   "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
-swap-info:             "{prefix}<#0079FF>{name}</#0079FF> <dark_gray>│ <gray>ᴘᴇʀꜱᴏɴᴀʟɪᴛʏ: <white>{personality} <dark_gray>│ <gray>ᴄʏᴄʟᴇꜱ: <white>{swaps} <dark_gray>│ <gray>ʟᴇᴀᴠᴇꜱ ɪɴ: <white>{time} <dark_gray>│ <gray>ᴏꜰꜰʟɪɴᴇ ᴡᴀɪᴛɪɴɢ: <white>{offline}"
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  15 · PEAK HOURS  (time-based bot pool scheduling)
-# ═════════════════════════════════════════════════════════════════════════════
-
-# {window}       — active time window label (e.g. 18:00–22:00)
-# {fraction}     — current target fraction as a % (e.g. 75%)
-# {target}       — target number of bots online
-# {online}       — AFK bots currently online
-# {swapping}     — bots temporarily offline via BotSwapAI session rotation
-# {sleeping}     — bots currently sleeping in the peak-hours pool
-# {total}        — total pool size (online + sleeping + swapping)
-# {time}         — human-readable time until next window (e.g. 1h 20m)
-# {next_fraction}— fraction of the next window (e.g. 5%)
-# {count}        — number of sleeping bots  |  {name} — bot name
-# {timezone}     — configured timezone string
-peaks-enabled:       "{prefix}<#0079FF>ᴘᴇᴀᴋ ʜᴏᴜʀꜱ</#0079FF> <gray>ᴇɴᴀʙʟᴇᴅ<gray>."
-peaks-disabled:      "{prefix}<#0079FF>ᴘᴇᴀᴋ ʜᴏᴜʀꜱ</#0079FF> <gray>ᴅɪꜱᴀʙʟᴇᴅ — ᴀʟʟ ꜱʟᴇᴇᴘɪɴɢ ʙᴏᴛꜱ ᴡᴏᴋᴇɴ<gray>."
-peaks-status-on:     "{prefix}<#0079FF>ᴘᴇᴀᴋ ʜᴏᴜʀꜱ</#0079FF> <dark_gray>│ <gray>ᴡɪɴᴅᴏᴡ: <white>{window} <dark_gray>│ <gray>ꜰʀᴀᴄᴛɪᴏɴ: <#0079FF>{fraction}</#0079FF> <dark_gray>│ <gray>ᴛᴀʀɡᴇᴛ: <#0079FF>{target}</#0079FF> <dark_gray>│ <gray>ᴏɴʟɪɴᴇ: <#0079FF>{online}</#0079FF> <dark_gray>│ <gray>ꜱᴡᴀᴘᴘɪɴɢ: <#0079FF>{swapping}</#0079FF> <dark_gray>│ <gray>ꜱʟᴇᴇᴘɪɴɢ: <#0079FF>{sleeping}</#0079FF> <dark_gray>│ <gray>ᴛᴏᴛᴀʟ: <#0079FF>{total}</#0079FF> <dark_gray>│ <gray>ᴛᴢ: <white>{timezone}"
-peaks-status-off:    "{prefix}<#0079FF>ᴘᴇᴀᴋ ʜᴏᴜʀꜱ</#0079FF> <gray>ɪꜱ <white>ᴅɪꜱᴀʙʟᴇᴅ<gray>."
-peaks-next-window:   "{prefix}<gray>ɴᴇxᴛ ᴡɪɴᴅᴏᴡ ɪɴ <#0079FF>{time}</#0079FF> <dark_gray>→ <#0079FF>{next_fraction}</#0079FF> <gray>ᴏꜰ ʙᴏᴛꜱ ᴡɪʟʟ ʙᴇ ᴏɴʟɪɴᴇ<gray>."
-peaks-no-windows:    "{prefix}<gray>ɴᴏ ᴡɪɴᴅᴏᴡꜱ ᴄᴏɴꜰɪɡᴜʀᴇᴅ — ᴇᴅɪᴛ <white>peak-hours.schedule<gray> ɪɴ config.yml."
-peaks-requires-swap: "{prefix}<red>ᴘᴇᴀᴋ ʜᴏᴜʀꜱ ʀᴇQᴜɪʀᴇꜱ <white>swap.enabled: true<red>. ʀᴜɴ <white>/fpp swap on<red> ꜰɪʀꜱᴛ."
-peaks-invalid:       "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp peaks <on|off|status|next|force|list|wake|sleep></#0079FF><gray>."
-peaks-force-check:   "{prefix}<gray>ᴘᴇᴀᴋ-ʜᴏᴜʀꜱ ᴇᴠᴀʟᴜᴀᴛɪᴏɴ ᴛʀɪɡɡᴇʀᴇᴅ."
-peaks-list-header:   "{prefix}<gray>ꜱʟᴇᴇᴘɪɴɢ ʙᴏᴛꜱ <dark_gray>(<#0079FF>{count}</#0079FF>)<gray>:"
-peaks-list-entry:    "  <dark_gray>┃ <white>{name} <dark_gray>@ <gray>{world} <dark_gray>[<gray>{x}<dark_gray>, <gray>{y}<dark_gray>, <gray>{z}<dark_gray>]"
-peaks-list-empty:    "{prefix}<gray>ɴᴏ ʙᴏᴛꜱ ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ ꜱʟᴇᴇᴘɪɴɢ."
-peaks-wake-success:  "{prefix}<gray>ᴡᴏᴋᴇ <white>{name}<gray>."
-peaks-wake-all:      "{prefix}<gray>ᴡᴏᴋᴇ <#0079FF>{count}</#0079FF> ꜱʟᴇᴇᴘɪɴɢ ʙᴏᴛ(ꜱ)."
-peaks-sleep-success: "{prefix}<gray>ᴘᴜᴛ <white>{name}<gray> ᴛᴏ ꜱʟᴇᴇᴘ."
-peaks-sleep-failed:  "{prefix}<red>ʙᴏᴛ '<white>{name}<red>' ɴᴏᴛ ꜰᴏᴜɴᴅ ᴏʀ ɴᴏᴛ ᴇʟɪɡɪʙʟᴇ."
-peaks-transition:    "{prefix}<#0079FF>ᴘᴇᴀᴋ ᴡɪɴᴅᴏᴡ</#0079FF><gray>: <white>{window} <dark_gray>({fraction} <gray>ᴏꜰ ʙᴏᴛꜱ ᴏɴʟɪɴᴇ<dark_gray>)<gray>."
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -326,15 +189,19 @@ peaks-transition:    "{prefix}<#0079FF>ᴘᴇᴀᴋ ᴡɪɴᴅᴏᴡ</#0079FF><g
 
 # {name}   — bot display name
 # {player} — target player name
-move-usage:               "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp move <bot|all> --direction <forward|backward|left|right> [--seconds <n>|--ticks <n>]</#0079FF> <gray>ᴏʀ <#0079FF>/fpp move <bot|all> --stop</#0079FF><gray>."
+move-usage:               "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp move <bot|--all> --to <bot|player></#0079FF> <gray>ᴏʀ <#0079FF>/fpp move <bot|--all> --coords <x> <y> <z> [world]</#0079FF> <gray>ᴏʀ <#0079FF>/fpp move <bot|--all> --stop</#0079FF><gray>."
 move-bot-not-found:       "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
 move-bot-not-online:      "{prefix}<red>ʙᴏᴛ <white>{name}<red> ɪꜱ ɴᴏᴛ ᴏɴʟɪɴᴇ ᴏʀ ʜᴀꜱ ɴᴏ ʙᴏᴅʏ."
 move-stopped:             "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴍᴏᴠᴇᴍᴇɴᴛ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>."
 move-all-stopped:         "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴍᴏᴠᴇᴍᴇɴᴛ ꜰᴏʀ <white>{count}</white> <gray>ʙᴏᴛ(ꜱ)<gray>."
-move-direction-started:   "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ᴍᴏᴠɪɴɢ <white>{direction}</white><gray>."
-move-all-direction-started: "{prefix}<gray><white>{count}</white> <gray>ʙᴏᴛ(ꜱ) ᴍᴏᴠɪɴɢ <white>{direction}</white><gray>. <dark_gray>({skipped} ꜱᴋɪᴘᴘᴇᴅ)"
-move-direction-invalid:   "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴅɪʀᴇᴄᴛɪᴏɴ. ᴜꜱᴇ <white>forward</white><red>, <white>backward</white><red>, <white>left</white><red>, ᴏʀ <white>right</white><red>."
-move-duration-invalid:    "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴍᴏᴠᴇᴍᴇɴᴛ ᴅᴜʀᴀᴛɪᴏɴ. ᴜꜱᴇ <white>--seconds <n></white><red> ᴏʀ <white>--ticks <n></white><red> with a positive number."
+move-to-target-not-found: "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ᴏʀ ᴏɴʟɪɴᴇ ᴘʟᴀʏᴇʀ ɴᴀᴍᴇᴅ <white>{name}<red> ᴛᴏ ᴡᴀʟᴋ ᴛᴏ."
+move-to-self:             "{prefix}<red>ᴀ ʙᴏᴛ ᴄᴀɴ'ᴛ ᴡᴀʟᴋ ᴛᴏ ɪᴛꜱᴇʟꜰ."
+move-coords-invalid:      "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴄᴏᴏʀᴅɪɴᴀᴛᴇꜱ. ᴜꜱᴇ <white>--coords <x> <y> <z> [world]</white><red>."
+move-world-not-found:     "{prefix}<red>ɴᴏ ᴡᴏʀʟᴅ ɴᴀᴍᴇᴅ <white>{world}<red>."
+move-pathfind-started:    "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ᴡᴀʟᴋɪɴɢ ᴛᴏ <white>{destination}</white><gray>."
+move-pathfind-arrived:    "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ᴀʀʀɪᴠᴇᴅ ᴀᴛ <white>{destination}</white><gray>."
+move-pathfind-no-path:    "{prefix}<red><#0079FF>{name}</#0079FF><red> ᴄᴏᴜʟᴅɴ'ᴛ ꜰɪɴᴅ ᴀ ᴘᴀᴛʜ ᴛᴏ <white>{destination}</white><red>."
+move-all-pathfind-started: "{prefix}<gray><white>{count}</white> <gray>ʙᴏᴛ(ꜱ) ᴡᴀʟᴋɪɴɢ ᴛᴏ <white>{destination}</white><gray>. <dark_gray>({skipped} ꜱᴋɪᴘᴘᴇᴅ)"
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  15.6 · INVENTORY COMMAND  (view/edit bot inventory)
@@ -345,55 +212,16 @@ inv-usage:       "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp inventory <bo
 inv-not-found:   "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
 inv-bodyless:    "{prefix}<red><#0079FF>{name}</#0079FF> <red>ʜᴀꜱ ɴᴏ ʙᴏᴅʏ <dark_gray>(ʙᴏᴅʏʟᴇꜱꜱ ʙᴏᴛ)<red>."
 inv-player-only: "{prefix}<red>ᴏɴʟʏ ᴀ ᴘʟᴀʏᴇʀ ᴄᴀɴ ᴏᴘᴇɴ ᴀɴ ɪɴᴠᴇɴᴛᴏʀʏ."
-inv-busy:        "{prefix}<red>{name} <dark_gray>is already being edited by another player."
+inv-busy:        "{prefix}<red><#0079FF>{name}</#0079FF><red> ɪꜱ ᴀʟʀᴇᴀᴅʏ ʙᴇɪɴɢ ᴇᴅɪᴛᴇᴅ ʙʏ ᴀɴᴏᴛʜᴇʀ ᴘʟᴀʏᴇʀ."
 inv-viewer-busy: "{prefix}<red>ʏᴏᴜ ᴀʟʀᴇᴀᴅʏ ʜᴀᴠᴇ ᴀ ʙᴏᴛ ɪɴᴠᴇɴᴛᴏʀʏ ᴏᴘᴇɴ. ᴄʟᴏꜱᴇ ɪᴛ ꜰɪʀꜱᴛ."
 inv-opened:      "{prefix}<gray>ᴏᴘᴇɴᴇᴅ <#0079FF>{name}</#0079FF><gray>'ꜱ ɪɴᴠᴇɴᴛᴏʀʏ."
 settings-bot-not-found: "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red> ꜰᴏʀ ʙᴏᴛ ꜱᴇᴛᴛɪɴɢꜱ."
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#  15.7 · CMD COMMAND  (execute command as bot)
+#  15.7 · FREEZE COMMAND
 # ═════════════════════════════════════════════════════════════════════════════
 
-# {name} — bot display name  |  {cmd} — command string (with leading /)
-cmd-usage:        "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp cmd <bot> <command...></#0079FF><gray>  ᴏʀ  <#0079FF>/fpp cmd <bot> --add <command...></#0079FF><gray>."
-cmd-not-found:    "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
-cmd-bot-offline:  "{prefix}<red><#0079FF>{name}</#0079FF><red> ʜᴀꜱ ɴᴏ ᴀᴄᴛɪᴠᴇ ᴘʟᴀʏᴇʀ ʙᴏᴅʏ."
-cmd-executed:     "{prefix}<gray>ᴇxᴇᴄᴜᴛᴇᴅ <#0079FF>{cmd}</#0079FF><gray> ᴀꜱ <#0079FF>{name}</#0079FF><gray>."
-cmd-failed:       "{prefix}<red>ᴄᴏᴍᴍᴀɴᴅ <white>{cmd}<red> ᴅɪᴅ ɴᴏᴛ ʀᴇᴛᴜʀɴ ꜱᴜᴄᴄᴇꜱꜱ ꜰᴏʀ <white>{name}<red>."
-# --add / --clear / --show feedback
-cmd-add-usage:    "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp cmd <bot> --add <command...></#0079FF><gray>."
-cmd-add-set:      "{prefix}<gray>ʀɪɡʜᴛ-ᴄʟɪᴄᴋ ᴄᴏᴍᴍᴀɴᴅ ꜱᴇᴛ ᴏɴ <#0079FF>{name}</#0079FF><gray>: <white>{cmd}<gray>."
-cmd-add-updated:  "{prefix}<gray>ʀɪɡʜᴛ-ᴄʟɪᴄᴋ ᴄᴏᴍᴍᴀɴᴅ ᴜᴘᴅᴀᴛᴇᴅ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>: <red>{old}</red> <dark_gray>→ <white>{cmd}<gray>."
-cmd-add-cleared:  "{prefix}<gray>ʀɪɡʜᴛ-ᴄʟɪᴄᴋ ᴄᴏᴍᴍᴀɴᴅ ᴄʟᴇᴀʀᴇᴅ ꜰʀᴏᴍ <#0079FF>{name}</#0079FF><gray>."
-cmd-add-none:     "{prefix}<gray>ɴᴏ ʀɪɡʜᴛ-ᴄʟɪᴄᴋ ᴄᴏᴍᴍᴀɴᴅ ɪꜱ ꜱᴇᴛ ᴏɴ <#0079FF>{name}</#0079FF><gray>."
-cmd-add-show:     "{prefix}<gray>ʀɪɡʜᴛ-ᴄʟɪᴄᴋ ᴄᴏᴍᴍᴀɴᴅ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>: <white>{cmd}<gray>."
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  15 · MINE COMMAND
-# ═════════════════════════════════════════════════════════════════════════════
-
-# /fpp mine <bot> [once|stop|--pos1|--pos2|--start]  |  /fpp mine stop
-mine-usage:       "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp mine <bot> [once|stop|--pos1|--pos2|--start]</#0079FF><gray> | <#0079FF>/fpp mine stop</#0079FF><gray>."
-mine-not-found:   "{prefix}<red>ʙᴏᴛ <#0079FF>{name}</#0079FF><red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
-mine-bot-offline: "{prefix}<red><#0079FF>{name}</#0079FF><red> ʜᴀꜱ ɴᴏ ᴀᴄᴛɪᴠᴇ ᴘʟᴀʏᴇʀ ʙᴏᴅʏ."
-mine-walking:     "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ᴡᴀʟᴋɪɴɢ ᴛᴏ ᴍɪɴɪɴɢ ꜱᴘᴏᴛ..."
-mine-started:     "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴀʀᴛᴇᴅ ᴍɪɴɪɴɢ ᴄᴏɴᴛɪɴᴜᴏᴜꜱʟʏ."
-mine-started-once: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ᴍɪɴɪɴɢ ᴏɴᴇ ʙʟᴏᴄᴋ..."
-mine-stopped:     "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴏᴘᴘᴇᴅ ᴍɪɴɪɴɢ."
-mine-stopped-all: "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴀʟʟ ʙᴏᴛꜱ ꜰʀᴏᴍ ᴍɪɴɪɴɢ."
-mine-look-at-block:    "{prefix}<red>ʟᴏᴏᴋ ᴀᴛ ᴀ ʙʟᴏᴄᴋ ꜰɪʀꜱᴛ ᴛᴏ ꜱᴇᴛ ᴛʜᴇ ᴘᴏꜱɪᴛɪᴏɴ."
-mine-coords-invalid:   "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴄᴏᴏʀᴅɪɴᴀᴛᴇꜱ. ᴜꜱᴇ ɪɴᴛᴇɢᴇʀꜱ ᴏʀ <white>~<red> ꜰᴏʀ ʀᴇʟᴀᴛɪᴠᴇ ᴏꜰꜰꜱᴇᴛ."
-mine-pos1-set:    "{prefix}<gray>ᴘᴏꜱ1 ꜰᴏʀ <#0079FF>{name}</#0079FF><gray> ꜱᴇᴛ ᴛᴏ <white>{x}</white><dark_gray>,</dark_gray><white>{y}</white><dark_gray>,</dark_gray><white>{z}</white><gray>."
-mine-pos2-set:    "{prefix}<gray>ᴘᴏꜱ2 ꜰᴏʀ <#0079FF>{name}</#0079FF><gray> ꜱᴇᴛ ᴛᴏ <white>{x}</white><dark_gray>,</dark_gray><white>{y}</white><dark_gray>,</dark_gray><white>{z}</white><gray>."
-mine-area-missing-selection: "{prefix}<red>ꜱᴇᴛ ʙᴏᴛʜ <white>--pos1</white><red> ᴀɴᴅ <white>--pos2</white><red> ꜰᴏʀ <#0079FF>{name}</#0079FF><red> ʙᴇꜰᴏʀᴇ ꜱᴛᴀʀᴛɪɴɢ."
-mine-area-world-mismatch: "{prefix}<red>ᴘᴏꜱ1 ᴀɴᴅ ᴘᴏꜱ2 ᴍᴜꜱᴛ ʙᴇ ɪɴ ᴛʜᴇ ꜱᴀᴍᴇ ᴡᴏʀʟᴅ."
-mine-area-bot-world: "{prefix}<red><#0079FF>{name}</#0079FF><red> ɪꜱ ɴᴏᴛ ɪɴ <white>{world}</white><red>. ᴍᴏᴠᴇ ᴛʜᴇ ʙᴏᴛ ᴛᴏ ᴛʜᴇ ꜱᴇʟᴇᴄᴛɪᴏɴ ᴡᴏʀʟᴅ ꜰɪʀꜱᴛ."
-mine-area-started: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴀʀᴛᴇᴅ ᴄʟᴇᴀʀɪɴɢ ᴛʜᴇ ꜱᴇʟᴇᴄᴛᴇᴅ ᴀʀᴇᴀ <dark_gray>(<white>{count}</white> ʙʟᴏᴄᴋ ᴄᴜʙᴏɪᴅ<dark_gray>)<gray>."
-mine-area-finished: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜰɪɴɪꜱʜᴇᴅ ᴀʀᴇᴀ ᴍɪɴɪɴɡ <dark_gray>(<white>{count}</white> ʙʟᴏᴄᴋꜱ ᴍɪɴᴇᴅ<dark_gray>)<gray>."
-mine-area-stopped: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ᴀʀᴇᴀ ᴍɪɴɪɴɡ ꜱᴛᴏᴘᴘᴇᴅ."
-mine-storage-unavailable: "{prefix}<red><#0079FF>{name}</#0079FF><red> ᴄᴀɴɴᴏᴛ ᴄᴏɴᴛɪɴᴜᴇ ᴀʀᴇᴀ ᴍɪɴɪɴɡ - ɴᴏ ᴜꜱᴀʙʟᴇ ꜱᴛᴏʀᴀɡᴇ ɪꜱ ꜱᴇᴛ ᴏʀ ᴀʟʟ ꜱᴛᴏʀᴀɢᴇꜱ ᴀʀᴇ ꜰᴜʟʟ."
 freeze-usage:         "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp freeze <bot|all> [on|off]</#0079FF><gray>."
 freeze-not-found:     "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
 freeze-frozen:        "{prefix}<gray><#0079FF>{name}</#0079FF> <gray>ɪꜱ ɴᴏᴡ <white>ꜰʀᴏᴢᴇɴ</white><gray>."
@@ -420,6 +248,7 @@ find-stopped:         "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴏ�
 find-stopped-all:     "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴀʟʟ ʙᴏᴛꜱ ꜰʀᴏᴍ ꜰɪɴᴅɪɴɢ."
 find-finished:        "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜰɪɴɪꜱʜᴇᴅ - ᴍɪɴᴇᴅ <white>{count}</white><gray> <white>{block}</white><gray> ʙʟᴏᴄᴋ(ꜱ)<gray>."
 find-none-found:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ᴄᴏᴜʟᴅ ɴᴏᴛ ꜰɪɴᴅ ᴀɴʏ <white>{block}</white><gray> ɴᴇᴀʀʙʏ."
+find-depositing:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪɴᴠᴇɴᴛᴏʀʏ ɪꜱ ꜰᴜʟʟ — ᴅᴇᴘᴏꜱɪᴛɪɴɢ ᴀᴛ <white>{storage}</white><gray>, ᴡɪʟʟ ʀᴇꜱᴜᴍᴇ ᴀꜰᴛᴇʀ."
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -431,65 +260,44 @@ storage-bot-not-found: "{prefix}<red>ʙᴏᴛ <#0079FF>{name}</#0079FF><red> ᴅ
 storage-look-at-container: "{prefix}<red>ʟᴏᴏᴋ ᴀᴛ ᴀ ꜱᴛᴏʀᴀɢᴇ ʙʟᴏᴄᴋ ꜰɪʀꜱᴛ."
 storage-invalid-block: "{prefix}<red><white>{block}</white><red> ɪꜱ ɴᴏᴛ ᴀ ꜱᴛᴏʀᴀɢᴇ ʙʟᴏᴄᴋ."
 storage-set:           "{prefix}<gray>ꜱᴇᴛ ꜱᴛᴏʀᴀɢᴇ <white>{storage}</white><gray> ꜰᴏʀ <#0079FF>{name}</#0079FF><gray> ꜱᴇᴛ ᴛᴏ <white>{block}</white><gray> ᴀᴛ <white>{x}</white><dark_gray>,</dark_gray><white>{y}</white><dark_gray>,</dark_gray><white>{z}</white><gray>."
-storage-list-header:   "{prefix}<#0079FF>{name}</#0079FF><gray> ʜᴀꜱ <white>{count}</white><gray> ꜱᴛᴏʀᴀɡᴇ(ꜱ)<dark_gray>:"
+storage-list-header:   "{prefix}<#0079FF>{name}</#0079FF><gray> ʜᴀꜱ <white>{count}</white><gray> ꜱᴛᴏʀᴀɢᴇ(ꜱ)<dark_gray>:"
 storage-list-entry:    "  <dark_gray>{index}<gray>. <white>{storage}<gray> <dark_gray>→ <gray><white>{world}</white> <dark_gray>[<white>{x}</white><dark_gray>,<white>{y}</white><dark_gray>,<white>{z}</white><dark_gray>]"
 storage-list-empty:    "{prefix}<gray>ɴᴏ ꜱᴛᴏʀᴀɢᴇꜱ ꜱᴇᴛ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>. ᴜꜱᴇ <white>/fpp storage {name}<gray> ᴡʜɪʟᴇ ʟᴏᴏᴋɪɴɢ ᴀᴛ ᴀ ᴄᴏɴᴛᴀɪɴᴇʀ."
-storage-removed:       "{prefix}<gray>ꜱᴛᴏʀᴀɡᴇ <white>{storage}</white><gray> ʀᴇᴍᴏᴠᴇᴅ ꜰʀᴏᴍ <#0079FF>{name}</#0079FF><gray>."
+storage-removed:       "{prefix}<gray>ꜱᴛᴏʀᴀɢᴇ <white>{storage}</white><gray> ʀᴇᴍᴏᴠᴇᴅ ꜰʀᴏᴍ <#0079FF>{name}</#0079FF><gray>."
 storage-not-found:     "{prefix}<red>ꜱᴛᴏʀᴀɢᴇ <white>{storage}</white><red> ɴᴏᴛ ꜰᴏᴜɴᴅ ꜰᴏʀ <#0079FF>{name}</#0079FF><red>."
 storage-cleared:       "{prefix}<gray>ᴄʟᴇᴀʀᴇᴅ <white>{count}</white><gray> ꜱᴛᴏʀᴀɢᴇ(ꜱ) ꜰʀᴏᴍ <#0079FF>{name}</#0079FF><gray>."
 storage-remove-usage:  "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp storage {name} --remove <storage_name></#0079FF><gray>."
+storage-none-enabled:  "{prefix}<red>ɴᴏ ᴇɴᴀʙʟᴇᴅ ꜱᴛᴏʀᴀɢᴇ ꜰᴏᴜɴᴅ."
+# {name} — bot display name  |  {storage} — storage point name
+storage-walking:       "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ᴡᴀʟᴋɪɴɢ ᴛᴏ ꜱᴛᴏʀᴀɢᴇ <white>{storage}</white><gray>."
 
 # ═════════════════════════════════════════════════════════════════════════════
-#  16b · PLACE COMMAND
+#  16a · SETOWNER / SAVE / BULK TASKS
 # ═════════════════════════════════════════════════════════════════════════════
 
-place-usage:                 "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp place <bot> [once|stop]</#0079FF><gray>  |  <#0079FF>/fpp place stop</#0079FF><gray>."
-place-not-found:             "{prefix}<red>ʙᴏᴛ <#0079FF>{name}</#0079FF><red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
-place-bot-offline:           "{prefix}<red><#0079FF>{name}</#0079FF><red> ʜᴀꜱ ɴᴏ ᴀᴄᴛɪᴠᴇ ᴘʟᴀʏᴇʀ ʙᴏᴅʏ."
-place-walking:               "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ᴡᴀʟᴋɪɴɢ ᴛᴏ ᴘʟᴀᴄᴇ ꜱᴘᴏᴛ..."
-place-started:               "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴀʀᴛᴇᴅ ᴘʟᴀᴄɪɴɢ ᴄᴏɴᴛɪɴᴜᴏᴜꜱʟʏ."
-place-started-once:          "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ᴘʟᴀᴄɪɴɢ ᴏɴᴇ ʙʟᴏᴄᴋ..."
-place-stopped:               "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴏᴘᴘᴇᴅ ᴘʟᴀᴄɪɴɢ."
-place-stopped-all:           "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴀʟʟ ʙᴏᴛꜱ ꜰʀᴏᴍ ᴘʟᴀᴄɪɴɢ."
-place-pos1-set:              "{prefix}<gray>ᴘᴏꜱ1 ꜰᴏʀ <#0079FF>{name}</#0079FF><gray> ꜱᴇᴛ ᴛᴏ <white>{x}</white><dark_gray>,</dark_gray><white>{y}</white><dark_gray>,</dark_gray><white>{z}</white><gray>."
-place-pos2-set:              "{prefix}<gray>ᴘᴏꜱ2 ꜰᴏʀ <#0079FF>{name}</#0079FF><gray> ꜱᴇᴛ ᴛᴏ <white>{x}</white><dark_gray>,</dark_gray><white>{y}</white><dark_gray>,</dark_gray><white>{z}</white><gray>."
-# {name} — bot name  |  {count} — number of blocks in the completed cuboid
-place-selection-ready:       "{prefix}<gray>ꜱᴇʟᴇᴄᴛɪᴏɴ ʀᴇᴀᴅʏ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>: <white>{count}</white> ʙʟᴏᴄᴋ(ꜱ) ɪɴ ᴄᴜʙᴏɪᴅ. ᴜꜱᴇ <white>start</white><gray> ᴛᴏ ʙᴇɡɪɴ."
-place-cleared:               "{prefix}<gray>ꜱᴇʟᴇᴄᴛɪᴏɴ ᴀɴᴅ ʙʟᴏᴄᴋ ꜱᴘᴇᴄ ᴄʟᴇᴀʀᴇᴅ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>."
-place-block-usage:           "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp place <bot> --block STONE</#0079FF><gray> ᴏʀ <#0079FF>STONE50%,DIRT50%</#0079FF><gray>."
-place-block-invalid:         "{prefix}<red>ɪɴᴠᴀʟɪᴅ ʙʟᴏᴄᴋ ꜱᴘᴇᴄ<gray>: <white>{spec}</white><gray>. ᴜꜱᴇ ᴠᴀʟɪᴅ ᴍᴀᴛᴇʀɪᴀʟ ɴᴀᴍᴇꜱ ʟɪᴋᴇ <#0079FF>STONE50%,DIRT50%</#0079FF><gray>."
-place-block-set:             "{prefix}<gray>ʙʟᴏᴄᴋ ꜱᴘᴇᴄ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray> ꜱᴇᴛ ᴛᴏ <white>{spec}</white><gray>."
-place-area-missing-selection: "{prefix}<red>ꜱᴇᴛ ʙᴏᴛʜ <white>--pos1</white><red> ᴀɴᴅ <white>--pos2</white><red> ꜰᴏʀ <#0079FF>{name}</#0079FF><red> ʙᴇꜰᴏʀᴇ ꜱᴀʀᴛɪɴɢ."
-place-area-already-filled:   "{prefix}<gray>ꜱᴇʟᴇᴄᴛɪᴏɴ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray> ɪꜱ ᴀʟʀᴇᴀᴅʏ ꜰᴜʟʟʏ ꜰɪʟʟᴇᴅ."
-place-no-blocks:             "{prefix}<red>ɴᴏ ᴘʟᴀᴄᴇᴀʙʟᴇ ʙʟᴏᴄᴋꜱ ꜰᴏᴜɴᴅ ɪɴ <#0079FF>{name}</#0079FF><red>'ꜱ ɪɴᴠᴇɴᴛᴏʀʏ ᴏʀ ꜱᴛᴏʀᴀɢᴇ. ᴜꜱᴇ <white>--block</white><red> ᴛᴏ ꜱᴘᴇᴄɪꜰʏ ᴍᴀᴛᴇʀɪᴀʟꜱ."
-place-area-started:          "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴀʀᴛᴇᴅ ꜰɪʟʟɪɴɢ ᴛʜᴇ ꜱᴇʟᴇᴄᴛᴇᴅ ᴀʀᴇᴀ <dark_gray>(<white>{count}</white> ʙʟᴏᴄᴋ(ꜱ) ᴛᴏ ᴘʟᴀᴄᴇ<dark_gray>)<gray>."
-place-area-finished:         "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜰɪɴɪꜱʜᴇᴅ ꜰɪʟʟɪɴɢ <dark_gray>(<white>{count}</white> ʙʟᴏᴄᴋꜱ ᴘʟᴀᴄᴇᴅ<dark_gray>)<gray>."
-place-area-stopped:          "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴏᴘᴘᴇᴅ ꜰɪʟʟɪɴɢ ᴛʜᴇ ᴀʀᴇᴀ."
-place-out-of-materials:      "{prefix}<red><#0079FF>{name}</#0079FF><red> ʀᴀɴ ᴏᴜᴛ ᴏꜰ ᴍᴀᴛᴇʀɪᴀʟꜱ ᴀɴᴅ ꜱᴛᴏᴘᴘᴇᴅ."
-place-missing-header:        "{prefix}<red>ɴᴏᴛ ᴇɴᴏᴜɡʜ ᴍᴀᴛᴇʀɪᴀʟꜱ ꜰᴏʀ <#0079FF>{name}</#0079FF><red> ᴛᴏ ꜰɪʟʟ <white>{count}</white><red> ʙʟᴏᴄᴋ(ꜱ). ᴍɪꜱꜱɪɴɢ<gray>:"
-place-missing-entry:         "  <dark_gray>→ <white>{material}<dark_gray>: <red>{amount}</red><dark_gray> ᴍᴏʀᴇ ɴᴇᴇᴅᴇᴅ"
-# {name} — bot name  |  {x1},{y1},{z1} — pos1 coords  |  {x2},{y2},{z2} — pos2 coords  |  {count} — cuboid volume
-place-status-no-selection:   "{prefix}<#0079FF>{name}</#0079FF><gray> ʜᴀꜱ ɴᴏ ꜱᴇʟᴇᴄᴛɪᴏɴ. ᴜꜱᴇ <white>--pos1</white><gray> ᴀɴᴅ <white>--pos2</white><gray> ꜰɪʀꜱᴛ."
-place-status-selection:      "{prefix}<#0079FF>{name}</#0079FF><gray> ꜱᴇʟᴇᴄᴛɪᴏɴ: <white>{x1},{y1},{z1}</white> <dark_gray>→</dark_gray> <white>{x2},{y2},{z2}</white> <dark_gray>(<white>{count}</white> ʙʟᴏᴄᴋꜱ<dark_gray>)<gray>."
-place-status-spec:           "{prefix}<#0079FF>{name}</#0079FF><gray> ʙʟᴏᴄᴋ ꜱᴘᴇᴄ: <white>{spec}</white><gray>."
-place-status-spec-auto:      "{prefix}<#0079FF>{name}</#0079FF><gray> ʙʟᴏᴄᴋ ꜱᴘᴇᴄ: <dark_gray>ᴀᴜᴛᴏ <gray>(ꜰʀᴏᴍ ɪɴᴠᴇɴᴛᴏʀʏ <dark_gray>/</dark_gray> ꜱᴛᴏʀᴀɡᴇ<gray>)."
-# {name} — bot name  |  {placed} — blocks placed so far  |  {total} — initial fillable block count
-place-status-active:         "{prefix}<#0079FF>{name}</#0079FF><gray> ɪꜱ ꜰɪʟʟɪɴɢ <dark_gray>— <white>{placed}</white><dark_gray>/<white>{total}</white> <gray>ʙʟᴏᴄᴋꜱ ᴘʟᴀᴄᴇᴅ<gray>."
-place-status-no-job:         "{prefix}<#0079FF>{name}</#0079FF><gray> ɪꜱ ɴᴏᴛ ᴄᴜʀʀᴇɴᴛʟʏ ꜰɪʟʟɪɴɢ."
-# {name} — bot name  |  {placed} — cumulative blocks placed so far
-place-progress:              "{prefix}<#0079FF>{name}</#0079FF><gray> ᴘʟᴀᴄᴇᴅ <white>{placed}</white><gray> ʙʟᴏᴄᴋꜱ ꜱᴏ ꜰᴀʀ..."
-# Recheck phase messages
-place-recheck-filling:       "{prefix}<yellow><#0079FF>{name}</#0079FF><yellow> — ᴍɪꜱꜱᴇᴅ ʙʟᴏᴄᴋꜱ ꜰᴏᴜɴᴅ, ʀᴇꜱᴜᴍɪɴɢ ꜰɪʟʟ..."
-place-recheck-clean:         "{prefix}<green><#0079FF>{name}</#0079FF><green> — ʙᴜɪʟᴅ ᴠᴇʀɪꜰɪᴇᴅ ᴄᴏᴍᴘʟᴇᴛᴇ. ᴄʟᴇᴀɴɪɴɢ ᴜᴘ ꜱᴄᴀꜰꜰᴏʟᴅɪɴɢ..."
-# {name} — bot name  |  {count} — scaffold blocks removed
-place-scaffold-cleaned:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʀᴇᴍᴏᴠᴇᴅ <white>{count}</white><gray> ꜱᴄᴀꜰꜰᴏʟᴅ ʙʟᴏᴄᴋ(ꜱ)."
+setowner-usage:     "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp setowner <bot> <player></#0079FF><gray>."
+setowner-not-found: "{prefix}<red>ʙᴏᴛ <#0079FF>{name}</#0079FF><red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
+# {name} — bot name  |  {player} — new owner name
+setowner-success:   "{prefix}<gray>ᴏᴡɴᴇʀ ᴏꜰ <#0079FF>{name}</#0079FF><gray> ꜱᴇᴛ ᴛᴏ <white>{player}</white><gray>."
 
-# WorldEdit integration
-worldedit-not-available:  "{prefix}<red>WorldEdit ɪꜱ ɴᴏᴛ ɪɴꜱᴛᴀʟʟᴇᴅ ᴏɴ ᴛʜɪꜱ ꜱᴇʀᴠᴇʀ."
-worldedit-no-selection:   "{prefix}<red>ʏᴏᴜ ʜᴀᴠᴇ ɴᴏ ᴀᴄᴛɪᴠᴇ WorldEdit ꜱᴇʟᴇᴄᴛɪᴏɴ. ᴍᴀᴋᴇ ᴀ ꜱᴇʟᴇᴄᴛɪᴏɴ ꜰɪʀꜱᴛ<gray> (<white>//wand</white><gray>)<gray>."
-mine-wesel-applied:       "{prefix}<gray>WorldEdit ꜱᴇʟᴇᴄᴛɪᴏɴ ᴀᴘᴘʟɪᴇᴅ ᴀꜱ ᴍɪɴᴇ ᴀʀᴇᴀ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>."
-place-wesel-applied:      "{prefix}<gray>WorldEdit ꜱᴇʟᴇᴄᴛɪᴏɴ ᴀᴘᴘʟɪᴇᴅ ᴀꜱ ᴘʟᴀᴄᴇ ᴀʀᴇᴀ ꜰᴏʀ <#0079FF>{name}</#0079FF><gray>."
+# ═════════════════════════════════════════════════════════════════════════════
+#  RENAME
+# ═════════════════════════════════════════════════════════════════════════════
+rename-usage:       "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp rename <bot> <new name></#0079FF><gray>."
+rename-not-found:   "{prefix}<red>ʙᴏᴛ <#0079FF>{name}</#0079FF><red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
+rename-invalid:     "{prefix}<red>ᴛʜᴀᴛ ɴᴀᴍᴇ ɪꜱ ᴇᴍᴘᴛʏ ᴏʀ ɪɴᴠᴀʟɪᴅ."
+# {max} — maximum visible characters
+rename-too-long:    "{prefix}<red>ɴᴀᴍᴇ ɪꜱ ᴛᴏᴏ ʟᴏɴɢ <gray>(ᴍᴀx <white>{max}</white> ᴄʜᴀʀᴀᴄᴛᴇʀꜱ)<red>."
+# {name} — bot login name  |  {display} — new display name
+rename-success:     "{prefix}<gray>ʀᴇɴᴀᴍᴇᴅ <#0079FF>{name}</#0079FF><gray> ᴛᴏ <white>{display}</white><gray>."
 
+save-disabled:      "{prefix}<red>ᴘᴇʀꜱɪꜱᴛᴇɴᴄᴇ ɪꜱ ᴅɪꜱᴀʙʟᴇᴅ ɪɴ <white>config.yml<red>."
+save-unavailable:   "{prefix}<red>ʙᴏᴛ ᴘᴇʀꜱɪꜱᴛᴇɴᴄᴇ ɪꜱ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ."
+# {count} — bots being saved
+save-started:       "{prefix}<gray>ꜱᴀᴠɪɴɢ <#0079FF>{count}</#0079FF><gray> ᴀᴄᴛɪᴠᴇ ʙᴏᴛ(ꜱ)."
+
+# {count} — bots the bulk task was dispatched to (e.g. /fpp mine all)
+task-dispatched:    "{prefix}<gray>ᴛᴀꜱᴋ ᴅɪꜱᴘᴀᴛᴄʜᴇᴅ ᴛᴏ <#0079FF>{count}</#0079FF><gray> ʙᴏᴛ(ꜱ)."
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  15.7 · LEFT-CLICK COMMAND
@@ -526,22 +334,6 @@ right-click-look-at-target:  "{prefix}<red>ʟᴏᴏᴋ ᴀᴛ ᴀ ʙʟᴏᴄᴋ 
 right-click-no-path:         "{prefix}<red><#0079FF>{name}</#0079FF><red> ᴄᴏᴜʟᴅ ɴᴏᴛ ꜰɪɴᴅ ᴀ ᴘᴀᴛʜ ᴛᴏ ᴛʜᴇ ᴛᴀʀɢᴇᴛ."
 
 # ═════════════════════════════════════════════════════════════════════════════
-#  16 · USE COMMAND (LEGACY)
-# ═════════════════════════════════════════════════════════════════════════════
-
-# /fpp use <bot> [once|stop]  |  /fpp use stop
-use-usage:        "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp use <bot> [once|stop]</#0079FF><gray> | <#0079FF>/fpp use stop</#0079FF><gray>."
-use-not-found:    "{prefix}<red>ʙᴏᴛ <#0079FF>{name}</#0079FF><red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
-use-bot-offline:  "{prefix}<red><#0079FF>{name}</#0079FF><red> ʜᴀꜱ ɴᴏ ᴀᴄᴛɪᴠᴇ ᴘʟᴀʏᴇʀ ʙᴏᴅʏ."
-use-walking:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ɪꜱ ᴡᴀʟᴋɪɴɢ ᴛᴏ ᴜꜱᴇ ꜱᴘᴏᴛ..."
-use-started:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴀʀᴛᴇᴅ ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ ᴄᴏɴᴛɪɴᴜᴏᴜꜱʟʏ."
-use-started-once: "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ ᴏɴᴄᴇ..."
-use-stopped:      "{prefix}<gray><#0079FF>{name}</#0079FF><gray> ꜱᴛᴏᴘᴘᴇᴅ ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ."
-use-stopped-all:  "{prefix}<gray>ꜱᴛᴏᴘᴘᴇᴅ ᴀʟʟ ʙᴏᴛꜱ ꜰʀᴏᴍ ʀɪɢʜᴛ-ᴄʟɪᴄᴋɪɴɢ."
-use-look-at-target:  "{prefix}<red>ʟᴏᴏᴋ ᴀᴛ ᴀ ʙʟᴏᴄᴋ ᴏʀ ᴇɴᴛɪᴛʏ ꜰɪʀꜱᴛ."
-use-no-path:         "{prefix}<red><#0079FF>{name}</#0079FF><red> ᴄᴏᴜʟᴅ ɴᴏᴛ ꜰɪɴᴅ ᴀ ᴘᴀᴛʜ ᴛᴏ ᴛʜᴇ ᴛᴀʀɢᴇᴛ."
-
-# ═════════════════════════════════════════════════════════════════════════════
 #  17 · UPDATE CHECKER
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -558,9 +350,9 @@ update-failed:     "{prefix}<gray>ᴄᴏᴜʟᴅ ɴᴏᴛ ᴄʜᴇᴄᴋ ꜰᴏ�
 
 # {version} — detected Minecraft version string (e.g. "1.22.0")
 # Shown to any sender who tries a /fpp sub-command on an unsupported MC version.
-version-unsupported: "{prefix}<red>FakePlayerPlugin is <bold>ɴᴏᴛ ꜱᴜᴘᴘᴏʀᴛᴇᴅ</bold> on <white>MC {version}<red>. All commands are disabled. <click:open_url:'https://discord.gg/RfjEJDG2TM'><#0079FF><underlined>Discord</underlined></#0079FF></click>"
+version-unsupported: "{prefix}<red>ꜰᴀᴋᴇᴘʟᴀʏᴇʀᴘʟᴜɢɪɴ ɪꜱ <bold>ɴᴏᴛ ꜱᴜᴘᴘᴏʀᴛᴇᴅ</bold> ᴏɴ <white>MC {version}<red>. ᴀʟʟ ᴄᴏᴍᴍᴀɴᴅꜱ ᴀʀᴇ ᴅɪꜱᴀʙʟᴇᴅ. <click:open_url:'https://discord.gg/RfjEJDG2TM'><#0079FF><underlined>Discord</underlined></#0079FF></click>"
 # Shown to ops / admins on join while the server runs an unsupported version.
-version-unsupported-admin: "<dark_gray><st>━━━━━━━━━</st> <bold><red>⚠ ᴜɴꜱᴜᴘᴘᴏʀᴛᴇᴅ ᴠᴇʀꜱɪᴏɴ ⚠</red></bold> <dark_gray><st>━━━━━━━━━</st>\n  <red>FakePlayerPlugin is <bold>ɴᴏᴛ ꜱᴜᴘᴘᴏʀᴛᴇᴅ</bold> on <white>MC {version}<red>. (Supported: up to <white>MC 1.21.11<red>, and <white>26.1.x<red>)\n  <gray>All /fpp commands have been disabled until an update is released.\n  <gray>If you think this is a bug, contact us: <click:open_url:'https://discord.gg/RfjEJDG2TM'><#0079FF><underlined>Discord</underlined></#0079FF></click><gray>.\n<dark_gray><st>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</st>"
+version-unsupported-admin: "<dark_gray><st>━━━━━━━━━</st> <bold><red>⚠ ᴜɴꜱᴜᴘᴘᴏʀᴛᴇᴅ ᴠᴇʀꜱɪᴏɴ ⚠</red></bold> <dark_gray><st>━━━━━━━━━</st>\n  <red>ꜰᴀᴋᴇᴘʟᴀʏᴇʀᴘʟᴜɢɪɴ ɪꜱ <bold>ɴᴏᴛ ꜱᴜᴘᴘᴏʀᴛᴇᴅ</bold> ᴏɴ <white>MC {version}<red>. <dark_gray>(ꜱᴜᴘᴘᴏʀᴛᴇᴅ: ᴜᴘ ᴛᴏ <white>MC 1.21.11</white>, ᴀɴᴅ <white>26.1.x</white>)\n  <gray>ᴀʟʟ <#0079FF>/fpp</#0079FF><gray> ᴄᴏᴍᴍᴀɴᴅꜱ ʜᴀᴠᴇ ʙᴇᴇɴ ᴅɪꜱᴀʙʟᴇᴅ ᴜɴᴛɪʟ ᴀɴ ᴜᴘᴅᴀᴛᴇ ɪꜱ ʀᴇʟᴇᴀꜱᴇᴅ.\n  <gray>ɪꜰ ʏᴏᴜ ᴛʜɪɴᴋ ᴛʜɪꜱ ɪꜱ ᴀ ʙᴜɢ, ᴄᴏɴᴛᴀᴄᴛ ᴜꜱ: <click:open_url:'https://discord.gg/RfjEJDG2TM'><#0079FF><underlined>Discord</underlined></#0079FF></click><gray>.\n<dark_gray><st>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</st>"
 # ═════════════════════════════════════════════════════════════════════════════
 #  22 · ATTACK COMMAND  (/fpp attack)
 # ═════════════════════════════════════════════════════════════════════════════
@@ -595,43 +387,58 @@ stop-all-nothing: "{prefix}<gray>ɴᴏ ᴀᴄᴛɪᴠᴇ ᴛᴀꜱᴋꜱ ꜰᴏ�
 # ═════════════════════════════════════════════════════════════════════════════
 
 # {provider} — metrics provider name (spark, builtin)
-perf-provider: "{prefix}<gray>Provider: <#0079FF>{provider}</#0079FF><gray>."
+perf-provider: "{prefix}<gray>ᴘʀᴏᴠɪᴅᴇʀ: <#0079FF>{provider}</#0079FF><gray>."
 
 # {status} — enabled/disabled
-perf-monitor-status: "{prefix}<gray>Background monitor: <#0079FF>{status}</#0079FF><gray>."
+perf-monitor-status: "{prefix}<gray>ʙᴀᴄᴋɢʀᴏᴜɴᴅ ᴍᴏɴɪᴛᴏʀ: <#0079FF>{status}</#0079FF><gray>."
 
 # {tps}, {mspt}, {cpu_process}, {cpu_system}, {memory_used}, {memory_committed}
 # {players}, {bots}, {entities}, {score}, {health}
 perf-top-header: "<dark_gray><st>━━━━━</st> <#0079FF><bold>ꜰᴘᴘ ᴘᴇʀꜰᴏʀᴍᴀɴᴄᴇ</#0079FF> <dark_gray><st>━━━━━</st>"
-perf-top-tps:      "  <gray>TPS: <#0079FF>{tps}</#0079FF>"
-perf-top-mspt:     "  <gray>MSPT: <#0079FF>{mspt}</#0079FF> <dark_gray>(p95 <#0079FF>{mspt95}</#0079FF><dark_gray>)"
-perf-top-cpu:      "  <gray>CPU: process <#0079FF>{cpu_process}%</#0079FF><gray>, system <#0079FF>{cpu_system}%</#0079FF>"
-perf-top-gc:       "  <gray>GC: avg <#0079FF>{gc_time}ms</#0079FF><gray>, freq <#0079FF>{gc_freq}ms</#0079FF>"
-perf-top-memory:   "  <gray>Memory: <#0079FF>{memory_used}MB</#0079FF><gray> / <#0079FF>{memory_committed}MB</#0079FF>"
-perf-top-world:    "  <gray>Players: <#0079FF>{players}</#0079FF><gray> | Bots: <#0079FF>{bots}</#0079FF><gray> | Entities: <#0079FF>{entities}</#0079FF>"
-perf-top-score:    "  <gray>Score: <#0079FF>{score}/100</#0079FF> <gray>(<#0079FF>{health}</#0079FF><gray>)"
+perf-top-tps:      "  <gray>ᴛᴘꜱ: <#0079FF>{tps}</#0079FF>"
+perf-top-mspt:     "  <gray>ᴍꜱᴘᴛ: <#0079FF>{mspt}</#0079FF> <dark_gray>(ᴘ95 <#0079FF>{mspt95}</#0079FF><dark_gray>)"
+perf-top-cpu:      "  <gray>ᴄᴘᴜ: ᴘʀᴏᴄᴇꜱꜱ <#0079FF>{cpu_process}%</#0079FF><gray>, ꜱʏꜱᴛᴇᴍ <#0079FF>{cpu_system}%</#0079FF>"
+perf-top-gc:       "  <gray>ɢᴄ: ᴀᴠɢ <#0079FF>{gc_time}ᴍꜱ</#0079FF><gray>, ꜰʀᴇǫ <#0079FF>{gc_freq}ᴍꜱ</#0079FF>"
+perf-top-memory:   "  <gray>ᴍᴇᴍᴏʀʏ: <#0079FF>{memory_used}ᴍʙ</#0079FF><gray> / <#0079FF>{memory_committed}ᴍʙ</#0079FF>"
+perf-top-world:    "  <gray>ᴘʟᴀʏᴇʀꜱ: <#0079FF>{players}</#0079FF><gray> | ʙᴏᴛꜱ: <#0079FF>{bots}</#0079FF><gray> | ᴇɴᴛɪᴛɪᴇꜱ: <#0079FF>{entities}</#0079FF>"
+perf-top-score:    "  <gray>ꜱᴄᴏʀᴇ: <#0079FF>{score}/100</#0079FF> <gray>(<#0079FF>{health}</#0079FF><gray>)"
 perf-top-footer:   "<dark_gray><st>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</st>"
 
 # {minutes}, {samples}, {avg_tps}, {min_tps}, {max_tps}, {avg_mspt}, {min_mspt}, {max_mspt}, {avg_cpu}
-perf-history: "{prefix}<gray>Last <#0079FF>{minutes}</#0079FF><gray>m (<#0079FF>{samples}</#0079FF><gray> samples): TPS <#0079FF>{min_tps}</#0079FF><dark_gray>-<#0079FF>{max_tps}</#0079FF><gray> avg <#0079FF>{avg_tps}</#0079FF><gray>; MSPT <#0079FF>{min_mspt}</#0079FF><dark_gray>-<#0079FF>{max_mspt}</#0079FF><gray> avg <#0079FF>{avg_mspt}</#0079FF><gray>; CPU avg <#0079FF>{avg_cpu}%</#0079FF><gray>."
+perf-history: "{prefix}<gray>ʟᴀꜱᴛ <#0079FF>{minutes}</#0079FF><gray>ᴍ (<#0079FF>{samples}</#0079FF><gray> ꜱᴀᴍᴘʟᴇꜱ): ᴛᴘꜱ <#0079FF>{min_tps}</#0079FF><dark_gray>-<#0079FF>{max_tps}</#0079FF><gray> ᴀᴠɢ <#0079FF>{avg_tps}</#0079FF><gray>; ᴍꜱᴘᴛ <#0079FF>{min_mspt}</#0079FF><dark_gray>-<#0079FF>{max_mspt}</#0079FF><gray> ᴀᴠɢ <#0079FF>{avg_mspt}</#0079FF><gray>; ᴄᴘᴜ ᴀᴠɢ <#0079FF>{avg_cpu}%</#0079FF><gray>."
 
 # Spark subcommand
-perf-spark-started: "{prefix}<gray>Started Spark profiler for <#0079FF>{seconds}</#0079FF><gray>s. A link will be printed to console."
-perf-spark-disabled: "{prefix}<red>Spark profiler integration is disabled in config.yml."
-perf-spark-missing: "{prefix}<red>Spark is not installed. <gray>Download from <click:open_url:'https://spark.lucko.me/'><#0079FF><underlined>spark.lucko.me</underlined></#0079FF></click><gray>."
-perf-spark-manual: "{prefix}<gray>Run manually: <#0079FF>/spark profiler --thread \"Server Thread\" --timeout {seconds}</#0079FF>"
+perf-spark-started: "{prefix}<gray>ꜱᴛᴀʀᴛᴇᴅ ꜱᴘᴀʀᴋ ᴘʀᴏꜰɪʟᴇʀ ꜰᴏʀ <#0079FF>{seconds}</#0079FF><gray>ꜱ. ᴀ ʟɪɴᴋ ᴡɪʟʟ ʙᴇ ᴘʀɪɴᴛᴇᴅ ᴛᴏ ᴄᴏɴꜱᴏʟᴇ."
+perf-spark-disabled: "{prefix}<red>ꜱᴘᴀʀᴋ ᴘʀᴏꜰɪʟᴇʀ ɪɴᴛᴇɢʀᴀᴛɪᴏɴ ɪꜱ ᴅɪꜱᴀʙʟᴇᴅ ɪɴ <white>config.yml<red>."
+perf-spark-missing: "{prefix}<red>ꜱᴘᴀʀᴋ ɪꜱ ɴᴏᴛ ɪɴꜱᴛᴀʟʟᴇᴅ. <gray>ᴅᴏᴡɴʟᴏᴀᴅ ꜰʀᴏᴍ <click:open_url:'https://spark.lucko.me/'><#0079FF><underlined>spark.lucko.me</underlined></#0079FF></click><gray>."
+perf-spark-manual: "{prefix}<gray>ʀᴜɴ ᴍᴀɴᴜᴀʟʟʏ: <#0079FF>/spark profiler --thread \"Server Thread\" --timeout {seconds}</#0079FF>"
 
 # Generic usage / status
 perf-usage: "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp perf [check|top|report|report stop|history|spark]</#0079FF><gray>."
-perf-disabled: "{prefix}<red>Performance monitoring is disabled in config.yml."
+perf-disabled: "{prefix}<red>ᴘᴇʀꜰᴏʀᴍᴀɴᴄᴇ ᴍᴏɴɪᴛᴏʀɪɴɢ ɪꜱ ᴅɪꜱᴀʙʟᴇᴅ ɪɴ <white>config.yml<red>."
 
 # Benchmark session
 # {minutes}
-perf-benchmark-started: "{prefix}<gray>Benchmark started for <#0079FF>{minutes}</#0079FF><gray> minutes. Do your FPP stress test now. Use <#0079FF>/fpp perf report stop</#0079FF><gray> to finish early."
+perf-benchmark-started: "{prefix}<gray>ʙᴇɴᴄʜᴍᴀʀᴋ ꜱᴛᴀʀᴛᴇᴅ ꜰᴏʀ <#0079FF>{minutes}</#0079FF><gray> ᴍɪɴᴜᴛᴇ(ꜱ). ᴅᴏ ʏᴏᴜʀ ꜰᴘᴘ ꜱᴛʀᴇꜱꜱ ᴛᴇꜱᴛ ɴᴏᴡ. ᴜꜱᴇ <#0079FF>/fpp perf report stop</#0079FF><gray> ᴛᴏ ꜰɪɴɪꜱʜ ᴇᴀʀʟʏ."
 # {remaining}
-perf-benchmark-reminder: "{prefix}<gray>Benchmark running — <#0079FF>{remaining}</#0079FF><gray> minute(s) remaining."
+perf-benchmark-reminder: "{prefix}<gray>ʙᴇɴᴄʜᴍᴀʀᴋ ʀᴜɴɴɪɴɢ — <#0079FF>{remaining}</#0079FF><gray> ᴍɪɴᴜᴛᴇ(ꜱ) ʀᴇᴍᴀɪɴɪɴɢ."
 # {file}
-perf-benchmark-done: "{prefix}<gray>Benchmark finished. Full report saved to <#0079FF>{file}</#0079FF><gray>."
-perf-benchmark-already: "{prefix}<red>A benchmark is already running. Use <#0079FF>/fpp perf report stop</#0079FF><gray> to finish it early."
-perf-benchmark-none: "{prefix}<red>No benchmark is currently running."
-perf-benchmark-no-profiler: "{prefix}<red>Built-in profiler is not available."
+perf-benchmark-done: "{prefix}<gray>ʙᴇɴᴄʜᴍᴀʀᴋ ꜰɪɴɪꜱʜᴇᴅ. ꜰᴜʟʟ ʀᴇᴘᴏʀᴛ ꜱᴀᴠᴇᴅ ᴛᴏ <#0079FF>{file}</#0079FF><gray>."
+perf-benchmark-already: "{prefix}<red>ᴀ ʙᴇɴᴄʜᴍᴀʀᴋ ɪꜱ ᴀʟʀᴇᴀᴅʏ ʀᴜɴɴɪɴɢ. ᴜꜱᴇ <#0079FF>/fpp perf report stop</#0079FF><gray> ᴛᴏ ꜰɪɴɪꜱʜ ɪᴛ ᴇᴀʀʟʏ."
+perf-benchmark-none: "{prefix}<red>ɴᴏ ʙᴇɴᴄʜᴍᴀʀᴋ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʀᴜɴɴɪɴɢ."
+perf-benchmark-no-profiler: "{prefix}<red>ʙᴜɪʟᴛ-ɪɴ ᴘʀᴏꜰɪʟᴇʀ ɪꜱ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ."
+
+# ───────────────────────────────────────────────────────────────────────────────
+#  PATHFINDING DEBUG (chat) — sent to whoever has the particle path-debug view on
+#  for a given bot (per-bot toggle, or the global "Show All Paths" GUI toggle).
+# ───────────────────────────────────────────────────────────────────────────────
+# {name}
+pathdebug-no-path:      "{prefix}<red>[ᴘᴀᴛʜ] <#0079FF>{name}</#0079FF><red> ɴᴏ ᴘᴀᴛʜ ꜰᴏᴜɴᴅ ᴛᴏ ᴛᴀʀɢᴇᴛ — ɢɪᴠɪɴɢ ᴜᴘ."
+# {name}, {cycle} — which stuck→recalculate cycle this is (see pathfinding.max-stuck-cycles)
+pathdebug-stuck:        "{prefix}<gold>[ᴘᴀᴛʜ] <#0079FF>{name}</#0079FF><gold> ꜱᴛᴜᴄᴋ — ʀᴇᴄᴀʟᴄᴜʟᴀᴛɪɴɢ ʀᴏᴜᴛᴇ <white>({cycle})</white><gold>."
+# {name} — every stuck→recalculate cycle came back with zero real progress; giving up entirely
+pathdebug-unreachable:  "{prefix}<red>[ᴘᴀᴛʜ] <#0079FF>{name}</#0079FF><red> ᴋᴇᴇᴘꜱ ɢᴇᴛᴛɪɴɢ ꜱᴛᴜᴄᴋ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʀᴏᴜᴛᴇ — ᴛᴀʀɢᴇᴛ ʟᴏᴏᴋꜱ ᴜɴʀᴇᴀᴄʜᴀʙʟᴇ, ᴀʙᴀɴᴅᴏɴɪɴɢ."
+# {name}
+pathdebug-watchdog:      "{prefix}<red>[ᴘᴀᴛʜ] <#0079FF>{name}</#0079FF><red> ɴᴀᴠɪɢᴀᴛɪᴏɴ ᴡᴀᴛᴄʜᴅᴏɢ ꜰɪʀᴇᴅ — ᴀʙᴀɴᴅᴏɴɪɴɢ ᴛᴀʀɢᴇᴛ (ᴛᴏᴏᴋ ᴛᴏᴏ ʟᴏɴɢ)."
+# {name}
+pathdebug-mine-stall:    "{prefix}<gold>[ᴘᴀᴛʜ] <#0079FF>{name}</#0079FF><gold> ᴍɪɴɪɴɢ ꜱᴛᴀʟʟᴇᴅ (ɴᴏ ᴘʀᴏɢʀᴇꜱꜱ) — ᴀʙᴀɴᴅᴏɴɪɴɢ ʙʟᴏᴄᴋ. ᴄʜᴇᴄᴋ ᴛᴏᴏʟ/ʜᴀʀᴅɴᴇꜱꜱ."

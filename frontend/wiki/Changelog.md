@@ -1,5 +1,756 @@
 # Changelog
 
+## v2.0.0
+
+Major version bump to **2.0.0**, opening the 2.0 release line. No behavioral changes from `1.6.6.12.8` beyond the items below.
+
+- **Version** — `1.6.6.12.8` → `2.0.0` (`build.gradle.kts`, `plugin.yml`, Velocity companion `velocity-plugin.json`).
+- **Personality API in core** — the personality API now ships in core (`api/personality/`); first-party extensions updated to consume it.
+
+### Added — `/fpp rename` + Rename Tile in the Per-Bot Settings GUI
+
+Bots can now be renamed. This changes only a bot's **display name** — the floating name-tag name row, its entity display name, the tab-list entry and command output. The login name and deterministic `fb07` UUID (identity) are never touched, and the mandatory "ʙᴏᴛ ʙʏ {owner}" disclosure row on the name-tag is preserved.
+
+- **`/fpp rename <bot> <new name>`** — new command (`fpp.rename`, default op). The new name may contain colour codes and is capped at **32 visible characters**. Admins can rename any bot; non-admins with the permission can rename bots they own or share (`BotAccess.canAdminister`).
+- **GUI:** a new **✎ ʀᴇɴᴀᴍᴇ ʙᴏᴛ** tile (name-tag icon) at the top of the **⚙ ɢᴇɴᴇʀᴀʟ** category opens the existing chat-input prompt; type the new name (or `cancel`) to apply.
+- **Persistence:** the rename is written to the YAML active-bot snapshot (on its next save) and immediately to the `fpp_active_bots.bot_display` column (new `DatabaseManager.updateBotDisplay`), so it survives restarts.
+- The dormant `FakePlayerManager.renameBot(...)` helper was completed to also refresh the name-tag, entity display name and tab list, and to persist — it previously only updated the tab list.
+
+### Open-Source Hardening — Removed Systems Fully Deleted & Blocked
+
+FPP is now open source. The scaffolding for every removed system was deleted outright (not just neutered) so the capabilities can't be trivially re-enabled by dropping code back in, and the policy is documented so contributions reintroducing them are declined.
+
+- **Extension/addon system — scaffolding deleted (~1,500+ lines).** Beyond the earlier "neutered loader" step, the shells are now gone: `extension/ExtensionLoader.java`, `api/FppAddon.java`, `api/FppAddonCommand.java`, `api/FppExtension.java`, `api/FppCommandExtension.java`, `api/FppSettingsTab.java`, `api/FppBotSettingsTab.java`, `api/FppBotDisplayService.java`, `api/FppSpawnLocationProvider.java`, and `fakeplayer/BotSwapController.java` all deleted. Addon-registration machinery removed from `CommandManager`, `FppApi`/`FppApiImpl`, `SettingGui`, `BotSettingGui`; `FppCommandSource` reduced to `CORE` only; `CheckCommand`'s extension probe replaced with a soft-depend check; `BotPersistence`'s `isExtensionLoaded()` replaced with `false` constants. External code can no longer be loaded — integrate via the fired `FppBot*` events and read-only `FppApi` from a normal Bukkit plugin.
+- **Player spoofing/impersonation — kept out.** Removed the impersonation-adjacent `FppApi.spawnBot(..., UUID)` overload. Disclosure invariants are enforced in code and documented as non-negotiable: reserved `fb07` offline-derived UUIDs, mandatory `ʙᴏᴛ ʙʏ {owner}` nametag, tab-list + server-list-ping exclusion, and the advancement block.
+- **Swap / peak-hours — removed.** `swap.*`/`peak-hours` config accessors, `debugSwap`, the `ConfigValidator` block, the `%fpp_swap%`/`%fpp_peak_hours%` placeholders, the `debug.yml` swap topic, and the SettingGui swap toggle all removed.
+- **Licensing — removed** (no phone-home startup gate; the plugin runs unconditionally).
+- **Dead language sections removed** (`FAKE CHAT`, `RANK`, `MINE`, `PLACE`, `USE`, `SWAP`, `PEAK HOURS`); dangling key references remapped.
+- **Docs:** new `README.md` (reframed as a bot/NPC plugin, **not** a spoofer) and `CONTRIBUTING.md` with a "Deliberately Removed Capabilities" policy; `AGENTS.md` license/extension gotchas rewritten; stale "Spoofer"/extension wording scrubbed from `plugin.yml`, `velocity-plugin.json`, and `config.yml` comments.
+
+### Added — Real Pathfinding System (Pathetic-backed)
+
+- **Core bot navigation is back**, and it's a genuine engine now: `PathfindingService` previously had **no implementation** (`Controller` was `null` unless an extension supplied one — and extensions no longer load), so all six of `left-click`'s/`right-click`'s/`find`'s/`place`'s/`storage`'s "walk to target" fallbacks were silently no-ops. `FakePlayerPlugin` now wires up a real `PathfindingService.Controller` on startup.
+- **Search engine:** [Pathetic](https://github.com/bsommerfeld/pathetic) (`de.bsommerfeld.pathetic:engine`/`api:5.5.2`, MIT, bundled in the shaded jar) — a zero-allocation, fully async A* engine. One shared `Pathfinder` serves every bot; FPP supplies the Minecraft-specific pieces Pathetic deliberately doesn't know about:
+  - `BukkitNavigationPointProvider` — real block traversability (ground/headroom via `BotNavUtil`, now-public `canStandOn`), plus per-request water/lava avoidance, block-breaking, and gap-bridging (block-placing), all sourced from each bot's `pathfinding.*` config / per-bot nav settings.
+  - `NavNeighbors` — 26-directional (`DIAGONAL_3D`) movement plus a small fixed set of 2-block "gap jump" offsets for parkour.
+  - `ParkourGapValidator` — only allows those gap-jump transitions when parkour is enabled for the search, and only over a headroom-clear gap.
+  - `TerrainCostProcessor` — soft preference for dry, unobstructed ground over water/breaking/bridging when a normal route exists.
+  - `PatheticPathfindingController` — the `Controller` itself: dispatches searches async, then drives movement every tick (rotation, sprint past `pathfinding.sprint-distance`, jump-on-step/gap, waypoint advancement, stuck detection + recalculation, arrival, and real in-path block breaking/placing via `NavBlockOps` on the existing `pathfinding.break-ticks`/`place-ticks`/`place-material` config).
+- Package: `me.bill.fakePlayerPlugin.fakeplayer.pathfinding`.
+- No config migration needed — this fills in the pre-existing (previously unused) `pathfinding.*` config block.
+
+### Added — `/fpp move --to` / `--coords` (Pathfinding-Backed)
+
+Reverses the earlier "core scope reduction" that restricted `/fpp move` to directional input only — the engine to back it now exists, so destination-based movement is back in core:
+
+- **`/fpp move <bot|all> --to <bot>`** — walk to another bot's current location, re-pathing if it moves more than `pathfinding.follow-recalc-distance` away. Gated by `fpp.move.to`.
+- **`/fpp move <bot|all> --coords <x> <y> <z> [world]`** — walk to a fixed point (defaults to the bot's current world). Gated by `fpp.move.coords`.
+- Both send a start message and, when a `CommandSender` is available, an arrival/no-path follow-up; both are cancellable via the existing `/fpp move <bot|all> --stop`, which now also cancels pathfinding movement (not just directional input) for that bot.
+- `--to`/`--coords` on `all` resolves the destination once up front (not per bot) so a `--to` target that's itself part of the "all" batch is skipped, not treated as a batch-aborting error.
+- **Not added:** `--pos`/`--roam` (open-ended wandering) — out of scope for this change; `--to`/`--coords` cover explicit-destination movement.
+
+### Overhauled — Left-Click / Right-Click Now Fully Simulate a Real Player
+
+- **Right-click on entities actually does something now.** Previously `tryEntityUse` only fired an internal event and swung the bot's arm — no real interaction happened. It now routes through the real NMS `Player#interactOn(Entity, InteractionHand, Vec3)` (the exact entry point a real client's interact packet uses), trying main hand then off hand. This makes feeding/breeding/taming animals, shearing sheep, milking cows, boarding boats/minecarts/horses, leashing, name-tagging, filling bottles, and opening villager trades all work for real, not just visually.
+  - Since fake players have no real client to drive a trade/container screen further, any menu opened by the interaction (villager trade, chest minecart, etc.) is **closed immediately** afterward so the entity isn't left "busy" and blocking real players.
+- **Right-click target resolution is now a single combined block+entity ray trace** (matching how a real client picks its target), so whichever is genuinely closer along the look vector wins — an entity standing in front of a wall is no longer skipped in favor of the wall behind it. Entity interaction is tried first; on PASS it correctly falls through to block interaction, then generic item use (eat/drink/potion/shield/bow/throwables) — same order and fallthrough a real client uses.
+- **Left-click now insta-breaks blocks in Creative mode** (one click, no progress accumulation) instead of mining at survival speed, matching `ServerPlayerGameMode`'s real creative-destroy short-circuit. Survival/Adventure block-breaking (progress, tool speed, block hardness) and entity attacking (via the real `Player#attack()` — crits, sprint knockback, sweep, weapon cooldowns) were already accurate and are unchanged.
+
+### Removed — Bot Chat System
+
+Bots can no longer talk in chat in any way. The entire chat system was removed: AI/fake-chat output, remote chat relay, and **bot join / leave / death messages** (bots are now completely silent in chat).
+
+- **Deleted classes:** `BotChatController`, `FppBotChatEvent`, `api.personality.ChatFrequency`.
+- **`BotBroadcast`** slimmed to a display-name resolver only (all chat/join/leave/kill broadcasting removed).
+- **Config:** the entire `fake-chat.*` surface, the `ChatMessageProvider` SPI, and `swap.farewell-chat` / `swap.greeting-chat` getters removed.
+- **GUI:** the `💬 Chat` settings category and chat-tier/chat-enabled controls removed.
+- **Network:** the `CHAT` plugin-message subchannel (`sendChatToNetwork`) removed. `JOIN`/`LEAVE` subchannels remain but no longer render any message.
+- **Removed public API (⚠️ breaks the `fpp-spoof` extension until it is updated):** `FppApi.sayAsBot`, `FppBot.isChatEnabled/setChatEnabled/getChatTier/setChatTier`, `FppBotChatEvent`, `BotChatController` + `FakePlayerPlugin.get/setBotChatAI`, `Config.ChatMessageProvider` + `setChatMessageProvider/clearChatMessageProvider/reloadChatMessages`, all `Config.fakeChat*`, `Config.swapFarewellChat/swapGreetingChat`, `BotProfile.getChatFrequency` + `Builder.chatFrequency`, `Personality.chatFrequencyMultiplier`, `VelocityChannel.sendChatToNetwork`.
+- **Retained (inert):** per-bot `chat_enabled` / `chat_tier` persistence (DB columns + YAML) is kept as dormant data to avoid risky schema migration; it has no behavior and is no longer in the public API.
+
+### Added — Two-Row Bot Name Tag (mannequin-style)
+
+- Bots now show a **two-row name tag** — row 1 is the bot's name, row 2 an indicator (default `bot by <owner>`), like a `minecraft:mannequin`.
+- **Both rows** are rendered by a per-bot `text_display`; the bot's **vanilla over-head name is hidden** (via a `NAME_TAG_VISIBILITY=NEVER` scoreboard team, `COLLISION_RULE=ALWAYS` so bot collision is unchanged) so it no longer overlays the display.
+- **Follow:** the display **rides the bot as a passenger** so the client keeps it perfectly glued (a free-standing display desynced from FPP's packet-driven movement and lagged). Only re-mounts if a teleport dismounts it.
+- **Cleanup:** the tag is removed on every despawn/death path via `FakePlayerManager.unregisterBotState` (death removes the body directly and bypassed `removeAll`), fixing tags that lingered after a bot died/despawned.
+- Implements the previously-stubbed `FakePlayerBody.spawnNametag`/`removeNametag`/`removeOrphanedNametags`; refreshes on `/fpp setowner`.
+- Config block `nametag.second-line`: `enabled` (default `true`), `format` (default `<gray>bot by {owner}</gray>`, `{owner}` placeholder), `y-offset` (default `1.0`, height above the mount point).
+
+### Changed — Bots Hidden From Tab List & Server-List Ping
+
+- **Tab list:** bots are no longer listed in the in-game tab. `Config.tabListEnabled()` now defaults to **false** and spawn sets `listed=false` up front (no flicker).
+- **Server-list ping:** new `ServerListPingListener` (Paper `PaperServerListPingEvent`) subtracts online bots from the **player count** and removes bot profiles from the **hover player sample**, so the multiplayer menu never reveals bots.
+- Net effect: bots don't appear in the tab list, the server player count, or the server-list player sample.
+
+### Removed — Extension System
+
+- **External extensions no longer load.** `ExtensionLoader.loadExtensions()`/`reload()` are neutered (no JAR scanning/loading), the startup load is gone, and the `plugins/FakePlayerPlugin/extensions/` folder + README are no longer created. Any `fpp-spoof`/third-party addon is inert.
+- **`/fpp extension` command removed**; **`/fpp reload extensions`** subcommand removed.
+- Retained (inert): the internal API (`FppApi`/`FppApiImpl`, `api/event/*`, `FppBotImpl`, the command-extension map) that **core itself** uses for events/tick hooks/GUI tabs — deleting it would destabilize core, same lesson as chat/skin/LP. The `ExtensionLoader` shell is kept for its read-only references (`%fpp_extensions%` → 0, `/fpp check`, persistence checks).
+
+### Added — `/fpp list` GUI
+
+- `/fpp list` now opens a **GUI** for players (new `BotListGui`) instead of a chat list.
+- **Permission-scoped visibility:** a normal user sees **only the bots they own**; an **admin/OP** (`fpp.admin`/`fpp.op` or op) sees **every bot on the server**.
+- Each bot is a head showing owner, location, uptime, and frozen/active status; **click a bot to open its management GUI** (`BotSettingGui`). Paginated (45 per page).
+- Console/command-block senders still get the text list.
+
+### Changed — Quieter Console
+
+- **Bot join/leave chat messages** stay suppressed; the quit handler is now bot-only (real players' quit messages are untouched again).
+- **`NmsPlayerSpawner initialised (...)`** startup line dropped from INFO to debug.
+- **Vanilla `<bot>[<ip>] logged in with entity id ...` login spam** is now suppressed for bots via a Log4j filter (`BotLoginLogFilter`) installed on the root logger; real players' login lines are kept.
+- **JVM "Final field ... mutated reflectively by SkinProfileInjector" warning** fixed: `createGameProfile` now inserts the texture into the backing multimap **before** wrapping it in the `PropertyMap`/`GameProfile` (a normal `put`, not a reflective final-field mutation). The old `apply()`-on-fresh-profile path is gone.
+
+### Removed — LuckPerms Integration & Mojang UUID System
+
+- **LuckPerms integration removed:** the LP user pre-load (`NmsPlayerSpawner.preLoadLuckPermsUser`) and capability hook are gone, along with the `FppBot.getLuckpermsGroup/setLuckpermsGroup` API and the `net.luckperms:api` build dependency. (Permissions still work via any permission plugin for real players; FPP just no longer hooks LP for prefix/suffix/groups.)
+- **UUID/identity system removed:** bots no longer do **Mojang name→UUID lookups** — `resolveUuid` / `refreshIdentity` / restore now always use a deterministic **offline UUID** from the name. A bot named after a real player no longer inherits that account's identity, so it won't pick up that player's data in other plugins.
+- **Note:** bots are still real `ServerPlayer`s, so other plugins can still *see* them online — they just no longer map to a real account or to LuckPerms.
+- Retained (inert): the `luckperms-group` per-bot persistence + `BotIdentityCache` instance (never queried) — kept to avoid destabilizing persistence, same as the chat/skin lessons.
+
+### Removed — Dynamic Skin System (fixed bot skin)
+
+- The dynamic skin system is gone: no Mojang fetching, no per-bot skins, no skin pool, and the `/fpp skin` command is removed (it was extension-owned; that extension breaks until updated).
+- **Every bot now uses one hard-coded, Mojang-signed slim skin** (`BotSkin`), stamped at spawn — not changeable.
+- `FakePlayer.getResolvedSkin()` and `SkinManager.resolveEffectiveSkin()` always return the fixed skin; skin placeholder (`%fpp_*_skin%`), the stats "skin mode" row, and the help/tab entries were removed.
+- Retained (inert): `SkinProfile`/`SkinProfileInjector` (the apply mechanism), and the now-unreachable fetch classes (`SkinManager`/`SkinRepository`/`SkinFetchService`) + `skin_cache` table — kept to avoid destabilizing spawn/packets, same as the chat-field lesson.
+
+### Changed — Sequential Bot Names
+
+- **Removed the random name generator** (`RandomNameGenerator` deleted) and the `bot-name.mode` (random/pool) option.
+- Bots now spawn with **sequential names** `bot`, `bot2`, `bot3`, … (lowest free name; despawned names are reused). This applies to both admin (`/fpp spawn`) and user-tier spawns. Explicit `--name <name>` still works.
+- The **name tag** equals the bot name (`bot-name.admin-format` now defaults to `{bot_name}`).
+- Removed the `--random-name` spawn flag and the `FakePlayerManager` random/pool naming (`generateUserBotName` / `UserBotName` / `botNameMode`).
+- `bot-names.yml` is no longer used for bot naming (it still feeds skin-name selection in non-`player` skin modes).
+
+### Removed — Unused/Dead Commands, Flag Consistency Pass
+
+- **Removed commands:** `/fpp migrate` (backup/config/lang/db migration), `/fpp stats` (live statistics panel), `/fpp badword` (badword filter management). Their permissions (`fpp.migrate`, `fpp.stats`, `fpp.badword`) and `plugin.yml`/help-menu entries are gone; the underlying managers they used (`BackupManager`, `DataMigrator`, `ConfigMigrator`, `BadwordFilter`) are still used elsewhere and are untouched.
+- **Removed `PlaceCommand`:** already unregistered/unreachable in core (superseded by `left-click`/`right-click`, per the existing "moved out of the registered core command set" note) — deleted the dead class along with its now-orphaned `fpp.place*` permissions and its dead area-fill sub-system (`--pos1`/`--pos2`/`--block`/`--clear`/`start`/`status`, which had been permanently disabled behind a hardcoded `false` flag with an empty tick method).
+- **Flag consistency:** normalized every core command to accept only `--flag`-style sub-command arguments (no bare-word duplicates). `StorageCommand` no longer accepts `list`/`remove`/`clear`/`enable`/`disable`/`deposit` alongside their `--flag` equivalents — `--flag` only. `PlaceCommand`'s `once`/`--once` duplicate is gone with the command.
+- **Usage-string fixes:** `left-click`/`right-click` usage now documents the standalone `--stop` form they already supported; `find` usage now documents the `-r`/`-c` short aliases for `--radius`/`--count`; `storage` usage now lists `--enable`/`--disable`/`--deposit`, which were previously undocumented.
+
+### Added — Baritone-Style Pathfinding Path Debug
+
+- New **🧭 Pathfinding** category in the per-bot Settings GUI (`/fpp settings <bot>`), restoring the previously-orphaned `nav_parkour`/`nav_break_blocks`/`nav_place_blocks` toggles (their handlers already existed but had no GUI entry point since an earlier category removal) alongside a new **Show Path (debug)** toggle.
+- **Show Path** renders a live particle trail along the bot's active `PatheticPathfindingController` route every 4 ticks while it's navigating — green dust for the general route, orange for the immediate next waypoint, and a red marker (with a short vertical particle stack) at the final destination, similar to Baritone's path render.
+- **Per-viewer only:** this is a personal debug preference, not a bot property — toggling it only affects what *you* see (`PathfindingDebugManager`, keyed by viewer UUID → bot UUID), it isn't persisted, and it costs nothing when nobody has it enabled (the render loop bails out immediately if there are no viewers for that bot).
+- Cleaned up automatically on player quit and bot despawn/delete.
+
+### Fixed — `/fpp find` and `/fpp storage` Were Never Registered
+
+- Both command classes were fully implemented (and had working permissions, tab-complete, and `CommandManager` task-target wiring) but were never instantiated or registered in `FakePlayerPlugin.java` — `findCommand` stayed a permanently-null field, and `StorageCommand` was never constructed at all. `/fpp find` and `/fpp storage` did not exist in-game despite appearing fully built. Both are now registered on startup.
+
+### Fixed — `/fpp check` False-Positive Warnings
+
+- Config-key validation checked the wrong paths (`max-bots`/`server-id`/`database.type`) instead of the real ones (`limits.max-bots`/`database.server-id`/`database.mode`) — every install reported 3 "missing config key" warnings for keys that were actually present.
+- The "Lang directory" checks (both the database section and the dedicated language-file section) looked for a `lang/` folder; the plugin actually uses `language/` — fixed to check the real path.
+- Removed the "Extensions directory — MISSING/FAILED" check: external extension loading is inert by design now, so that folder legitimately isn't created and the warning was permanent noise.
+- Removed the LuckPerms soft-dependency check: FPP no longer integrates with LuckPerms at all, so checking for it made no sense.
+
+### Changed — `/fpp move` Simplified to Pathfinding-Only
+
+- Removed the directional raw-input mode entirely (`--direction <forward|backward|left|right>`, `--seconds`/`--ticks`) — `--to`/`--coords` cover the real use cases and were the source of user confusion about which flags did what.
+- `--to <bot|player>` now also accepts a real online player's name, not just another bot.
+- `--to` now actually **follows live**: previously it snapshotted the target's location once at command time and never updated it, even though a `follow-recalc-distance` config option implied live-following — the destination supplier was a constant, so recalculation never triggered. It now re-queries the target's current location on every check.
+- New usage: `/fpp move <bot|--all> --to <bot|player>  |  /fpp move <bot|--all> --coords <x> <y> <z> [world]  |  /fpp move <bot|--all> --stop`.
+
+### Fixed — Stale Extension System Documentation & Check Output
+
+- `frontend/wiki/Extensions.md` extensively described JAR-based extension loading as a live, working feature (installation steps, folder structure, bundle loading, troubleshooting) even though external extension loading was disabled entirely in an earlier change this session. Added a prominent notice at the top and annotated every section that describes non-functional install/load steps (Getting Started, Extension Bundles, Troubleshooting, First-Party Extension Bundle) so the page is no longer misleading about what currently works. The API reference itself (`FppApi`, `FppBot`, hooks, events) remains documented since core still uses the same interfaces internally.
+- `%fpp_extensions%`/`%fpp_extensions_names%` placeholder docs (`README.md`, `frontend/wiki/Placeholders.md`) now note they always resolve to `0`/empty since external loading is disabled; removed the stale `%fpp_extensions%` line from the example scoreboard config.
+- `/fpp check`'s extensions step now explicitly states "0 loaded is expected, not an error" instead of presenting an inert subsystem as if it were a live one being validated.
+- Confirmed the settings-tab GUI injection API (`registerSettingsTab`/`registerBotSettingsTab`) has no callers anywhere in core — it's dormant, unreachable scaffolding for a future extension loader, not something rendering an empty "Extensions" GUI tab today, so no GUI code changes were needed there.
+
+### Removed — All Player-Impersonation/Spoofing Capability
+
+Every mechanism that let a bot look, sound, or behave like a specific real player, or like a real
+connected client, has been removed. Bots remain fully functional automatable game entities (spawn,
+move, fight, mine, etc.) — only the ability to impersonate or be mistaken for a real player is gone.
+
+- **Skin:** the hard-coded skin (a real, signed Mojang skin belonging to a real account) is gone.
+  Every bot now renders the client's plain default Steve/Alex model (`BotSkin.fixed()` returns an
+  invalid profile, so the NMS injection path falls through to vanilla). No bot can wear a specific
+  identifiable real player's actual skin — ever.
+- **Naming:** removed every path to an arbitrary or real-player-matching bot name. `/fpp spawn`'s
+  `--name` flag is gone (bots are *always* sequentially auto-named `bot`, `bot2`, …), `/fpp rename`
+  is deleted entirely, and the Settings GUI's in-GUI rename button is gone along with the shared
+  `BotRenameHelper` it used. `--notp` (which only worked in combination with `--name`, to look up a
+  specific named bot's last known location) is gone with it — persistence-based restore-on-restart
+  is unaffected and still restores all bots automatically.
+- **Tab list:** `Config.tabListEnabled()` is now permanently hardcoded to `false` with no override
+  mechanism at all (the dead `setTabListEnabledProvider` indirection, which already had zero callers
+  anywhere, is removed outright). Bots can never appear in the tab list.
+- **Server-list ping:** `ServerListPingListener` (which used to subtract bots from the reported
+  player count and clear the hover sample) is deleted. The server list now reports Bukkit's plain,
+  true state with no special-casing in either direction — bots are neither hidden nor inflated.
+- **Ping/latency simulation:** the entire fake-network-realism subsystem is removed — no more random
+  jitter, connection spikes, join ramp-up, or artificial action-latency throttling designed to make a
+  bot's connection seem human. An explicit, deliberate ping override (`FppApi`'s custom-ping method)
+  still exists for legitimate debug/testing use, but nothing ever auto-generates a "realistic" fake
+  value anymore.
+- **Nametag disclosure is now mandatory:** the "bot by {owner}" second nametag line can no longer be
+  disabled (`nametag.second-line.enabled` config key removed) — every bot must always visibly
+  identify itself as a bot.
+
+**Hard constraint, unavoidable:** bots are fundamentally NMS `ServerPlayer` entities and will always
+render client-side as a humanoid Minecraft player model — removing that would require rewriting the
+entire entity architecture (e.g. ArmorStand/NPC-based bots), breaking inventories, combat,
+pathfinding, and nearly everything else this plugin does. That part is out of scope and isn't
+changing. Everything else that could make a bot *pass as* or *impersonate* a specific real player is
+gone.
+
+### Fixed — Vanilla Bot Death/Kill Message Still Leaked to Chat
+
+- Despite bot chat being fully removed earlier this session, the vanilla `PlayerDeathEvent` death
+  message (e.g. "bot1 was slain by Steve") was still showing in chat — `Config.deathMessage()`
+  defaulted to `true` and only got nulled out under specific conditions. Bots now unconditionally
+  suppress their death message, matching join/leave. Removed the now-fully-dead
+  `Config.deathMessage()`/`Config.killMessage()` accessors and the `messages.death-message`/
+  `messages.kill-message` config.yml keys (neither had any other consumer).
+
+### Added — Despawn Effect
+
+- Every bot despawn/delete/death-removal path now plays a small poof-cloud particle burst and sound
+  at the bot's last location (`FakePlayerManager.playDespawnEffect`, hooked into the shared
+  `unregisterBotState` cleanup that all removal paths already funnel through) — a bot vanishing now
+  has a visible/audible cue instead of just silently disappearing.
+
+### Fixed — Despawn Effect Silently Skipped on Death, No Death-Despawn Message At All
+
+- The despawn poof/sound effect added earlier this session had a real ordering bug: on the
+  death-without-respawn path (and the respawn-failure edge cases), `fp.setPlayer(null)` ran *before*
+  the effect's entity lookup, so it silently no-op'd every time. Fixed by capturing the bot's location
+  while the entity reference is still valid and threading it through explicitly
+  (`FakePlayerManager.removeByName(name, fallbackLoc)`, `unregisterBotState(fp, reason, fallbackLoc)`).
+  The effect now fires correctly on `/fpp despawn`, death-without-respawn, and failed respawn attempts.
+- Separately: `/fpp despawn <name>` already sent the sender a confirmation message
+  (`delete-success`), but the death-without-respawn path sent **no message to anyone** — only a
+  debug-level log line invisible unless `debug.yml` is on. Added `bot-died-despawned`, sent privately
+  to just the bot's owner and whoever killed it (if online and different from the owner) — no one
+  else sees it — when the bot dies and is removed instead of respawned.
+
+### Added — Live Activity Line on Bot Nametags
+
+- The nametag is now three rows instead of two: a new top row shows what the bot is currently doing
+  (idle, moving, mining, attacking, using item, searching, frozen — joined if more than one applies),
+  above the existing name and "bot by {owner}" rows.
+- New `BotActivity.currentLabel(fp)` (`fakeplayer/BotActivity.java`) computes this **live** by directly
+  querying each task command's own state (`PathfindingService.isNavigating`/`getOwner`,
+  `LeftClickCommand`/`RightClickCommand.isClicking`, `AttackCommand.isAttacking`,
+  `FindCommand.isFinding`, `FakePlayer.isFrozen`) rather than mirroring a separately-tracked
+  start/stop flag — avoids desync (e.g. `/fpp move --to` doesn't fire a "stop" event on natural
+  arrival, so a mirrored-state approach would get stuck showing "moving" forever after arrival).
+- Refreshed once a second per bot, and only re-sent to the nametag entity when the label actually
+  changed (`FakePlayer.lastRenderedActionLabel`), to avoid needless packet churn.
+- **Fixed:** the name row was picking up the action row's color (turning yellow) because Adventure
+  components inherit an unset color from whatever they're appended onto, and the name row was nested
+  as a child of the colored action row. Fixed by building all three rows under a colorless root and
+  giving each row an explicit color instead of relying on inheritance — the name is white again, and
+  the action row now matches whatever color the bottom "bot by {owner}" row is configured with
+  (read directly from `indicatorRow.color()`, so it stays in sync if that format is customized).
+
+### Overhauled — `/fpp find`: Tool Auto-Equip, Anti-Stuck, Inventory-Aware Deposit
+
+`/fpp find` already had a solid search→path→mine loop and strong loop protection (blocks are marked
+visited before navigation starts, plus a cross-bot reservation map so two bots never fight over the
+same block). This pass fixes what was actually missing:
+
+- **Real tool auto-equip** — `equipBestTool()` was a literal empty stub with a comment saying it was
+  "handled by the addon auto-equipment tick handler," but external extensions can never load anymore,
+  so bots mined with whatever was already held, tool or not. Replaced with real logic driven by
+  Bukkit's own `Tag.MINEABLE_PICKAXE`/`MINEABLE_AXE`/`MINEABLE_SHOVEL`/`MINEABLE_HOE` (the same data
+  vanilla itself uses) to pick the right tool category, then the best tier available in the bot's
+  inventory (`ITEMS_PICKAXES`/etc., ranked wooden→netherite) — covers every tool type, not just
+  pickaxes.
+- **Anti-stuck, mining phase** — tracks ticks-since-last-destroy-progress per block; if it stalls for
+  5s (wrong/no tool, block resisting breakage, etc.) the block is abandoned instead of grinding on it
+  forever. It's already marked visited, so it's never re-targeted.
+- **Anti-stuck, navigation phase** — the shared pathfinder auto-recalculates on physical stuck-detection
+  but never abandons a target; added a 45s watchdog scoped to find-jobs only that gives up on a block
+  and moves to the next one if navigation genuinely can't get there, without touching the shared
+  pathfinding subsystem.
+- **Inventory-aware auto-deposit** — when free inventory space drops to 2 slots or fewer, the bot
+  detours to its nearest registered, enabled storage (reusing `StorageStore`/`StorageInteractionHelper`,
+  the same infrastructure `/fpp storage`'s deposit already uses) and resumes the find job from wherever
+  it ends up. Bots with no storage registered keep the previous passive drop-collection behavior — no
+  regression.
+- **Fixed a real reservation leak**: `FakePlayerManager.unregisterBotState` (the shared despawn cleanup
+  every despawn/death path funnels through) called `MoveCommand`/`LeftClickCommand`/`RightClickCommand`
+  cleanup on despawn, but never `FindCommand.cleanupBot` — a bot despawned mid-find-job could leave its
+  block reservations locked forever, permanently blocking those blocks for every other bot. Now cleaned
+  up on every despawn path like the others.
+
+### Added — "Show All Paths" Global Debug Toggle in Settings GUI
+
+- The existing per-bot "Show Path (debug)" particle-trail toggle (`🧭 Pathfinding` category in each
+  bot's own settings) now has a global counterpart: `🐛 ᴅᴇʙᴜɢ` → **Show All Paths** in the main
+  `/fpp settings` GUI. One click enables (or disables) the pathfinding debug trail for every currently
+  active bot at once, visible only to the player who toggled it.
+- Backed by two new methods on the existing `PathfindingDebugManager` (`setViewing` — explicit set
+  rather than flip, `isViewingAny` — true if the viewer has the trail on for any bot); no new state
+  store, no persistence (same as the per-bot toggle, a pure viewer preference).
+- Doesn't retroactively apply to bots spawned after the toggle is flipped — re-click to pick them up.
+
+### Added — Chat-Based Pathfinding Debug
+
+The particle trail shows *where* a bot is trying to go, but not *why* it's not getting there. Whoever
+has the path-debug view enabled for a bot (per-bot toggle or the global "Show All Paths" toggle) now
+also gets chat messages explaining the specific failure when something goes wrong:
+
+- **`pathdebug-stuck`** — the bot hasn't moved far enough for `pathfinding.stuck-ticks` in a row and
+  the path is being recalculated (e.g. wedged against terrain, a moving target, an obstacle the
+  original path didn't account for).
+- **`pathdebug-no-path`** — the search engine genuinely couldn't find a route to the target after
+  exhausting its retry budget (destination unreachable, sealed off, out of range).
+- **`pathdebug-watchdog`** — `/fpp find`'s 45s navigation watchdog fired, meaning the bot never
+  arrived/cancelled/failed in time and the target was abandoned outright (this is the case the
+  recalculate-forever behavior above can't catch on its own).
+- **`pathdebug-mine-stall`** — `/fpp find`'s mining loop made no destroy progress for 5s straight and
+  gave up on the block (almost always a missing/wrong tool, or a block too hard to break).
+- New `PatheticPathfindingController.sendDebugChat(botUuid, botName, langKey, args...)` — reuses the
+  existing `PathfindingDebugManager` viewer set (the same subscription the particle trail uses), so
+  there's exactly one toggle for both the visual and the chat debug output.
+- All four new lang keys added under `PATHFINDING DEBUG (chat)` in `language/en.yml`.
+
+### Fixed — Infinite Stuck→Recalculate Loop, Better Terrain Awareness
+
+Bots could get permanently wedged (e.g. inside a tree canopy, tangled in vines/leaves) and spam
+"stuck — recalculating" forever without ever giving up, because recalculating against completely
+unchanged terrain just returns the same path and gets stuck again immediately — nothing about the
+old logic ever broke that cycle.
+
+- **Hard give-up budget** — `pathfinding.max-stuck-cycles` (default `4`): each stuck→recalculate
+  cycle that produces zero real forward progress counts against this budget; once exhausted, the
+  navigation is abandoned outright (same as a genuine "no path found") instead of looping forever.
+  Real movement resets the budget, so this only fires when the bot is truly wedged, not during
+  ordinary momentary slowdowns.
+- **Jump nudge before recalculating** — halfway through the stuck window, the bot now attempts a
+  jump before giving up and recomputing a whole new path. Covers the common case of being stuck on
+  a lip/leaf/slab that just needs a hop, which a full recalculation wouldn't fix anyway (the route
+  was already fine).
+- **Less twitchy stuck detection** — `pathfinding.stuck-ticks` default raised `5` → `10` (0.25s was
+  triggering on completely ordinary momentary slowdowns, e.g. foliage friction, not just genuine
+  stuck states).
+- **Terrain cost now penalizes climbing and canopy routes** — `TerrainCostProcessor` previously had
+  no opinion on vines/scaffolding/ladders or leaf-covered ground, so the search treated a vine climb
+  through a tree canopy as equal-cost to a clear walking route. Both are still legal (nothing was
+  removed from `BukkitNavigationPointProvider`'s hard traversability gate), but now cost more so a
+  comparable ground route is preferred whenever one exists — the search only tunnels through
+  foliage when it's genuinely the only way.
+- `BotNavUtil.isClimbable` made public so the cost processor can reuse the same climbable-block list
+  the traversability check already uses (`fakeplayer.pathfinding` and `fakeplayer` are still separate
+  packages, so this was `private` before with no reuse path).
+
+### Added — Detailed Pathfinding Diagnostics, Now Logged to Console Too
+
+The chat debug messages added earlier said *that* something failed but not much about *why*. New
+`debug.yml` → `pathfinding` toggle (also exposed in `/fpp settings` → `🐛 ᴅᴇʙᴜɢ` → **Pathfinding**)
+logs a full diagnostic line to the **server console** — not just in-game chat — for every stuck cycle,
+give-up, no-path failure, `/fpp find` navigation watchdog, and mining stall:
+
+- **Stuck / give-up / no-path** (`PatheticPathfindingController`): bot name, nav owner, stuck-cycle
+  count vs. the give-up budget, failed-recalculation count, waypoint progress (`index/total`), current
+  and target position (world + coords), remaining distance, the actual block at the bot's feet/below/
+  head (this is the part that would've explained the tree-canopy screenshot — you'd see
+  `blocks{feet=VINE,below=OAK_LEAVES,head=OAK_LEAVES}` directly in the log), and which path options
+  were active (parkour/break/place/avoidWater/avoidLava).
+- **`/fpp find` navigation watchdog**: bot name, elapsed ticks, bot position, and the specific target
+  block (type + coordinates) it gave up walking to.
+- **`/fpp find` mining stall**: bot name, the block it was mining (type + coordinates), the tool
+  currently held, and how much destroy-progress was actually made before giving up — makes "wrong
+  tool" vs. "block genuinely too hard" immediately obvious from the log alone.
+- One line per event, `event=...` prefixed and grep-friendly (e.g. `grep "event=STUCK"`), independent
+  of whether anyone has the in-game path-debug view open — the whole point is being able to diagnose a
+  bot that got stuck hours ago from the console/log file after the fact.
+- Same `debug-chat` master switch as every other debug topic also mirrors these lines to online OP/
+  notify players if wanted, on top of the existing pathfinding-viewer-only chat messages.
+
+### Added — Path Verification / Simulation Before a Bot Ever Commits to Walking
+
+Previously, once Pathetic's async search returned a route, the bot just started walking it — any
+"this route doesn't actually work" discovery only happened at runtime, via the stuck-detection budget
+added earlier. That's a wasted trip: the bot walks partway toward something, gets stuck, and only then
+gives up. Routes are now re-checked *before* any movement starts:
+
+- **`BukkitNavigationPointProvider.isTraversable`** (the exact rule the live search itself uses to
+  decide "can a bot's feet legally occupy this block") is now a shared `static` method instead of
+  private, so it can be reused as a single source of truth instead of duplicating the logic.
+- **New `PatheticPathfindingController.verifyPath`** re-walks the entire finished waypoint list
+  synchronously, on the main thread, against the real current block state (Pathetic's search runs
+  async against a snapshot, so chunks can have changed by the time it finishes) and rejects the route
+  outright if:
+  - any waypoint is no longer traversable right now (`NOT_TRAVERSABLE`),
+  - a step rises more than one block without a climbable block (vine/ladder/scaffolding) actually
+    present there — an impossible move for the tick-driven walker to execute (`IMPASSABLE_RISE`),
+  - a gap-jump slipped through without parkour enabled, or is wider than the neighbor set could have
+    legitimately produced (`UNEXPECTED_GAP` / `GAP_TOO_WIDE`) — defense-in-depth on top of
+    `ParkourGapValidator`, which already gates this during the search itself.
+- **Waypoint 0 is skipped in the re-check** — it's the bot's actual current position, not a
+  synthesized grid node, so it's valid by definition. The first version of this re-verification
+  re-ran the traversability heuristic against it too, and since that node is never re-validated by
+  the live search either (it's the given start, not something the neighbor strategy generated), any
+  disagreement between "the bot is physically standing here" and the block-model's opinion of that
+  same spot rejected the route outright — on *every single navigation*, since node 0 is present in
+  every path. That's what broke `/fpp find` (and pathfinding generally) entirely right after this
+  feature landed; fixed before it shipped any further.
+- A rejected route is treated exactly like a failed search (`onPathFailed`) — it plugs into the
+  existing recalculation/give-up budget rather than adding new state, and gets a
+  `event=PATH_REJECTED reason=...` line in the console when pathfinding debug logging is on.
+- Fixed a latent bug found while making this change: if the bot went offline in the moment between
+  starting a search and it completing, the old code silently did nothing (never started the movement
+  task, never reported failure) instead of calling the request's failure/cancel callback.
+
+### Fixed — Bots Still Counted in the Server-List Player Count / Showed as "Anonymous Player"
+
+The wiki already documented bots being subtracted from the multiplayer menu's player count and hover
+sample, but the listener that was supposed to do it (`ServerListPingListener`) never actually existed
+in the codebase — bots were counting toward "X/20" and appearing in the hover list as "Anonymous
+Player" (the client's fallback when it can't resolve a sample entry to a real profile) the entire
+time. Implemented for real this time:
+
+- New `ServerListPingListener` (`PaperServerListPingEvent`, `com.destroystokyo.paper.event.server`)
+  registered in `FakePlayerPlugin.onEnable`.
+- The hover sample is **rebuilt from real online players** rather than filtered by bot UUID. The
+  first attempt filtered `getListedPlayers()` by each bot's logical UUID — that fixed the count but
+  the "Anonymous Player" hover entry survived, because the profile a bot contributes to the sample
+  isn't guaranteed to carry that UUID (skin injection can swap the profile identity, and an
+  anonymized sample entry carries no identity at all). Rebuilding sidesteps the matching problem
+  entirely: clear the sample, re-add only genuine players (excluded by both UUID — logical *and*
+  live-entity — and name), and set `numPlayers` to the count of what was re-added.
+- Runs at `EventPriority.LOW` so other plugins (vanish, etc.) can still adjust the list after us.
+- Net effect: bots are invisible to the server-list ping entirely — not in the player count, not in
+  the hover sample — same as they already were in the in-game tab list.
+
+### Changed — Readable, Numbered Bot UUIDs (`fb07` Prefix)
+
+Bot UUIDs are no longer vanilla offline-mode hashes (`MD5("OfflinePlayer:"+name)`) — they now carry
+a fixed, recognizable `fb07` prefix with the bot's identity readable straight out of the UUID:
+
+- **Sequential names embed their number**: `bot` → `fb070000-0000-0000-0000-000000000001`,
+  `bot2` → `…-000000000002`, `bot123` → `…-00000000007b` (hex). The number comes from the name
+  itself, so the scheme stays fully stateless — same name, same UUID, every restart, nothing stored.
+- **Custom names** get the same prefix with a 64-bit hash of the lowercase name in the low bits
+  (UUIDs are hex-only, so a name like `Steve` can't be embedded literally), plus a marker bit in
+  the high half so a bot custom-named `bot1` or `bot02` can never collide with a canonical
+  sequential bot's UUID.
+- **Why `fb07` and not all-zero high bits**: `getMostSignificantBits() == 0` is the standard idiom
+  plugins use to detect Geyser/Floodgate Bedrock players — bots with `00000000-…-0001` UUIDs would
+  be misclassified as Bedrock players. The fixed non-zero prefix avoids that and gives a trivial
+  "is this a bot?" check: new `BotIdentityCache.isBotUuid(uuid)`.
+- **Zero collision risk with real accounts**: premium UUIDs are random v4, offline-mode ones are
+  MD5 v3 — neither can land in a fixed-prefix range.
+- **Automatic migration**: on restore, persisted bots still carrying their legacy offline-mode UUID
+  are remapped to the new scheme, and their saved inventory/XP/task state follows them to the new
+  key (via the existing `remapLoadedState` machinery). Anything with a non-legacy stored UUID (e.g.
+  an explicit-UUID API spawn) is trusted as-is and untouched. Old `world/playerdata/<legacy-uuid>.dat`
+  files become inert orphans.
+- New unit tests (`BotUuidTest`) pin the exact mappings, case-insensitivity, the `bot1`/`bot02`
+  no-collision guarantees, and the Floodgate/`isBotUuid` boundary behavior.
+
+### Added — Rarity-Based Bot Skin Pools + Slim/Classic Model Detection
+
+Bots previously spawned with no skin at all — `SkinManager` was never instantiated in core (it was
+created by the removed FPP-Skin extension), so every bot fell back to default Steve/Alex. Core now
+owns the skin system, built around rarity pools:
+
+- **Skin pools** live in `plugins/FakePlayerPlugin/skins/` (seeded from bundled defaults on first
+  run) as text files of NameMC skin URLs, one per line:
+  - `main_skin.txt` — the default skin every bot spawns with.
+  - `1-<N>%.txt` — a "1 in N" pool: each fresh spawn rolls a 1/N chance to draw a random skin from
+    that file instead of the main skin. Ships with `1-1000%`, `1-5000%`, `1-10000%`, and `1-100000%`
+    tiers; add or remove pool files freely. Rarest pools roll first, so a lucky spawn always claims
+    the best tier it hit.
+- **Signing pipeline** (new `SkinPoolService`): NameMC only hosts the PNG, and skins need a
+  Mojang-signed texture to render on clients — so on first use the PNG is downloaded, its player
+  model is detected, and it's run through the MineSkin API for signing (serialized, ≥6s apart, to
+  respect MineSkin's anonymous rate limit). The signed result is cached **forever** in
+  `data/skin-cache.yml` — each skin touches the network exactly once, ever. If a rare skin can't be
+  resolved (network down), the bot degrades to the main skin, then to vanilla default.
+- **Slim/classic model detection** (new `SkinModelDetector`, unit-tested): two strategies —
+  authoritative `textures.SKIN.metadata.model` from a signed texture's base64 JSON, and raw-pixel
+  analysis for bare PNGs (the 4th arm-pixel column at x=54–55 is transparent on slim skins; legacy
+  64x32 skins are always classic; multiple sample rows so one stray pixel can't flip the result).
+  The detected variant is passed to MineSkin so the signed skin renders with the correct arm model,
+  and the model is stored in the cache alongside the texture.
+- **Roll-once semantics**: `SkinManager.resolveEffectiveSkin` short-circuits when the bot already
+  carries a resolved skin — restores from persistence, respawn snapshots, and manual skin applies
+  all keep their existing skin. The rarity roll happens once per brand-new spawn only.
+- **Rare-roll announcement**: the spawner gets a chat message when their bot hits a rare pool
+  (new `skin-rare-rolled` lang key), plus a console log line.
+- **Config**: `skin.rare-pools: true` in `config.yml` — set `false` to disable the entire system
+  (bots then use the vanilla default skin as before).
+- **Fixed shortly after landing**: the PNG download used NameMC's legacy `texture.namemc.com`
+  mirror, which now fails behind Cloudflare (HTTP 526, invalid origin SSL) — switched to the direct
+  `https://s.namemc.com/i/<id>.png` endpoint (verified live), with the legacy mirror kept as an
+  automatic fallback. Also added a 10-minute per-skin failure cooldown so an unresolvable skin
+  can't repeatedly burn MineSkin quota on every spawn attempt, and the main skin is now prewarmed
+  asynchronously at startup (cache-first — a no-op on every start after the first), so the first
+  spawn never waits on the signing API.
+- **Fixed: bundled pool files could never be extracted.** Bukkit resolves plugin resources through
+  a URL, where `%` is an escape character — so bundled names like `skins/1-1000%.txt` failed to
+  extract (`%.t` is an invalid escape), the failure was only visible at debug level, and installs
+  ended up with a permanently empty `skins/` folder (seeding skipped because the directory
+  existed). Bundled resources are now `%`-free (`1-1000.txt`), copied manually to their
+  `1-1000%.txt` data-folder names, seeding self-heals a `skins/` directory that exists but holds
+  no `.txt` files, extraction failures log at WARN, and a missing/empty `main_skin.txt` now warns
+  loudly instead of silently spawning default-skin bots.
+- **Fixed the actual "skin never applies" root cause** (found via the new debug tracing):
+  `FakePlayer.getResolvedSkin()` was a leftover stub from the old skin-system removal that
+  unconditionally returned the invalid `BotSkin.fixed()` placeholder — the setter stored the
+  resolved pool skin, but every read got the placeholder back, so the apply step always concluded
+  "no valid resolved skin" and left the bot on the vanilla default. The getter now returns the
+  stored field again.
+- **Full skin-pipeline debug tracing** — new `debug.yml` → `skin-pool` toggle (also in
+  `/fpp settings` → `🐛 ᴅᴇʙᴜɢ` → **Skin Pool**) logs every step of the pipeline with a
+  `[DEBUG/SKIN-POOL]` prefix: pool loading (per file, with skin counts), the roll each spawn makes
+  (main vs rare tier), cache hit/miss, PNG download attempts per mirror with byte counts, the
+  pixel-analysis model verdict, the MineSkin request (variant, URL, rate-limit waits) and its HTTP
+  response code, response-shape parsing, cache writes, prewarm activity, and the final
+  `resolveEffectiveSkin` decision per bot (existing skin kept / pool skin applied / fell back to
+  vanilla and why). MineSkin HTTP errors now log the response body at WARN unconditionally, so a
+  quota rejection is visible without any debug flag.
+
+### Changed — GUI Organization & Polish Pass
+
+- **New per-bot `🎨 ꜱᴋɪɴ` category** in a bot's settings GUI (between Pathfinding and Danger):
+  - **Current Skin** — shows the skin's source (main pool / ✨ rare tier with odds / custom /
+    restored) and the player model (slim/classic), detected live from the signed texture via
+    `SkinModelDetector`. Clicking echoes the summary to the action bar.
+  - **Re-roll Skin** — clears the bot's resolved skin and rolls the pools again with identical
+    odds to a fresh spawn (rare tiers included); the new skin applies and persists immediately.
+- **`/fpp settings` → Debug category reorganized** — entries were in accretion order (each new
+  toggle appended wherever); now grouped logically: core switches (master, debug-chat, general,
+  startup) → bot systems (pathfinding, skin pool, commands, head AI, swap, chat, right-click ×2) →
+  NMS internals (master, bot, connection, damage, physics, skin) → storage & network (database ×5,
+  packets, network, config-sync).
+- **`/fpp list` bot entries enriched** — each bot's lore now shows its **live activity** (idle /
+  moving / mining / …, sharing the nametag activity engine, updated by the list's existing 1 Hz
+  refresh) and a **✨ ʀᴀʀᴇ 1/N skin line** when the bot wears a rare pool skin (no line for
+  main/custom skins, keeping common bots uncluttered).
+- `HelpGui` reviewed — already fully on the shared `GuiKit` utility (colors, fillers, click
+  sounds, text wrapping); no changes needed.
+
+### Changed — Full Text & Color Consistency Pass
+
+Every player-facing string now follows one style: small-caps lettering, `{prefix}` branding, gray
+body text, `#0079FF` accent for names/commands/values, white for emphasis, red for errors.
+
+- **`/fpp perf` section rewritten** (~25 keys in `language/en.yml`) — the entire performance command
+  output was plain English ("Provider:", "Benchmark started for 5 minutes…") while the rest of the
+  plugin used small-caps; now fully matched, including the `perf top` dashboard rows.
+- **Version-unsupported messages** converted to the same style (brand names, MC versions, and links
+  stay readable plain text).
+- **Nine hardcoded English messages moved into the lang system** — `/fpp save` (3), `/fpp setowner`
+  (3), `/fpp storage` deposit (2), and the bulk-task dispatch confirmation were built inline in Java
+  with raw `NamedTextColor`s and no prefix, so they were unthemeable and looked foreign next to
+  everything else. All now use new lang keys (`save-*`, `setowner-*`, `storage-none-enabled`,
+  `storage-walking`, `task-dispatched`) — server owners can retheme them like any other message.
+- **`/fpp tp` cleaned up** — it had its own homemade `[ꜰᴘᴘ]` prefix and three inline English
+  messages; converted to lang keys (`tp-no-body`, `tp-success`, `tp-active-bots`).
+- **`inv-busy`** was the one lang key still in plain English — converted.
+- **Glyph consistency**: 26+ occurrences of the wrong "g" codepoint (`ɡ` LATIN SMALL LETTER SCRIPT G
+  instead of `ɢ` LATIN LETTER SMALL CAPITAL G) fixed across `en.yml`, `SettingGui`, and
+  `BotSettingGui` — they render visibly differently in-game.
+- **Typos fixed in GUI text**: `ꜰᴏʟʟᴡ`→follow, `ꜰɪʜᴇᴅ`→fixed, `ɪɴᴠᴇɴᴛᴏʏ`→inventory, a stray `ɘ`
+  in "the", and syncronization→synchronization.
+- **Default nametag format** (`config.yml` `nametag.second-line.format`) now small-caps
+  (`ʙᴏᴛ ʙʏ {owner}`) to match the activity row above it — existing configs keep their current value.
+
+### Removed — Dead Code Sweep (~2,800 Lines)
+
+Full scan for code with zero remaining callers, mostly orphans of the removed extension/skin/identity
+systems. Everything below was verified unreachable before deletion; the shaded jar shrinks accordingly.
+
+- **`SkinManager` rewritten from ~1,700 to ~180 lines** — the entire player-name skin resolution
+  system was unreachable: the 1,000-name fallback account pool, Mojang name→skin fetching,
+  `applySkinByPlayerName/Username/Url`, `applySkinFromPlayer/OfflinePlayer`, `preloadSkin`, the
+  profile cache, and the guaranteed-skin fallback chain. What remains is exactly the live surface:
+  pool-based `resolveEffectiveSkin`, `applySkinFromProfile`/`applySkinFromTextures`,
+  `resetToDefaultSkin`, and `reload`.
+- **`SkinRepository` deleted** (~420 lines) — only reachable from the deleted SkinManager paths.
+- **`SkinFetchService` interface deleted** (+ the plugin's field/getter/setter) — its only real
+  implementation lived in the removed FPP-Skin extension; core only ever saw the NOOP.
+- **`BotIdentityCache` stripped to its static UUID helpers** (~460 → ~120 lines) — the stateful
+  name→UUID cache (YAML/DB loading, Mojang premium-UUID resolution, rate limiting, migrations) had
+  zero callers since the identity-system removal; only `deterministicBotUuid`/`isBotUuid`/
+  `offlineModeUuid` are live. The old `identities.by-name` YAML data and `bot_identities` DB rows
+  stay on disk untouched but are no longer read or written — one less startup I/O pass.
+- **Eight dead `Config` skin accessors deleted** (`skinMode`, `skinGuaranteed`, `skinCustomPool`,
+  `skinCustomByName`, `skinUseSkinFolder`, `skinClearCacheOnReload`, `skinMineSkinUrlUploadEnabled`,
+  `skinMineSkinVisibility`) — all read config keys that no shipped config contains, for systems that
+  no longer exist.
+- **`TpCommand`** unused color constants and stale `@SuppressWarnings` removed.
+
+### Added/Fixed alongside the sweep
+
+- **MineSkin API key support** — the one dead accessor worth keeping, `skinMineSkinApiKey`, is now
+  actually wired in: set `skin.mineskin-api-key` in `config.yml` (get one at mineskin.org/apikey)
+  and the skin-pool signer sends it as a Bearer token for a much larger quota than anonymous use.
+- **`/fpp reload` now reloads the skin system** — previously neither `reload config` nor
+  `reload all` re-read the skin pool files or cache; editing `skins/*.txt` required a full restart.
+- **Fixed: skin resolution failed entirely when NameMC's CDN blocks the server** — NameMC sits
+  behind Cloudflare bot protection, which 403s plain Java downloads from many hosting/datacenter
+  IPs even when the same URL works from a browser. The local PNG download only feeds slim/classic
+  pre-detection, and MineSkin fetches the texture URL itself from its own (unblocked) servers — so
+  a blocked local download is no longer fatal: the signer proceeds with `variant=auto` (MineSkin
+  runs the same pixel detection server-side) and the authoritative model is still read from the
+  signed texture afterward. The local download also now sends browser-like headers so it succeeds
+  on more networks in the first place.
+
+### Changed — `/fpp spawn`: One Bot Per Command, `--name` Support
+
+- **The bulk `[amount]` argument is gone** — `/fpp spawn 50` no longer exists; every invocation
+  spawns exactly one bot. The `fpp.spawn.multiple` / `fpp.spawn.mass` permissions and the
+  `limits.spawn-presets` config accessor died with it and were removed.
+- **The bot-type tag is gone** — the leading `afk` token is no longer accepted; bots always spawn
+  as the default type internally.
+- **New `--name <name>` flag** — `/fpp spawn --name Miner` spawns one custom-named bot. Names are
+  validated (1-16 chars, letters/numbers/underscores, badword filter), rejected when a bot already
+  uses them (`spawn-name-taken`), invalid (`spawn-invalid-name`), or when a real player with that
+  name is online (`spawn-name-online`) — three new lang keys. Works for both admin (`fpp.spawn`)
+  and user (`fpp.spawn.user`) tiers; the mandatory "ʙᴏᴛ ʙʏ {owner}" nametag row still marks every
+  bot as a bot regardless of name.
+- **World/coordinate arguments unchanged** (`/fpp spawn world_nether 100 64 -200`, `~ ~ ~`
+  relatives) — but `fpp.spawn.coords` is now **actually enforced**: the permission was declared in
+  plugin.yml and never checked in code, so user-tier spawners could place bots at arbitrary
+  coordinates despite the docs saying they can't.
+- Tab completion reworked: suggests `--name`, then worlds/coords; no more count presets.
+- `Commands.md` wiki page updated to match.
+
+### Removed — Licensing System
+
+The entire license verification system is gone: the `license` package (`LicenseManager`,
+`LicenseCredentialsApi`), the startup credential fetch + verify + license heartbeat, the
+"verification failed → disable plugin" kill switch, the shutdown hook, and the `debugLicense`
+config/debug plumbing. The plugin now enables unconditionally with no license checks and no
+license-related network calls. (The separate opt-in stats heartbeat, `heartbeat.enabled` in
+config.yml, is unrelated and remains.) Old `logging.debug.license` config-migration steps are kept
+so historical config upgrades still replay cleanly; the key is simply unused.
+
+### Changed — GUI Navigation Hub (cross-menu shortcuts)
+
+The GUIs were internally consistent but isolated — moving between them meant closing and retyping
+commands. `/fpp list` is now the hub:
+
+- **`/fpp list` gained two control-row buttons** (permission-gated, hidden without access):
+  **＋ ꜱᴘᴀᴡɴ ʙᴏᴛ** (slot 47) spawns one auto-named bot at your location without leaving the GUI —
+  the list's live refresh picks the new bot up within a second; **⚙ ɢʟᴏʙᴀʟ ꜱᴇᴛᴛɪɴɢꜱ** (slot 51)
+  jumps straight to the plugin-wide settings GUI.
+- **Shift-click on ✕ ᴄʟᴏꜱᴇ returns to the bot list** in both the per-bot settings GUI and the
+  global settings GUI (plain click still closes; global settings still save either way since
+  switching inventories fires the same close-and-save path). Both close buttons' lore now spells
+  out the two actions.
+- All shortcuts route through `player.performCommand(...)`, so every permission check still applies.
+
+### Fixed — PVE System Actually Works Now (new core engine, pathfinding-linked)
+
+The per-bot "🗡 ᴘᴠᴇ" settings (smart attack, mob selector, range, priority) stored values and fired
+a `pve_restart` event that only the **removed extension system** used to consume — nothing in core
+ever scanned for mobs or attacked. New core `PveController`:
+
+- **Supervisor + per-bot combat tasks** — a 1 s supervisor attaches a per-entity, every-tick combat
+  task to each bot whose smart-attack mode is on (Folia-safe: combat runs at the bot's region), and
+  detaches it on disable/despawn/shutdown. GUI toggles apply instantly via a direct refresh hook;
+  bots restored from persistence with PVE enabled resume automatically within a second.
+- **Targeting** — honors every existing setting: the mob-type selector (empty selection = all
+  hostiles via Bukkit's `Enemy` interface, so Slimes/Phantoms/Ghasts count), detect range, and
+  target priority (nearest / lowest-health). Sticky targeting with a grace margin prevents target
+  flapping at the range boundary. Never targets players or other bots.
+- **Combat** — faces the target (body + head), swings, and attacks through the same
+  `NmsPlayerSpawner.performAttack` path as `/fpp attack` (real crits/knockback), paced by the same
+  per-weapon cooldown table (now shared from `AttackCommand`). The cancellable `FppBotAttackEvent`
+  still fires per swing.
+- **Pathfinding link** — `ON_MOVE` mode chases the target through the shared pathfinding engine
+  (`Owner.ATTACK`): live destination supplier re-paths as the mob moves, navigation cancels on
+  arrival-in-reach or target loss, and PVE **never hijacks** a navigation owned by another system
+  (mining/moving/deposit) — it keeps attacking whatever wanders into reach instead. The nametag
+  activity line already labels this state "ᴄʜᴀꜱɪɴɢ ᴛᴀʀɢᴇᴛ", and `pathfinding` debug logs
+  `event=PVE_START` lines.
+- Wired into the shared despawn cleanup (`unregisterBotState`) like Move/Click/Find, so a bot
+  despawned mid-fight leaves no orphaned task or navigation.
+
+### Fixed — Nametag Activity Line: All Systems Now Report Their State
+
+The live activity row above bots said "ɪᴅʟᴇ" during several real actions because those systems were
+never wired into `BotActivity`:
+
+- **PVE combat now reports** — new `PveController.isEngaged()` feeds a "ꜰɪɢʜᴛɪɴɢ" label whenever
+  the bot has an acquired target. In-range combat previously showed idle (only the chase phase
+  surfaced, via the navigation owner); a hunting bot now shows "ᴄʜᴀꜱɪɴɢ ᴛᴀʀɢᴇᴛ · ꜰɪɢʜᴛɪɴɢ" while
+  closing in and "ꜰɪɢʜᴛɪɴɢ" while swinging.
+- **Sneaking now reports** — `/fpp sneak` previously had no activity representation at all.
+- **Refresh loop hardened + faster** — each bot's refresh is individually guarded so one failure
+  can't kill the repeating task (a dead loop silently froze every nametag on its last label
+  forever — the likely cause of persistent "ɪᴅʟᴇ"), and the cadence doubled from 1 s to 0.5 s so
+  labels react noticeably quicker. Failures log under the `general` debug topic.
+- `/fpp list`'s activity lore shares the same engine, so it picks all of this up automatically.
+
+### Added — Live "ᴘᴠᴇ ꜱᴛᴀᴛᴜꜱ" Entry in the PVE Category
+
+First tile of the `🗡 ᴘᴠᴇ` category now shows the engine's live state — `✘ ᴏꜰꜰ` (gray dye) /
+`◌ ꜱᴄᴀɴɴɪɴɢ ꜰᴏʀ ᴛᴀʀɢᴇᴛꜱ` (spyglass) / `⚔ ꜰɪɢʜᴛɪɴɢ` (diamond sword) — so it's verifiable at a
+glance that the PVE controller picked the bot up after toggling smart attack. Click to re-read.
+
+### Changed — Help GUI: Last Addon Traces Removed
+
+The dead command-extension "ᴀᴅᴅᴏɴꜱ" lore section and its plumbing (`HelpEntry.modifiers`,
+the per-command extension query) were stripped — extensions can't load, so the block could never
+render.
+
+### Changed — Help GUI: Addon Category Removed, Categories Updated
+
+- **The "ᴀᴅᴅᴏɴꜱ" category tab is gone** — extensions can no longer load, so the tab could never
+  contain anything; it also carried a dead legacy-name mapping (chat, personality, rank, swap,
+  waypoints, …) for commands that no longer exist. The addon-command feed into the help list and
+  the `addon` flag on help entries were removed with it.
+- **Category mapping refreshed for the real command set** — `sneak` now files under ᴀᴄᴛɪᴏɴꜱ,
+  `check`/`perf`/`delete` under ᴄᴏʀᴇ; removed mappings for long-deleted commands (`follow`,
+  `sleep`, `mine`, `place`, `use`). The ᴀᴄᴛɪᴏɴꜱ tab tooltip now describes what's actually there
+  (nav, mining, find, combat, storage).
+- Four category tabs (ᴀʟʟ · ᴄᴏʀᴇ · ʙᴏᴛꜱ · ᴀᴄᴛɪᴏɴꜱ) now sit in the bottom bar with the freed slot
+  falling back to filler glass.
+
+### Changed — Full Wiki Refresh + Dead-Code Follow-Up
+
+**Wiki brought in line with the current plugin:**
+- **Deleted `frontend/wiki/fpp-spoof/`** (19 pages) — documented the removed spoof extension and
+  its sub-extensions (chat, skins, LuckPerms, personality, swap, peaks, ping, AI chat).
+- **`Extensions.md` rewritten** from an 890-line developer guide for the removed loader into a
+  short page explaining what was removed and where each former extension feature lives now
+  (pathfinding/PVE/skins/tool-equip → core; chat/LuckPerms/spoofing → gone).
+- **`Home.md` rewritten** — v2.0.0 highlights now describe the actual feature set (pathfinding
+  engine, PVE, find automation, skin pools, fb07 UUIDs, live nametags, GUI suite, player
+  invisibility, perf tooling); marketplace/license/extension marketing removed.
+- **`Permissions.md` rewritten** against the real `Perm` node set — removed `fpp.spawn.multiple`/
+  `mass`, added `fpp.find`/`fpp.storage`/`fpp.perf`/`fpp.move.to`/`fpp.move.coords`, corrected the
+  spawn/movement descriptions.
+- **`FAQ.md` rewritten** — dropped all license/extension answers; added current answers for PVE,
+  pathfinding, skins, UUIDs, activity nametags, and `/fpp find`.
+- **`Configuration.md`** — old `skin.mode/pool/overrides/mineskin.*` section replaced with the real
+  `skin.rare-pools` / `skin.mineskin-api-key` keys + pool-folder docs; the "Extension-Only
+  Settings" section (13 nonexistent extensions) deleted.
+- **`Getting-Started.md`** — data-folder listing corrected (`skins/` added, `extensions/` removed),
+  first-steps move example updated to `--to`/`--coords`.
+- **`Commands.md` / `Database.md` / `Config-Sync.md` / `Placeholders.md`** — stale extension
+  references removed; `fpp_skin_cache` documented as dormant; placeholder docs match the code.
+
+**Dead code removed alongside:**
+- `DatabaseManager` skin-cache accessors (`getCachedSkin`, `cacheSkin`, `cleanExpiredSkinCache`,
+  `getSkinCacheSize`, `SkinCacheEntry`) and the startup cache-cleanup call — unreachable since the
+  SkinManager rewrite; the table itself stays (schema/migration chain untouched, now dormant).
+- Placeholders for removed systems: `%fpp_extensions%`, `%fpp_extensions_names%` (always 0/empty),
+  `%fpp_chat_<bot>%` (read the deleted chat system).
+
+### Added — Bots Can No Longer Earn Advancements
+
+New `BotAdvancementBlocker` listener cancels Paper's `PlayerAdvancementCriterionGrantEvent`
+(at `LOWEST` priority) for every bot, blocking advancement progress at the source — no completion,
+no toast, no chat announcement, and nothing accumulating in the bot's
+`world/advancements/<uuid>.json`. Real players are unaffected.
+
 ## v1.6.6.12.8 (Performance Optimization)
 
 ### Performance Optimizations

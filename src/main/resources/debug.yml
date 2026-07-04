@@ -111,11 +111,24 @@ config-sync: false
 chat: false
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SWAP DEBUG
+# PATHFINDING DEBUG
 # ═══════════════════════════════════════════════════════════════════════════════
-# Bot swap AI and behavior debugging.
+# Detailed navigation diagnostics logged to console: stuck/recalculate cycles, give-ups,
+# no-path failures, /fpp find's navigation watchdog, and mining stalls — position, target,
+# waypoint progress, path options, and the reason each failure happened. Also mirrored to
+# in-game chat for whoever has the pathfinding path-debug view enabled for that bot.
 # ═══════════════════════════════════════════════════════════════════════════════
-swap: false
+pathfinding: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SKIN POOL DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Full trace of the rarity skin pipeline: pool loading, the roll each spawn makes,
+# cache hits/misses, PNG download attempts (with HTTP codes), slim/classic model
+# detection, MineSkin signing requests/responses, and skin application. Turn this
+# on to diagnose bots spawning without their pool skin.
+# ═══════════════════════════════════════════════════════════════════════════════
+skin-pool: false
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # COMMAND DEBUG

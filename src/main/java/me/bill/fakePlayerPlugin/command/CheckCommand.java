@@ -17,7 +17,6 @@ import org.bukkit.plugin.Plugin;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
-import me.bill.fakePlayerPlugin.extension.ExtensionLoader;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
@@ -132,7 +131,7 @@ public final class CheckCommand implements FppCommand {
             }
 
             // Validate critical keys (handle nested paths)
-            String[][] criticalKeys = {{"max-bots"}, {"server-id"}, {"database", "type"}};
+            String[][] criticalKeys = {{"limits", "max-bots"}, {"database", "server-id"}, {"database", "mode"}};
             for (String[] path : criticalKeys) {
                 boolean present;
                 if (path.length == 1) {
@@ -255,11 +254,9 @@ public final class CheckCommand implements FppCommand {
 
             // Data directories
             File dataDir = new File(plugin.getDataFolder(), "data");
-            File extDir = new File(plugin.getDataFolder(), "extensions");
-            File langDir = new File(plugin.getDataFolder(), "lang");
+            File langDir = new File(plugin.getDataFolder(), "language");
             status(sender, "Data directory", dataDir.exists());
-            status(sender, "Extensions directory", extDir.exists());
-            status(sender, "Lang directory", langDir.exists());
+            status(sender, "Language directory", langDir.exists());
         }
 
         /* ================================================================ */
@@ -370,30 +367,15 @@ public final class CheckCommand implements FppCommand {
         }
 
         /* ================================================================ */
-        /*  9. EXTENSIONS                                                   */
+        /*  9. SOFT-DEPENDS                                                 */
         /* ================================================================ */
         if (checkExtensions) {
-            log(sender, "[9/12] Checking extensions...");
-            ExtensionLoader loader = plugin.getExtensionLoader();
-            if (loader == null) {
-                warn(sender, "ExtensionLoader is null");
-                warnings++;
-            } else {
-                int loaded = loader.getLoadedExtensions().size();
-                ok(sender, "ExtensionLoader active — " + loaded + " extension(s) loaded");
-                if (deep && loaded > 0) {
-                    log(sender, "  Loaded extensions:");
-                    loader.getLoadedExtensions().forEach(ext -> info(sender, "    - " + ext.getName()));
-                }
-            }
-
-            // Soft-depends
+            log(sender, "[9/12] Checking soft-depends...");
+            // (LuckPerms is intentionally not checked here — FPP no longer hooks it)
             Plugin papi = Bukkit.getPluginManager().getPlugin("PlaceholderAPI");
             Plugin we = Bukkit.getPluginManager().getPlugin("WorldEdit");
-            Plugin lp = Bukkit.getPluginManager().getPlugin("LuckPerms");
             status(sender, "PlaceholderAPI", papi != null && papi.isEnabled());
             status(sender, "WorldEdit", we != null && we.isEnabled());
-            status(sender, "LuckPerms", lp != null && lp.isEnabled());
         }
 
         /* ================================================================ */
@@ -460,22 +442,22 @@ public final class CheckCommand implements FppCommand {
         /* ================================================================ */
         if (deep || all) {
             log(sender, "[12/12] Checking language files...");
-            File langDir = new File(plugin.getDataFolder(), "lang");
+            File langDir = new File(plugin.getDataFolder(), "language");
             if (langDir.exists() && langDir.isDirectory()) {
                 File[] files = langDir.listFiles((d, n) -> n.endsWith(".yml"));
                 if (files != null && files.length > 0) {
                     ok(sender, "  " + files.length + " language file(s) found");
                 } else {
-                    warn(sender, "  No language files in lang/ directory");
+                    warn(sender, "  No language files in language/ directory");
                     warnings++;
                 }
             } else {
-                warn(sender, "  lang/ directory missing");
+                warn(sender, "  language/ directory missing");
                 warnings++;
             }
 
             // Verify a critical lang key exists
-            Component testMsg = Lang.get("spawn-usage");
+            Component testMsg = Lang.get("no-permission");
             if (testMsg == null) {
                 warn(sender, "  Lang key 'spawn-usage' missing");
                 warnings++;

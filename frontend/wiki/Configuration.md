@@ -94,18 +94,14 @@ Seconds between `/fpp spawn` uses. `0` = disabled.
 - `suppress-drops: false` — `true` = suppress all drops
 
 ### `skin`
-- `mode: player` — `player`, `random`, or `none`
-- `clear-cache-on-reload: true` — clear memory cache on `/fpp reload`
-- `guaranteed-skin: true` — attempt to ensure every bot gets a valid skin
-- `pool: []` — list of Minecraft usernames to use as skin sources
-- `overrides: {}` — per-bot-name skin overrides (`bot_name: skin_source_player`)
-- `use-skin-folder: false` — load `.png` skin files from `plugins/FakePlayerPlugin/skins/`
-- `mineskin`
-  - `url-upload-enabled: false`
-  - `api-key: ""`
-  - `visibility: private`
+- `rare-pools: true` — enable the rarity skin system (disable = vanilla default Steve/Alex)
+- `mineskin-api-key: ''` — optional MineSkin API key (mineskin.org/apikey) for a larger signing quota
 
-> Core keeps neutral skin persistence and profile refresh support. The user-facing `/fpp skin` command and spawn `--skin` hook are provided by the first-party `fpp-skin` extension.
+Skins are defined in `plugins/FakePlayerPlugin/skins/` as text files of NameMC skin URLs:
+`main_skin.txt` is the default every bot spawns with; each `1-<N>%.txt` file is a "1 in N" rarity
+pool rolled on fresh spawns (rarest first). Skins are signed once through MineSkin — with the
+slim/classic model auto-detected — and cached forever in `data/skin-cache.yml`. A bot keeps its
+rolled skin across despawns and restarts; re-roll from the bot's `🎨 ꜱᴋɪɴ` settings category.
 
 ### `automation`
 Defaults copied to newly spawned bots:
@@ -237,31 +233,12 @@ Debug logging is now controlled by `plugins/FakePlayerPlugin/debug.yml` for bett
 - `right-click: false` — Right-click automation
 - `right-click-head: false` — Right-click head rotation
 - `head-ai: false` — Head AI tracking
-- `swap: false` — Swap system debug category (used when the first-party `fpp-swap` extension is installed)
+- `swap: false` — Swap system debug category
 - `packets: false` — Packet injection/manipulation
 
 > You can toggle any of these at runtime via **`/fpp settings`** → the **🐛 ᴅᴇʙᴜɢ** category. Changes are saved to `debug.yml` immediately. Run `/fpp reload` after manual edits to `debug.yml`.
 ---
 
-## Extension-Only Settings
-
-The following systems are first-party extensions. Their current defaults live in each extension data folder under `plugins/FakePlayerPlugin/extensions/<extension-name>/config.yml`:
-
-- `fpp-aichat` — AI personalities and direct/public AI chat
-- `fpp-chat` — fake chat event triggers, bot-to-bot replies, keyword reactions
-- `fpp-command` — stored right-click command editor
-- `fpp-groups` — personal bot groups
-- `fpp-list` — bot tab-list and server-list count/sample handling
-- `fpp-luckperms` — bot LuckPerms group/display integration
-- `fpp-nametag` — external NameTag plugin integration
-- `fpp-pathfinder` — extension pathfinding settings tabs and tuning
-- `fpp-peaks` — peak-hour bot scheduling
-- `fpp-ping` — ping command and ping simulation
-- `fpp-skin` — skin command and spawn `--skin` hook
-- `fpp-swap` — bot session rotation
-- `fpp-waypoints` — route and patrol storage
-
----
 
 The plugin includes a built-in **ConfigMigrator** that:
 1. Creates a timestamped backup before any change

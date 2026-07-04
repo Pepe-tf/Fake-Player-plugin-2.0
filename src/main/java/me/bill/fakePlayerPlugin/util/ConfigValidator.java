@@ -1,8 +1,5 @@
 package me.bill.fakePlayerPlugin.util;
 
-import java.time.DateTimeException;
-import java.time.ZoneId;
-
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
@@ -32,12 +29,6 @@ public final class ConfigValidator {
                     issues++;
                 }
             }
-        }
-
-        if (Config.fakeChatIntervalMin() > Config.fakeChatIntervalMax()) {
-            FppLogger.warn("[Config] fake-chat.interval.min > fake-chat.interval.max - "
-                    + "set min ≤ max for correct behaviour.");
-            issues++;
         }
 
         if (Config.maxBots() < 0) {
@@ -95,27 +86,6 @@ public final class ConfigValidator {
         }
         if (Config.collisionBotStrength() < 0) {
             FppLogger.warn("[Config] collision.bot-strength must be >= 0.");
-            issues++;
-        }
-
-        if (Config.peakHoursEnabled() && !Config.swapEnabled()) {
-            FppLogger.warn("[Config] peak-hours.enabled is true but swap.enabled is false - "
-                    + "peak-hours will not run until swap is enabled (/fpp swap on).");
-            issues++;
-        }
-        if (Config.peakHoursStaggerSeconds() <= 0) {
-            FppLogger.warn(
-                    "[Config] peak-hours.stagger-seconds must be > 0 (got " + Config.peakHoursStaggerSeconds() + ").");
-            issues++;
-        }
-        String phTz = Config.peakHoursTimezone();
-        try {
-            var ignored = ZoneId.of(phTz);
-        } catch (DateTimeException e) {
-            FppLogger.warn("[Config] peak-hours.timezone \""
-                    + phTz
-                    + "\" is not a valid ZoneId (e.g. \"UTC\", \"America/New_York\") -"
-                    + " falling back to UTC at runtime.");
             issues++;
         }
 

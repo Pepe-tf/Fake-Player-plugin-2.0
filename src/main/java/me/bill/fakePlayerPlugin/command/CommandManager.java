@@ -18,8 +18,6 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.api.FppAddonCommand;
-import me.bill.fakePlayerPlugin.api.FppCommandExtension;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -46,8 +44,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
     private final List<FppCommand> commands = new ArrayList<>();
     private final Map<String, FppCommand> byName = new LinkedHashMap<>();
-    private final Map<String, FppAddonCommand> addonByName = new LinkedHashMap<>();
-    private final Map<String, List<FppCommandExtension>> commandExtensions = new LinkedHashMap<>();
     private final FakePlayerPlugin plugin;
 
     public CommandManager(FakePlayerPlugin plugin) {
@@ -69,64 +65,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
     public List<FppCommand> getCommands() {
         return Collections.unmodifiableList(commands);
-    }
-
-    public List<FppAddonCommand> getAddonCommands() {
-        return addonByName.values().stream().distinct().toList();
-    }
-
-    public List<FppCommandExtension> getCommandExtensions() {
-        return commandExtensions.values().stream()
-                .flatMap(List::stream)
-                .distinct()
-                .toList();
-    }
-
-    public List<FppCommandExtension> getCommandExtensions(String commandName) {
-        List<FppCommandExtension> extensions = commandExtensions.get(commandName.toLowerCase(Locale.ROOT));
-        return extensions == null ? List.of() : extensions.stream().distinct().toList();
-    }
-
-    /**
-     * Registers an addon sub-command contributed via {@link me.bill.fakePlayerPlugin.api.FppApi}.
-     * Duplicate names (case-insensitive) are silently ignored.
-     */
-    public void registerAddonCommand(@NotNull FppAddonCommand command) {
-        String key = command.getName().toLowerCase();
-        if (byName.containsKey(key) || addonByName.containsKey(key)) return;
-        addonByName.put(key, command);
-        for (String alias : command.getAliases()) {
-            addonByName.putIfAbsent(alias.toLowerCase(), command);
-        }
-        Config.debug("Registered addon command: fpp " + command.getName());
-    }
-
-    public void unregisterAddonCommand(@NotNull FppAddonCommand command) {
-        String key = command.getName().toLowerCase(Locale.ROOT);
-        FppAddonCommand existing = addonByName.get(key);
-        if (existing == null) return;
-        addonByName.entrySet().removeIf(entry -> entry.getValue() == existing);
-        Config.debug("Unregistered addon command: fpp " + command.getName());
-    }
-
-    public void registerCommandExtension(@NotNull FppCommandExtension extension) {
-        registerExtensionKey(extension.getCommandName(), extension);
-        for (String alias : extension.getAliases()) registerExtensionKey(alias, extension);
-        Config.debug("Registered command extension: fpp " + extension.getCommandName());
-    }
-
-    public void unregisterCommandExtension(@NotNull FppCommandExtension extension) {
-        for (List<FppCommandExtension> list : commandExtensions.values()) {
-            list.removeIf(existing -> existing == extension);
-        }
-        commandExtensions.entrySet().removeIf(e -> e.getValue().isEmpty());
-        Config.debug("Unregistered command extension: fpp " + extension.getCommandName());
-    }
-
-    private void registerExtensionKey(String key, FppCommandExtension extension) {
-        commandExtensions
-                .computeIfAbsent(key.toLowerCase(Locale.ROOT), k -> new ArrayList<>())
-                .add(extension);
     }
 
     public void setHelpGui(HelpGui helpGui) {
@@ -166,16 +104,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         FppCommand sub = byName.get(subName);
 
         if (sub == null) {
-            // Check addon commands.
-            FppAddonCommand addon = addonByName.get(subName);
-            if (addon != null) {
-                if (!addon.canUse(sender)) {
-                    sender.sendMessage(Lang.get("no-permission"));
-                    return true;
-                }
-                addon.execute(sender, Arrays.copyOfRange(args, 1, args.length));
-                return true;
-            }
             Config.debug(sender.getName() + " used unknown sub-command: " + subName);
             sender.sendMessage(Lang.get("unknown-command", label));
             return true;
@@ -202,7 +130,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 return true;
             }
         }
-        if (executeCommandExtensions(subName, sender, subArgs)) return true;
         if (expandTaskTargets(sender, subName, sub, subArgs)) return true;
         sub.execute(sender, subArgs);
         return true;
@@ -226,8 +153,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                         "settings",
                         "xp",
                         "cmd",
-                        "rename",
-                        "skin",
                         "left-click",
                         "right-click")
                 .contains(name.toLowerCase(Locale.ROOT));
@@ -244,7 +169,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 sub.execute(sender, prepend(fp.getName(), rest));
                 started++;
             }
-            sender.sendMessage(Component.text("Task dispatched to " + started + " bot(s).", NamedTextColor.YELLOW));
+            sender.sendMessage(Lang.get("task-dispatched", "count", String.valueOf(started)));
             return true;
         }
         return false;
@@ -272,21 +197,6 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         return Set.of("mine", "find", "place", "use", "storage").contains(name.toLowerCase());
     }
 
-    private boolean executeCommandExtensions(String commandName, CommandSender sender, String[] args) {
-        List<FppCommandExtension> extensions = commandExtensions.get(commandName.toLowerCase(Locale.ROOT));
-        if (extensions == null || extensions.isEmpty()) return false;
-        for (FppCommandExtension extension : extensions) {
-            try {
-                if (!extension.canUse(sender)) continue;
-                if (extension.execute(sender, args)) return true;
-            } catch (Throwable t) {
-                sender.sendMessage(
-                        Component.text("Addon command extension failed: " + t.getMessage(), NamedTextColor.RED));
-            }
-        }
-        return false;
-    }
-
     private static String[] prepend(String first, String[] rest) {
         String[] out = new String[rest.length + 1];
         out[0] = first;
@@ -303,18 +213,11 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
 
-            List<String> names = commands.stream()
+            return commands.stream()
                     .filter(cmd -> safeCanUse(cmd, sender))
                     .map(FppCommand::getName)
                     .filter(name -> name.startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toCollection(ArrayList::new));
-            // Add matching addon command names.
-            for (FppAddonCommand addon : addonByName.values()) {
-                if (safeCanUse(addon, sender) && addon.getName().startsWith(args[0].toLowerCase())) {
-                    names.add(addon.getName());
-                }
-            }
-            return names;
         }
 
         if (args.length >= 2) {
@@ -322,27 +225,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             FppCommand sub = byName.get(subName);
 
             if (sub != null && safeCanUse(sub, sender)) {
-                String[] rawSubArgs = Arrays.copyOfRange(args, 1, args.length);
-                List<String> result = new ArrayList<>(safeTabComplete(sub, sender, rawSubArgs));
-                List<FppCommandExtension> extensions = commandExtensions.get(subName);
-                if (extensions != null) {
-                    for (var extension : extensions) {
-                        try {
-                            if (!extension.canUse(sender)) continue;
-                            for (String suggestion : extension.tabComplete(sender, rawSubArgs)) {
-                                if (!result.contains(suggestion)) result.add(suggestion);
-                            }
-                        } catch (Throwable ignored) {
-                        }
-                    }
-                }
-                return result;
-            }
-
-            // Check addon tab-complete.
-            FppAddonCommand addon = addonByName.get(subName);
-            if (addon != null) {
-                return safeTabComplete(addon, sender, Arrays.copyOfRange(args, 1, args.length));
+                return safeTabComplete(sub, sender, Arrays.copyOfRange(args, 1, args.length));
             }
         }
 
@@ -357,23 +240,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         }
     }
 
-    private boolean safeCanUse(FppAddonCommand command, CommandSender sender) {
-        try {
-            return command.canUse(sender);
-        } catch (Throwable ignored) {
-            return false;
-        }
-    }
-
     private List<String> safeTabComplete(FppCommand command, CommandSender sender, String[] args) {
-        try {
-            return command.tabComplete(sender, args);
-        } catch (Throwable ignored) {
-            return Collections.emptyList();
-        }
-    }
-
-    private List<String> safeTabComplete(FppAddonCommand command, CommandSender sender, String[] args) {
         try {
             return command.tabComplete(sender, args);
         } catch (Throwable ignored) {
