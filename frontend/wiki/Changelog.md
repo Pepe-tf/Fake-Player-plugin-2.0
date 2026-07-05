@@ -2,6 +2,15 @@
 
 ## v2.0.0
 
+### Added — Minecraft 26.2 Support
+
+Extended the runtime compatibility gate to cover the year-based `26.2.x` releases (Minecraft 26.2 "Chaos Cubed").
+
+- `CompatibilityChecker.isSupportedVersion` now accepts `26.2.x` alongside `26.1.x` (old `1.x.y` remains supported below `1.21.12`).
+- The unsupported-version warning banner and wiki version ranges updated to read `up to 1.21.11, and 26.1.x–26.2.x`.
+- Compile-time Paper dev bundle stays on the stable `26.1.2.build.65-stable`; 26.2 runs via the existing version-safe NMS reflection.
+
+
 Major version bump to **2.0.0**, opening the 2.0 release line. No behavioral changes from `1.6.6.12.8` beyond the items below.
 
 - **Version** — `1.6.6.12.8` → `2.0.0` (`build.gradle.kts`, `plugin.yml`, Velocity companion `velocity-plugin.json`).

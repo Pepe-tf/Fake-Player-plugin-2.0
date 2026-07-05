@@ -203,7 +203,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
             FppLogger.warn("═══════════════════════════════════════════════════════════════════");
             FppLogger.warn("  Plugin    : FakePlayerPlugin v" + pv);
             FppLogger.warn("  Server MC : " + detectedMcVersion + "  (NOT supported)");
-            FppLogger.warn("  Supported : up to MC 1.21.11, and 26.1.x");
+            FppLogger.warn("  Supported : up to MC 1.21.11, and 26.1.x–26.2.x");
             FppLogger.warn("  Action    : All /fpp commands have been DISABLED.");
             FppLogger.warn("  Support   : If you think this is a bug, contact us:");
             FppLogger.warn("              Discord → https://discord.gg/Q9cd9frzRt");

@@ -80,10 +80,10 @@ public final class CompatibilityChecker {
      * <p>Supported ranges:
      * <ul>
      *   <li>Old format {@code 1.x.y}: any version below {@code 1.21.12}</li>
-     *   <li>New year-based format {@code 26.1.x}: fully supported</li>
+     *   <li>New year-based format {@code 26.1.x} and {@code 26.2.x}: fully supported</li>
      * </ul>
      * <p>
-     * Versions outside these ranges (e.g. {@code 1.21.12+}, {@code 26.2.x}, unknown formats)
+     * Versions outside these ranges (e.g. {@code 1.21.12+}, {@code 26.3.x}, unknown formats)
      * are treated as unsupported until explicitly tested and added here.
      */
     public static boolean isSupportedVersion(String version) {
@@ -96,8 +96,8 @@ public final class CompatibilityChecker {
             return !isVersionAtLeast(version, "1.21.12");
         }
 
-        // New year-based format: 26.1.x
-        if (parts[0] == 26 && parts.length >= 2 && parts[1] == 1) {
+        // New year-based format: 26.1.x and 26.2.x
+        if (parts[0] == 26 && parts.length >= 2 && (parts[1] == 1 || parts[1] == 2)) {
             return true;
         }
 

@@ -4,7 +4,7 @@ FPP spawns server-side bot entities that behave like players — useful for **AF
 
 ## Requirements
 
-- **Server:** Paper/Purpur 1.21+ (up to `1.21.11`) or Folia 1.21+
+- **Server:** Paper/Purpur 1.21+ (up to `1.21.11` and the year-based `26.1.x`–`26.2.x` releases) or Folia
 - **Java:** JDK 21+
 - **RAM:** 2GB+ recommended for optimal performance
 - **Optional soft-depends:** PlaceholderAPI (placeholders), WorldEdit (selection helpers), Spark (`/fpp perf`)

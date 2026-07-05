@@ -3,7 +3,7 @@
 ## General
 
 ### Q: What server software is supported?
-**A:** Paper/Purpur 1.21+ (up to 1.21.11) and Folia 1.21+. FPP has full Folia support with region-threaded bot spawning.
+**A:** Paper/Purpur 1.21+ (up to 1.21.11 and the year-based 26.1.x–26.2.x releases) and Folia. FPP has full Folia support with region-threaded bot spawning.
 
 ### Q: Does it work on Spigot or CraftBukkit?
 **A:** No. FPP uses Paper-specific APIs and NMS Mojang-mapped classes.
