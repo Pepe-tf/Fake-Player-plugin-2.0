@@ -194,6 +194,8 @@ chunk-loading:
 # ═══════════════════════════════════════════════════════════════════════════════
 automation:
   auto-eat: true
+  # Default hunger level (0-19) at or below which a bot eats. Per-bot overridable in the settings GUI.
+  auto-eat-threshold: 17
   auto-place-bed: true
   auto-milk: true
   prevent-bad-omen: true

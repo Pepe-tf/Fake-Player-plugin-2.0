@@ -7,6 +7,58 @@ Major version bump to **2.0.0**, opening the 2.0 release line. No behavioral cha
 - **Version** — `1.6.6.12.8` → `2.0.0` (`build.gradle.kts`, `plugin.yml`, Velocity companion `velocity-plugin.json`).
 - **Personality API in core** — the personality API now ships in core (`api/personality/`); first-party extensions updated to consume it.
 
+### Fixed — Right-Click No Longer Activates Buttons/Levers From the Mounting Block's Face
+
+Right-click had a "helper" (`checkForAttachedInteractiveBlock`) that, whenever the bot's ray hit a block face, looked for a button/lever/switch mounted on that face and redirected the interaction to it. The result: the bot would flip a lever or press a button just by aiming anywhere on the block it's attached to (even a corner), without ever aiming at the switch itself.
+
+- Removed that redirect entirely. The interaction ray trace already uses the block **OUTLINE** shape (`ignorePassableBlocks=false`), so aiming at a button/lever's real hit box returns that block directly — the bot must now actually aim at the switch to trigger it, exactly like a real player.
+- Aiming at the mounting block's face (or corner) now interacts with that block, not the attached switch.
+
+### Added — Left/Right-Click Walk to a Reachable Vantage (prefer the player's spot)
+
+When the aimed target is out of reach, the bot no longer just searches for a stand spot hugging the block (which could land it somewhere the target isn't actually reachable/visible from). It now first tries to walk to a spot **around the command sender's own standing location** — a vantage the target is provably aim-able from, since the player just aimed at it from there — and only falls back to the old near-the-target search if that fails.
+
+- New `findStandLocationNear` (searches a walkable spot around an arbitrary centre, including that centre block) + `resolveStandLocation` (prefers the sender's location, falls back to near-target) in both click commands.
+- Console/bot-issued clicks keep the near-target search (no player vantage to prefer).
+- If neither yields a reachable spot, the command still reports "no path" as before.
+
+### Changed — Left/Right-Click Aim at the Exact Point You're Looking At
+
+When a player runs `/fpp left-click` or `/fpp right-click` while looking at a block, the bot now aims its head at the **exact point on the block the player was looking at**, instead of snapping to the geometric center of the block face.
+
+- Both commands capture the sender's precise ray-trace hit position (`RayTraceResult#getHitPosition()`) and aim there from the bot's own eyes; they fall back to the block-face center only when no precise point is available (entity targets, or a ray with no hit position).
+- The aim point is a world coordinate, so it stays correct even when the bot has to walk to a stand location before acting.
+- Right-click additionally seeds its first interaction with that exact hit point (the per-tick loop still refreshes it from the bot's own view afterward).
+- Internally, `lockAndStartClicking` now takes a pre-computed aim `Vector` instead of a `BlockFace` — the block-face-center math moved to the call sites.
+
+### Changed — Permission Node Audit
+
+A pass over every permission node so a permission manager (LuckPerms, etc.) sees a clean, complete set:
+
+- **Removed the dead `fpp.farm`** node — an orphaned constant with no command, no usage, and no `plugin.yml` declaration.
+- **Completed the `fpp.op` / `fpp.admin` wildcard** — added the previously-missing `fpp.tph` and `fpp.xp` so the admin wildcard explicitly grants every command node.
+- **Documented the per-bot GUI permission model** in the Permissions wiki: all per-bot settings (general, PVE, pathfinding, skin, **auto-eat**, rename, danger) live behind `fpp.settings`, and a bot's **owner** (or a shared controller) can always manage their own bot's settings without it. No individual per-bot toggle (including auto-eat) has its own node.
+
+### Added — Task Pause/Resume + Single-Action Enforcement (no multitasking)
+
+Bot tasks are now mutually exclusive and interruptible:
+
+- **One action at a time** — starting any user task (`move`, `find`, `left-click`/mine, `right-click`/use, `attack`) now stops every other running task for that bot first, via a central `FakePlayerManager.beginExclusiveAction`. No more a bot mining *and* attacking *and* walking at once.
+- **PVE yields to manual control** — the per-bot PVE auto-combat now stands down whenever a user-issued task is active (`hasActiveManualAction`) and re-engages automatically once that task finishes.
+- **Pause/resume** — a transient `FakePlayer.actionsPaused` flag is honoured by every action tick (pathfinding movement, find/mine, left-click, right-click, attack, PVE). While set, each loop no-ops **without losing its state**, so the task resumes seamlessly when the flag clears. This is the mechanism auto-eat uses to interrupt and then continue whatever the bot was doing.
+
+### Overhauled — Auto-Eat System (per-bot toggle, food list, hunger threshold, action pause)
+
+The old auto-eat was a bare instant-consume with no controls. It is now a proper `AutoEatController` with a full per-bot **🍖 ᴀᴜᴛᴏ-ᴇᴀᴛ** settings category:
+
+- **Toggle** — enable/disable auto-eat per bot.
+- **Hunger threshold** — a chat-input tile to set the hunger level (0-19) at or below which the bot eats. Global default `automation.auto-eat-threshold` (17) in `config.yml`.
+- **Allowed foods** — a dedicated paged **food-list GUI** (mirrors the PVE mob selector). Toggle exactly which foods the bot may eat; **none selected = eat any food**. Food data lives in one source of truth (`BotFoods`) that drives both the list and the eating math.
+- **Priority** — when hungry the bot reaches for food **off-hand → hotbar → main inventory**, so a food pinned in the off-hand is always eaten first.
+- **Realistic eat** — the bot **pauses its current action** (via the new pause/resume system below), holds the food, eats over the vanilla ~1.6s window, applies nutrition + saturation (plus golden-apple / enchanted-apple / honey effects), then **switches back to whatever it was holding** and resumes the paused task.
+- **Nametag** — shows a live `ᴇᴀᴛɪɴɢ` activity line while eating.
+- **Persistence** — the enabled flag, threshold and allowed-food list persist across restarts (YAML active-bot snapshot).
+
 ### Added — `/fpp rename` + Rename Tile in the Per-Bot Settings GUI
 
 Bots can now be renamed. This changes only a bot's **display name** — the floating name-tag name row, its entity display name, the tab-list entry and command output. The login name and deterministic `fb07` UUID (identity) are never touched, and the mandatory "ʙᴏᴛ ʙʏ {owner}" disclosure row on the name-tag is preserved.

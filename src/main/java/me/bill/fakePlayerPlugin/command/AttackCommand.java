@@ -182,6 +182,7 @@ public final class AttackCommand implements FppCommand {
         Player bot = fp.getPlayer();
         if (bot == null) return;
         stopAttacking(fp.getUuid());
+        manager.beginExclusiveAction(fp.getUuid(), FakePlayerManager.BotAction.ATTACK);
         FppApiImpl.fireTaskEvent(fp, "attack", FppBotTaskEvent.Action.START);
         UUID uuid = fp.getUuid();
         cooldownTicks.put(uuid, 0);
@@ -195,7 +196,7 @@ public final class AttackCommand implements FppCommand {
             stopAttacking(uuid);
             return;
         }
-        if (fp.isInventoryOpen()) return;
+        if (fp.isInventoryOpen() || fp.isActionsPaused()) return;
 
         int cooldown = cooldownTicks.getOrDefault(uuid, 0);
         if (cooldown > 0) {

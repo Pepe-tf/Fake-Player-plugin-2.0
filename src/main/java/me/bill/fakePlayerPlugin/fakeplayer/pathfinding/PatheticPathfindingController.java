@@ -344,7 +344,7 @@ public final class PatheticPathfindingController implements PathfindingService.C
         if (states.get(uuid) != state) return; // superseded/cancelled — task will be cancelled shortly
 
         Player bot = fp.getPlayer();
-        if (bot == null || !bot.isOnline() || fp.isFrozen()) return;
+        if (bot == null || !bot.isOnline() || fp.isFrozen() || fp.isActionsPaused()) return;
 
         Location current = bot.getLocation();
         Location finalTarget = state.lastTarget;

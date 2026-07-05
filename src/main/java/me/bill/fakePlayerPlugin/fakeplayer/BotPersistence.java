@@ -537,6 +537,8 @@ public final class BotPersistence {
             section.put("nav-avoid-lava", fp.isNavAvoidLava());
             section.put("swim-ai-enabled", fp.isSwimAiEnabled());
             section.put("auto-eat-enabled", fp.isAutoEatEnabled());
+            section.put("auto-eat-threshold", fp.getAutoEatHungerThreshold());
+            section.put("auto-eat-foods", BotFoods.serialize(fp.getAutoEatFoods()));
             section.put("auto-place-bed-enabled", fp.isAutoPlaceBedEnabled());
             section.put("auto-milk-enabled", fp.isAutoMilkEnabled());
             section.put("prevent-bad-omen", fp.isPreventBadOmen());
@@ -618,6 +620,8 @@ public final class BotPersistence {
             section.put("nav-avoid-lava", fp.isNavAvoidLava());
             section.put("swim-ai-enabled", fp.isSwimAiEnabled());
             section.put("auto-eat-enabled", fp.isAutoEatEnabled());
+            section.put("auto-eat-threshold", fp.getAutoEatHungerThreshold());
+            section.put("auto-eat-foods", BotFoods.serialize(fp.getAutoEatFoods()));
             section.put("auto-place-bed-enabled", fp.isAutoPlaceBedEnabled());
             section.put("auto-milk-enabled", fp.isAutoMilkEnabled());
             section.put("prevent-bad-omen", fp.isPreventBadOmen());
@@ -748,6 +752,8 @@ public final class BotPersistence {
                                 skinSignature,
                                 Set.of(),
                                 Config.autoEatEnabled(),
+                                Config.autoEatHungerThreshold(),
+                                "",
                                 Config.autoPlaceBedEnabled(),
                                 row.autoMilkEnabled(),
                                 row.preventBadOmen(),
@@ -838,6 +844,11 @@ public final class BotPersistence {
                 boolean swimAiEnabled = !(swimAiRaw instanceof Boolean sae) || sae;
                 Object autoEatRaw = map.get("auto-eat-enabled");
                 boolean autoEatEnabled = autoEatRaw instanceof Boolean aee ? aee : Config.autoEatEnabled();
+                Object autoEatThreshRaw = map.get("auto-eat-threshold");
+                int autoEatThreshold =
+                        autoEatThreshRaw instanceof Number aet ? aet.intValue() : Config.autoEatHungerThreshold();
+                Object autoEatFoodsRaw = map.get("auto-eat-foods");
+                String autoEatFoods = autoEatFoodsRaw instanceof String aef ? aef : "";
                 Object autoBedRaw = map.get("auto-place-bed-enabled");
                 boolean autoPlaceBedEnabled = autoBedRaw instanceof Boolean apb ? apb : Config.autoPlaceBedEnabled();
                 Object autoMilkRaw = map.get("auto-milk-enabled");
@@ -937,6 +948,8 @@ public final class BotPersistence {
                         skinSignature,
                         sharedControllers,
                         autoEatEnabled,
+                        autoEatThreshold,
+                        autoEatFoods,
                         autoPlaceBedEnabled,
                         autoMilkEnabled,
                         preventBadOmen,
@@ -1079,6 +1092,8 @@ public final class BotPersistence {
             fp.setNavAvoidLava(sb.navAvoidLava);
             fp.setSwimAiEnabled(sb.swimAiEnabled);
             fp.setAutoEatEnabled(sb.autoEatEnabled);
+            fp.setAutoEatHungerThreshold(sb.autoEatThreshold);
+            fp.setAutoEatFoods(BotFoods.parse(sb.autoEatFoods));
             fp.setAutoPlaceBedEnabled(sb.autoPlaceBedEnabled);
             fp.setAutoMilkEnabled(sb.autoMilkEnabled);
             fp.setPreventBadOmen(sb.preventBadOmen);
@@ -1590,6 +1605,8 @@ public final class BotPersistence {
             String skinSignature,
             Set<UUID> sharedControllers,
             boolean autoEatEnabled,
+            int autoEatThreshold,
+            String autoEatFoods,
             boolean autoPlaceBedEnabled,
             boolean autoMilkEnabled,
             boolean preventBadOmen,

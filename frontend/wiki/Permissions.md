@@ -63,7 +63,13 @@ FPP uses a two-tier permission system with granular sub-nodes.
 - `fpp.setowner` — transfer bot ownership
 - `fpp.rename` — rename a bot's display name (owners/admins can also rename from the per-bot settings GUI)
 - `fpp.save` — force-save all active bots
-- `fpp.settings` — open settings GUIs (global and per-bot)
+- `fpp.settings` — open the settings GUIs (global **and** per-bot)
+
+> **Per-bot GUI systems** — the per-bot settings GUI (general, PVE, pathfinding, skin, **auto-eat**,
+> rename, danger) is one surface governed by `fpp.settings`. A player who **owns** (or has been
+> shared) a bot can always open that bot's settings — including toggling auto-eat, choosing allowed
+> foods and setting the hunger threshold — without needing `fpp.settings`. The node is only required
+> to manage bots you don't own. None of these individual per-bot toggles have their own node.
 
 ### System
 - `fpp.reload` — hot-reload config, lang, and skin pools

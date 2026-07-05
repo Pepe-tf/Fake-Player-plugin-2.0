@@ -107,8 +107,6 @@ public final class Perm {
 
     public static final String PERF = "fpp.perf";
 
-    public static final String FARM = "fpp.farm";
-
     public static final String STOP = "fpp.stop";
 
     public static final String SETOWNER = "fpp.setowner";

@@ -297,6 +297,7 @@ public final class MoveCommand implements FppCommand {
     private void startPathfindMove(
             FakePlayer fp, Supplier<Location> destination, String destinationLabel, CommandSender sender) {
         UUID uuid = fp.getUuid();
+        manager.beginExclusiveAction(uuid, FakePlayerManager.BotAction.MOVE);
         pathfinding.navigate(
                 fp,
                 new PathfindingService.NavigationRequest(

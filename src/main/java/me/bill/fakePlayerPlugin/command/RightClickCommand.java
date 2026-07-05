@@ -14,8 +14,6 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.Switch;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -176,6 +174,8 @@ public final class RightClickCommand implements FppCommand {
 
         Object target = null;
         BlockFace targetFace = null;
+        // Exact point the sender is looking at on the block, so the bot aims precisely there.
+        org.bukkit.util.Vector aimPoint = null;
         if (sender instanceof Player player) {
             target = rayTraceTargetPlayer(player);
             if (isSelfTarget(bot, target)) {
@@ -183,7 +183,10 @@ public final class RightClickCommand implements FppCommand {
             }
             if (target instanceof Block) {
                 org.bukkit.util.RayTraceResult ray = player.rayTraceBlocks(CLICK_REACH);
-                if (ray != null) targetFace = ray.getHitBlockFace();
+                if (ray != null) {
+                    targetFace = ray.getHitBlockFace();
+                    aimPoint = ray.getHitPosition();
+                }
             }
             if (Config.debugRightClickHead()) {
                 if (target != null) {
@@ -205,7 +208,10 @@ public final class RightClickCommand implements FppCommand {
             }
             if (target instanceof Block && bot instanceof Player) {
                 org.bukkit.util.RayTraceResult ray = bot.rayTraceBlocks(CLICK_REACH);
-                if (ray != null) targetFace = ray.getHitBlockFace();
+                if (ray != null) {
+                    targetFace = ray.getHitBlockFace();
+                    aimPoint = ray.getHitPosition();
+                }
             }
             if (Config.debugRightClickHead() && target != null) {
                 FppLogger.debug(
@@ -217,13 +223,13 @@ public final class RightClickCommand implements FppCommand {
         }
 
         final ClickMode finalMode = mode;
-        final BlockFace finalFace = targetFace;
+        final org.bukkit.util.Vector finalAim = aimPoint != null ? aimPoint : computeFaceCenter(target, targetFace);
         if (target != null) {
             Location targetLoc = getTargetLocation(bot, target);
             if (targetLoc != null) {
                 double dist = bot.getLocation().distance(targetLoc);
                 if (dist <= CLICK_REACH) {
-                    lockAndStartClicking(fp, finalMode, target, finalFace);
+                    lockAndStartClicking(fp, finalMode, target, finalAim);
                     String msgKey =
                             switch (finalMode) {
                                 case ONCE -> "right-click-started-once";
@@ -234,11 +240,10 @@ public final class RightClickCommand implements FppCommand {
                     sender.sendMessage(Lang.get(msgKey, "name", fp.getDisplayName()));
                     return true;
                 } else {
-                    Location standLoc = findStandLocationNearTarget(bot.getWorld(), targetLoc);
+                    Location standLoc = resolveStandLocation(bot.getWorld(), sender, targetLoc);
                     if (standLoc != null) {
                         final Object finalTarget = target;
-                        startNavigation(
-                                fp, standLoc, () -> lockAndStartClicking(fp, finalMode, finalTarget, finalFace));
+                        startNavigation(fp, standLoc, () -> lockAndStartClicking(fp, finalMode, finalTarget, finalAim));
                         sender.sendMessage(Lang.get("right-click-walking", "name", fp.getDisplayName()));
                         return true;
                     } else {
@@ -249,7 +254,7 @@ public final class RightClickCommand implements FppCommand {
             }
         }
 
-        lockAndStartClicking(fp, finalMode, null, null);
+        lockAndStartClicking(fp, finalMode, null, (org.bukkit.util.Vector) null);
         sender.sendMessage(Lang.get("right-click-started", "name", fp.getDisplayName()));
         return true;
     }
@@ -290,25 +295,29 @@ public final class RightClickCommand implements FppCommand {
 
         Object target = null;
         BlockFace targetFace = null;
+        org.bukkit.util.Vector aimPoint = null;
         target = rayTraceTarget(bot);
         if (target instanceof Block) {
             org.bukkit.util.RayTraceResult ray = bot.rayTraceBlocks(CLICK_REACH);
-            if (ray != null) targetFace = ray.getHitBlockFace();
+            if (ray != null) {
+                targetFace = ray.getHitBlockFace();
+                aimPoint = ray.getHitPosition();
+            }
         }
 
+        final org.bukkit.util.Vector aim = aimPoint != null ? aimPoint : computeFaceCenter(target, targetFace);
         if (target != null) {
             Location targetLoc = getTargetLocation(bot, target);
             if (targetLoc != null && bot.getLocation().distance(targetLoc) > CLICK_REACH) {
                 Location standLoc = findStandLocationNearTarget(bot.getWorld(), targetLoc);
                 if (standLoc == null) return false;
                 final Object finalTarget = target;
-                final BlockFace finalFace = targetFace;
-                startNavigation(fp, standLoc, () -> lockAndStartClicking(fp, mode, finalTarget, finalFace));
+                startNavigation(fp, standLoc, () -> lockAndStartClicking(fp, mode, finalTarget, aim));
                 return true;
             }
         }
 
-        lockAndStartClicking(fp, mode, target, targetFace);
+        lockAndStartClicking(fp, mode, target, aim);
         return true;
     }
 
@@ -331,7 +340,7 @@ public final class RightClickCommand implements FppCommand {
                         opts));
     }
 
-    private void lockAndStartClicking(FakePlayer fp, ClickMode mode, Object target, BlockFace face) {
+    private void lockAndStartClicking(FakePlayer fp, ClickMode mode, Object target, org.bukkit.util.Vector aim) {
         FppApiImpl.fireTaskEvent(fp, "right-click", FppBotTaskEvent.Action.START);
         UUID uuid = fp.getUuid();
         Player bot = fp.getPlayer();
@@ -345,8 +354,9 @@ public final class RightClickCommand implements FppCommand {
         float startPitch = bot.getLocation().getPitch();
 
         if (target != null) {
-            org.bukkit.util.Vector faceCenter = computeFaceCenter(target, face);
-            Location faceLoc = faceTowardTarget(bot.getLocation(), target, faceCenter);
+            // Aim at the exact point the sender was looking at (falls back to entity/block centre
+            // inside faceTowardTarget when aim is null).
+            Location faceLoc = faceTowardTarget(bot.getLocation(), target, aim);
             bot.setRotation(faceLoc.getYaw(), faceLoc.getPitch());
             NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
             if (Config.debugRightClickHead()) {
@@ -372,6 +382,7 @@ public final class RightClickCommand implements FppCommand {
         bot.setSprinting(false);
 
         Location actualLoc = bot.getLocation().clone();
+        manager.beginExclusiveAction(uuid, FakePlayerManager.BotAction.USE);
         manager.lockForAction(uuid, actualLoc, false);
 
         ClickState state = new ClickState();
@@ -379,7 +390,9 @@ public final class RightClickCommand implements FppCommand {
         state.mode = mode;
         state.holding = false;
         state.dynamicTarget = (target != null);
-        state.hitPosition = null;
+        // Seed with the sender's exact aim point so the first interaction targets that spot; the tick
+        // loop refreshes it from the bot's own raytrace afterwards.
+        state.hitPosition = aim;
         clickStates.put(uuid, state);
         clickModes.put(uuid, mode);
 
@@ -396,7 +409,7 @@ public final class RightClickCommand implements FppCommand {
                         return;
                     }
 
-                    if (fp.isInventoryOpen()) {
+                    if (fp.isInventoryOpen() || fp.isActionsPaused()) {
                         return;
                     }
 
@@ -471,14 +484,11 @@ public final class RightClickCommand implements FppCommand {
                     Config.debugRightClick(),
                     "Ray hit block: " + hitBlock.getType().name() + " face=" + face);
 
-            Block actualBlock = checkForAttachedInteractiveBlock(hitBlock, face);
-            if (actualBlock != null) {
-                FppLogger.debug(
-                        "RIGHTCLICK",
-                        Config.debugRightClick(),
-                        ">>> Attached block: " + actualBlock.getType().name());
-                hitBlock = actualBlock;
-            }
+            // NOTE: we deliberately do NOT redirect the interaction to a button/lever attached to the
+            // hit face. The ray trace above uses the block OUTLINE shape (ignorePassableBlocks=false),
+            // so aiming at a button/lever's actual hit box already returns that block directly. The bot
+            // must aim at the button/lever itself to trigger it — hitting the mounting block's face no
+            // longer activates an attached switch.
 
             state.hitPosition = hit.getHitPosition();
             FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "Hit position: " + state.hitPosition);
@@ -532,23 +542,6 @@ public final class RightClickCommand implements FppCommand {
 
         FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "=== NOTHING acted ===");
         return false;
-    }
-
-    private Block checkForAttachedInteractiveBlock(Block hitBlock, BlockFace face) {
-        Block adjacent = hitBlock.getRelative(face);
-        Material adjMat = adjacent.getType();
-        String adjName = adjMat.name();
-
-        if (adjName.contains("BUTTON") || adjName.contains("LEVER")) {
-            return adjacent;
-        }
-
-        BlockData adjData = adjacent.getBlockData();
-        if (adjData instanceof Switch) {
-            return adjacent;
-        }
-
-        return null;
     }
 
     private boolean triggerBlockInteraction(Player bot, Block block, BlockFace face, RayTraceResult ray) {
@@ -1034,6 +1027,48 @@ public final class RightClickCommand implements FppCommand {
             }
         }
         return null;
+    }
+
+    /**
+     * Finds a walkable stand spot around {@code center} (e.g. the command sender's own location) from
+     * which the target is within reach. Includes the centre block itself (r=0) so the bot can stand
+     * exactly where the player is standing.
+     */
+    @Nullable
+    private Location findStandLocationNear(World world, Location center, Location targetLoc) {
+        int ox = center.getBlockX(), oy = center.getBlockY(), oz = center.getBlockZ();
+        for (int r = 0; r <= 4; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    if (r > 0 && Math.abs(dx) < r && Math.abs(dz) < r) continue;
+                    int cx = ox + dx, cz = oz + dz;
+                    for (int dy : new int[] {0, -1, 1}) {
+                        int cy = oy + dy;
+                        if (BotNavUtil.walkable(world, cx, cy, cz)) {
+                            Location loc = new Location(world, cx + 0.5, cy, cz + 0.5);
+                            if (loc.distance(targetLoc) <= CLICK_REACH - 0.5) {
+                                return faceTowardTarget(loc, targetLoc);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Resolves where the bot should stand to reach an out-of-reach target. Prefers the sender's own
+     * standing location — a vantage the target is provably aim-able from, since the player just aimed
+     * at it from there — and falls back to searching around the target itself.
+     */
+    @Nullable
+    private Location resolveStandLocation(World world, CommandSender sender, Location targetLoc) {
+        if (sender instanceof Player player && player.getWorld() == world) {
+            Location atPlayer = findStandLocationNear(world, player.getLocation(), targetLoc);
+            if (atPlayer != null) return atPlayer;
+        }
+        return findStandLocationNearTarget(world, targetLoc);
     }
 
     private void cancelAll(UUID botUuid) {

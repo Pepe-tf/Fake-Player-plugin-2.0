@@ -350,6 +350,11 @@ public final class Config {
         return cfg.getBoolean("automation.auto-eat", true);
     }
 
+    /** Default hunger level (0-19) at or below which a bot auto-eats. Clamped to a valid range. */
+    public static int autoEatHungerThreshold() {
+        return Math.max(0, Math.min(19, cfg.getInt("automation.auto-eat-threshold", 17)));
+    }
+
     public static boolean autoPlaceBedEnabled() {
         return cfg.getBoolean("automation.auto-place-bed", true);
     }

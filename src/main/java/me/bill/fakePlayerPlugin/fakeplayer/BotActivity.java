@@ -31,6 +31,9 @@ public final class BotActivity {
             labels.add(navLabel(owner));
         }
 
+        var autoEat = plugin.getAutoEatController();
+        if (autoEat != null && autoEat.isEating(uuid)) labels.add("ᴇᴀᴛɪɴɢ");
+
         var pve = plugin.getPveController();
         if (pve != null && pve.isEngaged(uuid)) labels.add("ꜰɪɢʜᴛɪɴɢ");
 

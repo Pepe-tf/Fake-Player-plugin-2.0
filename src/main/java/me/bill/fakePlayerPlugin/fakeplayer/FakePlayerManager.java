@@ -337,10 +337,11 @@ public class FakePlayerManager {
                                 }
 
                                 if (runBehaviorThisTick
-                                        && fp.isAutoEatEnabled()
+                                        && (fp.isAutoEatEnabled() || fp.isAutoEating())
                                         && (visualSyncTickCounter & 3) == (uuid.hashCode() & 3)) {
                                     try (var t = PacketHelper.profile("FakePlayerManager.tickAutoEat")) {
-                                        tickAutoEat(bot);
+                                        var autoEat = plugin.getAutoEatController();
+                                        if (autoEat != null) autoEat.tick(fp, bot);
                                     }
                                 }
 
@@ -2197,37 +2198,6 @@ public class FakePlayerManager {
                 + (fastShutdown ? " (fast)" : "") + " reason: " + reason);
     }
 
-    private void tickAutoEat(Player bot) {
-        if (bot.getGameMode() == GameMode.CREATIVE || bot.getGameMode() == GameMode.SPECTATOR) return;
-        if (bot.getFoodLevel() > 14 && (bot.getFoodLevel() >= 6 || bot.isSprinting())) return;
-        var inv = bot.getInventory();
-        for (int slot = 0; slot < inv.getSize(); slot++) {
-            ItemStack item = inv.getItem(slot);
-            if (item == null || item.getAmount() <= 0) continue;
-            int food = foodValue(item.getType());
-            if (food <= 0) continue;
-            item.setAmount(item.getAmount() - 1);
-            if (item.getAmount() <= 0) inv.setItem(slot, null);
-            else inv.setItem(slot, item);
-            bot.setFoodLevel(Math.min(20, bot.getFoodLevel() + food));
-            bot.setSaturation(Math.min(20f, bot.getSaturation() + Math.max(1f, food * 0.6f)));
-            bot.swingMainHand();
-            return;
-        }
-    }
-
-    private int foodValue(Material type) {
-        return switch (type) {
-            case COOKED_BEEF, COOKED_PORKCHOP -> 8;
-            case GOLDEN_CARROT, BAKED_POTATO, COOKED_CHICKEN, MUSHROOM_STEW, BEETROOT_SOUP, RABBIT_STEW -> 6;
-            case BREAD, COOKED_COD, COOKED_RABBIT -> 5;
-            case APPLE, CARROT, COOKED_SALMON, CHORUS_FRUIT -> 4;
-            case POTATO, BEETROOT, MELON_SLICE, SWEET_BERRIES, GLOW_BERRIES -> 2;
-            case COOKIE, DRIED_KELP -> 1;
-            default -> 0;
-        };
-    }
-
     public void applyBodyConfig() {
         List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
 
@@ -2391,6 +2361,8 @@ public class FakePlayerManager {
         if (findCmd != null) findCmd.cleanupBot(uuid);
         var pve = plugin.getPveController();
         if (pve != null) pve.cleanupBot(uuid);
+        var autoEat = plugin.getAutoEatController();
+        if (autoEat != null) autoEat.cleanupBot(uuid);
 
         if (chunkLoader != null) chunkLoader.releaseForBot(fp);
         if (db != null && removalReason != null) db.recordRemoval(uuid, removalReason);
@@ -2737,6 +2709,60 @@ public class FakePlayerManager {
 
     public boolean isActionLocked(UUID botUuid) {
         return actingBots.contains(botUuid);
+    }
+
+    /** The user-issued task types a bot can run. A bot runs at most one at a time. */
+    public enum BotAction {
+        MOVE,
+        FIND,
+        MINE,
+        USE,
+        ATTACK
+    }
+
+    /**
+     * Enforces single-action ("no multitasking"): stops every other user task for this bot before a
+     * new one commits. Call this as an action begins; the starting task sets up its own navigation
+     * afterwards, so cancelling the peers' navigation here is safe.
+     */
+    public void beginExclusiveAction(UUID uuid, BotAction keep) {
+        var find = plugin.getFindCommand();
+        var left = plugin.getLeftClickCommand();
+        var right = plugin.getRightClickCommand();
+        var attack = plugin.getAttackCommand();
+        var move = plugin.getMoveCommand();
+
+        if (keep != BotAction.FIND && find != null && find.isFinding(uuid)) find.cleanupBot(uuid);
+        if (keep != BotAction.MINE && left != null && left.isClicking(uuid)) left.stopClicking(uuid);
+        if (keep != BotAction.USE && right != null && right.isClicking(uuid)) right.stopClicking(uuid);
+        if (keep != BotAction.ATTACK && attack != null && attack.isAttacking(uuid)) attack.stopAttacking(uuid);
+        // Cancel a manual /fpp move (and any PVE chase) when a different task starts. find/mine/use
+        // re-establish their own navigation right after this call.
+        if (keep != BotAction.MOVE && move != null) move.cleanupBot(uuid);
+    }
+
+    /**
+     * True when a user-issued task is running for this bot. Background auto-behaviours (PVE) check
+     * this so they yield to manual control instead of multitasking.
+     */
+    public boolean hasActiveManualAction(UUID uuid) {
+        var find = plugin.getFindCommand();
+        var left = plugin.getLeftClickCommand();
+        var right = plugin.getRightClickCommand();
+        var attack = plugin.getAttackCommand();
+        if (find != null && find.isFinding(uuid)) return true;
+        if (left != null && left.isClicking(uuid)) return true;
+        if (right != null && right.isClicking(uuid)) return true;
+        if (attack != null && attack.isAttacking(uuid)) return true;
+        // Any user-owned navigation counts as busy too — this covers the walk-to-target phase of a
+        // move/mine/use/find command before its action commits. (ATTACK = PVE's own chase; SYSTEM =
+        // internal, neither counts as a manual task.)
+        var pathfinding = plugin.getPathfindingService();
+        if (pathfinding == null) return false;
+        return pathfinding.isNavigating(uuid, PathfindingService.Owner.MOVE)
+                || pathfinding.isNavigating(uuid, PathfindingService.Owner.MINE)
+                || pathfinding.isNavigating(uuid, PathfindingService.Owner.PLACE)
+                || pathfinding.isNavigating(uuid, PathfindingService.Owner.USE);
     }
 
     public void updateActionLockRotation(UUID botUuid, float yaw, float pitch) {

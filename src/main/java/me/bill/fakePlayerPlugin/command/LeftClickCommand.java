@@ -217,6 +217,9 @@ public final class LeftClickCommand implements FppCommand {
         BlockPos blockTarget = null;
         Entity entityTarget = null;
         BlockFace targetFace = null;
+        // The exact point the sender is looking at on the block (world coords), so the bot aims at
+        // precisely that spot rather than the block-face centre.
+        org.bukkit.util.Vector aimPoint = null;
 
         if (sender instanceof Player player) {
             LivingEntity hostileTarget = rayTraceHostileEntity(player);
@@ -229,7 +232,10 @@ public final class LeftClickCommand implements FppCommand {
                     blockTarget = new BlockPos(playerTarget.getX(), playerTarget.getY(), playerTarget.getZ());
                     target = playerTarget;
                     org.bukkit.util.RayTraceResult ray = player.rayTraceBlocks(CLICK_REACH);
-                    if (ray != null) targetFace = ray.getHitBlockFace();
+                    if (ray != null) {
+                        targetFace = ray.getHitBlockFace();
+                        aimPoint = ray.getHitPosition();
+                    }
                 } else {
                     entityTarget = rayTraceEntity(player);
                     if (isSelfTarget(bot, entityTarget)) {
@@ -247,18 +253,23 @@ public final class LeftClickCommand implements FppCommand {
             if (target instanceof Block b) {
                 blockTarget = new BlockPos(b.getX(), b.getY(), b.getZ());
                 org.bukkit.util.RayTraceResult ray = bot.rayTraceBlocks(CLICK_REACH);
-                if (ray != null) targetFace = ray.getHitBlockFace();
+                if (ray != null) {
+                    targetFace = ray.getHitBlockFace();
+                    aimPoint = ray.getHitPosition();
+                }
             }
         }
 
         final ClickMode finalMode = mode;
-        final BlockFace finalFace = targetFace;
+        // Aim at the exact hit point; fall back to the block-face centre when there is no precise
+        // point (entity targets, or a raytrace that returned no hit position).
+        final org.bukkit.util.Vector finalAim = aimPoint != null ? aimPoint : computeFaceCenter(target, targetFace);
         if (target != null) {
             Location targetLoc = getTargetLocation(bot, target);
             if (targetLoc != null) {
                 double dist = bot.getLocation().distance(targetLoc);
                 if (dist <= CLICK_REACH) {
-                    lockAndStartClicking(fp, finalMode, target, blockTarget, entityTarget, finalFace);
+                    lockAndStartClicking(fp, finalMode, target, blockTarget, entityTarget, finalAim);
                     String msgKey =
                             switch (finalMode) {
                                 case ONCE -> "left-click-started-once";
@@ -269,7 +280,7 @@ public final class LeftClickCommand implements FppCommand {
                     sender.sendMessage(Lang.get(msgKey, "name", fp.getDisplayName()));
                     return true;
                 } else {
-                    Location standLoc = findStandLocationNearTarget(bot.getWorld(), targetLoc);
+                    Location standLoc = resolveStandLocation(bot.getWorld(), sender, targetLoc);
                     if (standLoc != null) {
                         final Object finalTarget = target;
                         final BlockPos finalBlockTarget = blockTarget;
@@ -278,7 +289,7 @@ public final class LeftClickCommand implements FppCommand {
                                 fp,
                                 standLoc,
                                 () -> lockAndStartClicking(
-                                        fp, finalMode, finalTarget, finalBlockTarget, finalEntityTarget, finalFace));
+                                        fp, finalMode, finalTarget, finalBlockTarget, finalEntityTarget, finalAim));
                         sender.sendMessage(Lang.get("left-click-walking", "name", fp.getDisplayName()));
                         return true;
                     } else {
@@ -289,7 +300,7 @@ public final class LeftClickCommand implements FppCommand {
             }
         }
 
-        lockAndStartClicking(fp, finalMode, null, null, null, null);
+        lockAndStartClicking(fp, finalMode, null, null, null, (org.bukkit.util.Vector) null);
         sender.sendMessage(Lang.get("left-click-started", "name", fp.getDisplayName()));
         return true;
     }
@@ -332,17 +343,22 @@ public final class LeftClickCommand implements FppCommand {
         BlockPos blockTarget = null;
         Entity finalEntityTarget = null;
         BlockFace targetFace = null;
+        org.bukkit.util.Vector aimPoint = null;
 
         target = rayTraceTarget(bot);
         if (target instanceof Block b) {
             blockTarget = new BlockPos(b.getX(), b.getY(), b.getZ());
             org.bukkit.util.RayTraceResult ray = bot.rayTraceBlocks(CLICK_REACH);
-            if (ray != null) targetFace = ray.getHitBlockFace();
+            if (ray != null) {
+                targetFace = ray.getHitBlockFace();
+                aimPoint = ray.getHitPosition();
+            }
         } else {
             finalEntityTarget = rayTraceEntity(bot);
             if (finalEntityTarget != null && !isSelfTarget(bot, finalEntityTarget)) target = finalEntityTarget;
         }
 
+        final org.bukkit.util.Vector aim = aimPoint != null ? aimPoint : computeFaceCenter(target, targetFace);
         if (target != null) {
             Location targetLoc = getTargetLocation(bot, target);
             if (targetLoc != null && bot.getLocation().distance(targetLoc) > CLICK_REACH) {
@@ -351,16 +367,15 @@ public final class LeftClickCommand implements FppCommand {
                 final Object finalTarget = target;
                 final BlockPos finalBlockTarget = blockTarget;
                 final Entity finalEntity = finalEntityTarget;
-                final BlockFace finalFace = targetFace;
                 startNavigation(
                         fp,
                         standLoc,
-                        () -> lockAndStartClicking(fp, mode, finalTarget, finalBlockTarget, finalEntity, finalFace));
+                        () -> lockAndStartClicking(fp, mode, finalTarget, finalBlockTarget, finalEntity, aim));
                 return true;
             }
         }
 
-        lockAndStartClicking(fp, mode, target, blockTarget, finalEntityTarget, targetFace);
+        lockAndStartClicking(fp, mode, target, blockTarget, finalEntityTarget, aim);
         return true;
     }
 
@@ -384,7 +399,12 @@ public final class LeftClickCommand implements FppCommand {
     }
 
     private void lockAndStartClicking(
-            FakePlayer fp, ClickMode mode, Object target, BlockPos blockTarget, Entity entityTarget, BlockFace face) {
+            FakePlayer fp,
+            ClickMode mode,
+            Object target,
+            BlockPos blockTarget,
+            Entity entityTarget,
+            org.bukkit.util.Vector aim) {
         FppApiImpl.fireTaskEvent(fp, "left-click", FppBotTaskEvent.Action.START);
         UUID uuid = fp.getUuid();
         Player bot = fp.getPlayer();
@@ -396,8 +416,9 @@ public final class LeftClickCommand implements FppCommand {
         }
 
         if (target != null) {
-            org.bukkit.util.Vector faceCenter = computeFaceCenter(target, face);
-            Location faceLoc = faceTowardTarget(bot.getLocation(), target, faceCenter);
+            // Aim at the exact point the sender was looking at (falls back to entity/block centre
+            // inside faceTowardTarget when aim is null).
+            Location faceLoc = faceTowardTarget(bot.getLocation(), target, aim);
             bot.setRotation(faceLoc.getYaw(), faceLoc.getPitch());
             NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
         }
@@ -405,6 +426,7 @@ public final class LeftClickCommand implements FppCommand {
         bot.setSprinting(false);
 
         Location actualLoc = bot.getLocation().clone();
+        manager.beginExclusiveAction(uuid, FakePlayerManager.BotAction.MINE);
         manager.lockForAction(uuid, actualLoc, false);
 
         ClickState state = new ClickState();
@@ -432,7 +454,7 @@ public final class LeftClickCommand implements FppCommand {
                         return;
                     }
 
-                    if (fp.isInventoryOpen()) {
+                    if (fp.isInventoryOpen() || fp.isActionsPaused()) {
                         return;
                     }
 
@@ -998,6 +1020,48 @@ public final class LeftClickCommand implements FppCommand {
             }
         }
         return null;
+    }
+
+    /**
+     * Finds a walkable stand spot around {@code center} (e.g. the command sender's own location) from
+     * which the target is within reach. Includes the centre block itself (r=0) so the bot can stand
+     * exactly where the player is standing.
+     */
+    @Nullable
+    private Location findStandLocationNear(World world, Location center, Location targetLoc) {
+        int ox = center.getBlockX(), oy = center.getBlockY(), oz = center.getBlockZ();
+        for (int r = 0; r <= 4; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    if (r > 0 && Math.abs(dx) < r && Math.abs(dz) < r) continue;
+                    int cx = ox + dx, cz = oz + dz;
+                    for (int dy : new int[] {0, -1, 1}) {
+                        int cy = oy + dy;
+                        if (BotNavUtil.walkable(world, cx, cy, cz)) {
+                            Location loc = new Location(world, cx + 0.5, cy, cz + 0.5);
+                            if (loc.distance(targetLoc) <= CLICK_REACH - 0.5) {
+                                return faceTowardTarget(loc, targetLoc, null);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Resolves where the bot should stand to reach an out-of-reach target. Prefers the sender's own
+     * standing location — a vantage the target is provably aim-able from, since the player just aimed
+     * at it from there — and falls back to searching around the target itself.
+     */
+    @Nullable
+    private Location resolveStandLocation(World world, CommandSender sender, Location targetLoc) {
+        if (sender instanceof Player player && player.getWorld() == world) {
+            Location atPlayer = findStandLocationNear(world, player.getLocation(), targetLoc);
+            if (atPlayer != null) return atPlayer;
+        }
+        return findStandLocationNearTarget(world, targetLoc);
     }
 
     private static final class ClickState {

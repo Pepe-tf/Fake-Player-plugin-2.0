@@ -106,6 +106,7 @@ rolled skin across despawns and restarts; re-roll from the bot's `🎨 ꜱᴋɪ�
 ### `automation`
 Defaults copied to newly spawned bots:
 - `auto-eat: true`
+- `auto-eat-threshold: 17` — default hunger level (0-19) at or below which a bot eats; per-bot overridable in the settings GUI
 - `auto-place-bed: true`
 - `auto-milk: true`
 - `prevent-bad-omen: true`

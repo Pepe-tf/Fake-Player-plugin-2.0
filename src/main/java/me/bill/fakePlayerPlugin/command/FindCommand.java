@@ -232,12 +232,9 @@ public final class FindCommand implements FppCommand {
             }
         }
 
-        // Stop any existing find/click jobs for this bot
+        // Stop any existing find/click jobs for this bot, plus any other active task (single-action).
         cleanupBot(fp.getUuid());
-        var leftCmd = plugin.getLeftClickCommand();
-        if (leftCmd != null) leftCmd.stopClicking(fp.getUuid());
-        var rightCmd = plugin.getRightClickCommand();
-        if (rightCmd != null) rightCmd.stopClicking(fp.getUuid());
+        manager.beginExclusiveAction(fp.getUuid(), FakePlayerManager.BotAction.FIND);
 
         UUID starterUuid = sender instanceof Player p ? p.getUniqueId() : null;
         FindJob job = new FindJob(material, radius, count, preferVisible, starterUuid, sender instanceof Player);
@@ -603,7 +600,7 @@ public final class FindCommand implements FppCommand {
             return;
         }
 
-        if (fp.isInventoryOpen()) {
+        if (fp.isInventoryOpen() || fp.isActionsPaused()) {
             return;
         }
 

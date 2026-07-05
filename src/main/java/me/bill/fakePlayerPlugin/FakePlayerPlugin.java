@@ -119,6 +119,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
     private SkinManager skinManager;
     private SkinPoolService skinPoolService;
     private PveController pveController;
+    private me.bill.fakePlayerPlugin.fakeplayer.AutoEatController autoEatController;
     private HeartbeatSender heartbeatSender;
     private PerformanceMonitor performanceMonitor;
 
@@ -290,6 +291,8 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
         pveController = new PveController(this, fakePlayerManager, pathfindingService);
         pveController.start();
+
+        autoEatController = new me.bill.fakePlayerPlugin.fakeplayer.AutoEatController(fakePlayerManager);
 
         commandManager = new CommandManager(this);
         commandManager.register(new SpawnCommand(fakePlayerManager));
@@ -476,6 +479,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
         int botsRemoved = fakePlayerManager != null ? fakePlayerManager.getCount() : 0;
 
         if (pveController != null) pveController.shutdown();
+        if (autoEatController != null) autoEatController.shutdown();
 
         if (pathfindingService != null) pathfindingService.cancelAll();
 
@@ -587,6 +591,10 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     public PveController getPveController() {
         return pveController;
+    }
+
+    public me.bill.fakePlayerPlugin.fakeplayer.AutoEatController getAutoEatController() {
+        return autoEatController;
     }
 
     public XpCommand getXpCommand() {

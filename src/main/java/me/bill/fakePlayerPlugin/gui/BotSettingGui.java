@@ -42,6 +42,7 @@ import me.bill.fakePlayerPlugin.api.event.FppBotDespawnEvent;
 import me.bill.fakePlayerPlugin.api.event.FppBotSettingChangeEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.fakeplayer.BotFoods;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
@@ -211,6 +212,10 @@ public final class BotSettingGui implements Listener {
 
     private final Set<UUID> inMobSelector = new HashSet<>();
 
+    private final Map<UUID, Integer> foodSelectorPage = new HashMap<>();
+
+    private final Set<UUID> inFoodSelector = new HashSet<>();
+
     private final Map<UUID, Integer> editPauseCounts = new HashMap<>();
 
     private final List<BotCategory> categories;
@@ -218,7 +223,7 @@ public final class BotSettingGui implements Listener {
     public BotSettingGui(FakePlayerPlugin plugin, FakePlayerManager manager) {
         this.plugin = plugin;
         this.manager = manager;
-        this.categories = List.of(general(), pve(), pathfinding(), skin(), danger());
+        this.categories = List.of(general(), pve(), pathfinding(), skin(), autoEat(), danger());
     }
 
     private List<BotCategory> allCategories(Player viewer) {
@@ -267,6 +272,7 @@ public final class BotSettingGui implements Listener {
         confirmTickTaskIds.clear();
         mobSelectorPage.clear();
         inMobSelector.clear();
+        inFoodSelector.clear();
         editPauseCounts.clear();
     }
 
@@ -354,6 +360,15 @@ public final class BotSettingGui implements Listener {
             if (event.getClickedInventory() == null) return;
             if (!event.getClickedInventory().equals(event.getInventory())) return;
             handleMobSelectorClick(player, msh, event.getSlot());
+            return;
+        }
+
+        if (event.getInventory().getHolder() instanceof FoodSelectorHolder fsh) {
+            event.setCancelled(true);
+            if (!(event.getWhoClicked() instanceof Player player)) return;
+            if (event.getClickedInventory() == null) return;
+            if (!event.getClickedInventory().equals(event.getInventory())) return;
+            handleFoodSelectorClick(player, fsh, event.getSlot());
             return;
         }
 
@@ -464,6 +479,19 @@ public final class BotSettingGui implements Listener {
             return;
         }
 
+        if (event.getInventory().getHolder() instanceof FoodSelectorHolder) {
+            if (pendingRebuild.contains(uuid)) return;
+            inFoodSelector.remove(uuid);
+            foodSelectorPage.remove(uuid);
+            if (event.getReason() != InventoryCloseEvent.Reason.DISCONNECT && sessions.containsKey(uuid)) {
+                FppScheduler.runSync(plugin, () -> {
+                    Player p = Bukkit.getPlayer(uuid);
+                    if (p != null && sessions.containsKey(uuid)) build(p);
+                });
+            }
+            return;
+        }
+
         if (event.getInventory().getHolder() instanceof ShareSelectorHolder) {
             if (pendingRebuild.contains(uuid)) return;
             if (event.getReason() != InventoryCloseEvent.Reason.DISCONNECT && sessions.containsKey(uuid)) {
@@ -480,6 +508,7 @@ public final class BotSettingGui implements Listener {
         if (pendingRebuild.contains(uuid)) return;
         if (pendingDelete.contains(uuid)) return;
         if (inMobSelector.contains(uuid)) return;
+        if (inFoodSelector.contains(uuid)) return;
         cleanup(uuid);
         if (event.getReason() != InventoryCloseEvent.Reason.DISCONNECT && event.getPlayer() instanceof Player player) {
             player.sendMessage(Component.empty()
@@ -553,6 +582,8 @@ public final class BotSettingGui implements Listener {
         if (ses != null) FppScheduler.cancelTask(ses.cleanupTaskId);
         inMobSelector.remove(uuid);
         mobSelectorPage.remove(uuid);
+        inFoodSelector.remove(uuid);
+        foodSelectorPage.remove(uuid);
         cleanup(uuid);
         PathfindingDebugManager.clearViewer(uuid);
     }
@@ -628,6 +659,10 @@ public final class BotSettingGui implements Listener {
                 playUiClick(player, 1.0f);
                 openMobSelector(player, bot);
             }
+            case FOOD_SELECTOR -> {
+                playUiClick(player, 1.0f);
+                openFoodSelector(player, bot);
+            }
             case IMMEDIATE -> {
                 if ("share_control".equals(entry.id())) {
                     if (!BotAccess.canShare(player, bot)) {
@@ -700,6 +735,12 @@ public final class BotSettingGui implements Listener {
                 bot.setAutoMilkEnabled(!old);
                 fireSettingChange(bot, "auto_milk", old, bot.isAutoMilkEnabled());
                 yield bot.isAutoMilkEnabled();
+            }
+            case "auto_eat" -> {
+                boolean old = bot.isAutoEatEnabled();
+                bot.setAutoEatEnabled(!old);
+                fireSettingChange(bot, "auto_eat", old, bot.isAutoEatEnabled());
+                yield bot.isAutoEatEnabled();
             }
             case "prevent_bad_omen" -> {
                 boolean old = bot.isPreventBadOmen();
@@ -902,6 +943,26 @@ public final class BotSettingGui implements Listener {
                 }
                 manager.renameBot(bot, newName);
                 sendActionBarConfirm(player, "ʀᴇɴᴀᴍᴇᴅ", plain);
+            }
+            case "auto_eat_threshold" -> {
+                int val;
+                try {
+                    val = Integer.parseInt(raw.trim());
+                } catch (NumberFormatException e) {
+                    player.sendMessage(Component.empty()
+                            .decoration(TextDecoration.ITALIC, false)
+                            .append(Component.text("✘ ").color(OFF_RED))
+                            .append(Component.text("ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ — ᴇɴᴛᴇʀ 0-19.")
+                                    .color(GRAY)));
+                    return;
+                }
+                if (val < 0) val = 0;
+                if (val > 19) val = 19;
+                int old = bot.getAutoEatHungerThreshold();
+                bot.setAutoEatHungerThreshold(val);
+                fireSettingChange(bot, "auto_eat_threshold", old, bot.getAutoEatHungerThreshold());
+                manager.persistBotSettings(bot);
+                sendActionBarConfirm(player, "ᴀᴜᴛᴏ-ᴇᴀᴛ ᴀᴛ", bot.getAutoEatHungerThreshold() + " / 20 ʜᴜɴɢᴇʀ");
             }
             case "chunk_load_radius" -> {
                 int globalMax = Config.chunkLoadingEnabled() ? Config.chunkLoadingRadius() : 0;
@@ -1115,6 +1176,190 @@ public final class BotSettingGui implements Listener {
 
             pendingRebuild.add(uuid);
             buildMobSelector(player, bot, page);
+            pendingRebuild.remove(uuid);
+        }
+    }
+
+    private void openFoodSelector(Player player, FakePlayer bot) {
+        UUID uuid = player.getUniqueId();
+        inFoodSelector.add(uuid);
+        foodSelectorPage.put(uuid, 0);
+        pendingRebuild.add(uuid);
+        buildFoodSelector(player, bot, 0);
+        pendingRebuild.remove(uuid);
+    }
+
+    private void buildFoodSelector(Player player, FakePlayer bot, int page) {
+        UUID uuid = player.getUniqueId();
+        List<BotFoods.FoodDef> foods = BotFoods.all();
+        int totalPages = Math.max(1, (int) Math.ceil(foods.size() / (double) MOB_SLOTS));
+        page = Math.min(Math.max(0, page), totalPages - 1);
+        foodSelectorPage.put(uuid, page);
+
+        Set<Material> selected = bot.getAutoEatFoods();
+
+        FoodSelectorHolder holder = new FoodSelectorHolder(uuid);
+        Component title = Component.empty()
+                .decoration(TextDecoration.ITALIC, false)
+                .append(Component.text("[").color(DARK_GRAY))
+                .append(Component.text("ꜰᴘᴘ").color(ACCENT))
+                .append(Component.text("] ").color(DARK_GRAY))
+                .append(Component.text(bot.getName()).color(ACCENT))
+                .append(Component.text("  ·  ").color(DARK_GRAY))
+                .append(Component.text("ᴀʟʟᴏᴡᴇᴅ ꜰᴏᴏᴅꜱ").color(DARK_GRAY))
+                .append(Component.text("  (" + (page + 1) + "/" + totalPages + ")")
+                        .color(DARK_GRAY));
+
+        Inventory inv = Bukkit.createInventory(holder, MOB_GUI_SIZE, title);
+
+        int startIdx = page * MOB_SLOTS;
+        int endIdx = Math.min(startIdx + MOB_SLOTS, foods.size());
+        for (int i = startIdx; i < endIdx; i++) {
+            BotFoods.FoodDef food = foods.get(i);
+            inv.setItem(i - startIdx, buildFoodItem(food, selected.contains(food.material())));
+        }
+
+        inv.setItem(MOB_SLOT_BACK, buildMobBarItem(Material.ARROW, "◄  ʙᴀᴄᴋ ᴛᴏ ꜱᴇᴛᴛɪɴɢꜱ", ACCENT));
+        inv.setItem(
+                MOB_SLOT_PREV_PAGE,
+                page > 0
+                        ? buildMobBarItem(Material.MAGENTA_STAINED_GLASS_PANE, "◄  ᴘʀᴇᴠɪᴏᴜꜱ ᴘᴀɢᴇ", COMING_SOON_COLOR)
+                        : glassFiller(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(47, glassFiller(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(48, glassFiller(Material.GRAY_STAINED_GLASS_PANE));
+
+        boolean anyFood = selected.isEmpty();
+        ItemStack clearItem = new ItemStack(anyFood ? Material.NETHER_STAR : Material.STRUCTURE_VOID);
+        ItemMeta clearMeta = clearItem.getItemMeta();
+        if (anyFood) {
+            clearMeta.addEnchant(Enchantment.UNBREAKING, 1, true);
+            clearMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
+        clearMeta.displayName(Component.empty()
+                .decoration(TextDecoration.ITALIC, false)
+                .append(Component.text("✦  ᴀɴʏ ꜰᴏᴏᴅ")
+                        .color(anyFood ? SELECTED_GREEN : VALUE_YELLOW)
+                        .decoration(TextDecoration.BOLD, true)));
+        List<Component> clearLore = new ArrayList<>();
+        clearLore.add(Component.empty());
+        clearLore.add(Component.empty()
+                .decoration(TextDecoration.ITALIC, false)
+                .append(Component.text(anyFood ? "◈  ᴄᴜʀʀᴇɴᴛʟʏ ᴇᴀᴛɪɴɢ ᴀɴʏ ꜰᴏᴏᴅ" : "ᴄʟɪᴄᴋ ᴛᴏ ᴀʟʟᴏᴡ ᴀɴʏ ꜰᴏᴏᴅ")
+                        .color(anyFood ? SELECTED_GREEN : DARK_GRAY)));
+        clearMeta.lore(clearLore);
+        clearItem.setItemMeta(clearMeta);
+        inv.setItem(MOB_SLOT_CLEAR, clearItem);
+
+        inv.setItem(50, glassFiller(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(51, glassFiller(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(
+                MOB_SLOT_NEXT_PAGE,
+                page < totalPages - 1
+                        ? buildMobBarItem(Material.LIME_STAINED_GLASS_PANE, "▶  ɴᴇxᴛ ᴘᴀɢᴇ", ON_GREEN)
+                        : glassFiller(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(MOB_SLOT_CLOSE, buildCloseButton());
+
+        inFoodSelector.add(uuid);
+        pendingRebuild.add(uuid);
+        player.openInventory(inv);
+        pendingRebuild.remove(uuid);
+    }
+
+    private ItemStack buildFoodItem(BotFoods.FoodDef food, boolean selected) {
+        ItemStack item = new ItemStack(food.material());
+        ItemMeta meta = item.getItemMeta();
+        if (selected) {
+            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
+        meta.displayName(Component.empty()
+                .decoration(TextDecoration.ITALIC, false)
+                .append(Component.text(food.display())
+                        .color(selected ? SELECTED_GREEN : WHITE)
+                        .decoration(TextDecoration.BOLD, selected)));
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.empty());
+        lore.add(Component.empty()
+                .decoration(TextDecoration.ITALIC, false)
+                .append(Component.text("ʜᴜɴɢᴇʀ  ").color(DARK_GRAY))
+                .append(Component.text("+" + food.nutrition()).color(VALUE_YELLOW)));
+        lore.add(Component.empty()
+                .decoration(TextDecoration.ITALIC, false)
+                .append(Component.text(selected ? "◈  ꜱᴇʟᴇᴄᴛᴇᴅ" : "◈  ᴄʟɪᴄᴋ ᴛᴏ ᴀʟʟᴏᴡ")
+                        .color(selected ? SELECTED_GREEN : DARK_GRAY)));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private void handleFoodSelectorClick(Player player, FoodSelectorHolder holder, int slot) {
+        UUID uuid = player.getUniqueId();
+        UUID botUuid = botSessions.get(uuid);
+        if (botUuid == null) return;
+        FakePlayer bot = manager.getByUuid(botUuid);
+        if (bot == null) {
+            player.closeInventory();
+            return;
+        }
+
+        int page = foodSelectorPage.getOrDefault(uuid, 0);
+        List<BotFoods.FoodDef> foods = BotFoods.all();
+        int totalPages = Math.max(1, (int) Math.ceil(foods.size() / (double) MOB_SLOTS));
+
+        if (slot == MOB_SLOT_BACK) {
+            playUiClick(player, 1.0f);
+            inFoodSelector.remove(uuid);
+            foodSelectorPage.remove(uuid);
+            pendingRebuild.add(uuid);
+            build(player);
+            pendingRebuild.remove(uuid);
+            return;
+        }
+        if (slot == MOB_SLOT_CLOSE) {
+            playUiClick(player, 0.8f);
+            inFoodSelector.remove(uuid);
+            foodSelectorPage.remove(uuid);
+            player.closeInventory();
+            return;
+        }
+        if (slot == MOB_SLOT_PREV_PAGE && page > 0) {
+            playUiClick(player, 1.0f);
+            pendingRebuild.add(uuid);
+            buildFoodSelector(player, bot, page - 1);
+            pendingRebuild.remove(uuid);
+            return;
+        }
+        if (slot == MOB_SLOT_NEXT_PAGE && page < totalPages - 1) {
+            playUiClick(player, 1.0f);
+            pendingRebuild.add(uuid);
+            buildFoodSelector(player, bot, page + 1);
+            pendingRebuild.remove(uuid);
+            return;
+        }
+        if (slot == MOB_SLOT_CLEAR) {
+            bot.setAutoEatFoods(new LinkedHashSet<>());
+            manager.persistBotSettings(bot);
+            playUiClick(player, 1.2f);
+            sendActionBarConfirm(player, "ᴀᴜᴛᴏ-ᴇᴀᴛ ꜰᴏᴏᴅꜱ", "ᴀɴʏ ꜰᴏᴏᴅ");
+            pendingRebuild.add(uuid);
+            buildFoodSelector(player, bot, page);
+            pendingRebuild.remove(uuid);
+            return;
+        }
+        if (slot >= 0 && slot < MOB_SLOTS) {
+            int idx = page * MOB_SLOTS + slot;
+            if (idx >= foods.size()) return;
+            BotFoods.FoodDef food = foods.get(idx);
+            boolean nowSelected = bot.toggleAutoEatFood(food.material());
+            manager.persistBotSettings(bot);
+            playUiClick(player, 1.2f);
+            int count = bot.getAutoEatFoods().size();
+            String label = nowSelected
+                    ? "+" + food.display() + " (" + count + " ꜱᴇʟᴇᴄᴛᴇᴅ)"
+                    : "-" + food.display() + " (" + (count == 0 ? "ᴀɴʏ ꜰᴏᴏᴅ" : count + " ꜱᴇʟᴇᴄᴛᴇᴅ") + ")";
+            sendActionBarConfirm(player, "ᴀᴜᴛᴏ-ᴇᴀᴛ ꜰᴏᴏᴅ", label);
+            pendingRebuild.add(uuid);
+            buildFoodSelector(player, bot, page);
             pendingRebuild.remove(uuid);
         }
     }
@@ -1389,6 +1634,10 @@ public final class BotSettingGui implements Listener {
                 promptLabel = "ɴᴇᴡ ᴅɪꜱᴘʟᴀʏ ɴᴀᴍᴇ (ᴍᴀx " + RENAME_MAX_LENGTH + ")";
                 currentVal = bot.getDisplayName();
             }
+            case "auto_eat_threshold" -> {
+                promptLabel = "ʜᴜɴɢᴇʀ ᴛʜʀᴇꜱʜᴏʟᴅ (0-19)";
+                currentVal = bot.getAutoEatHungerThreshold() + " / 20";
+            }
             case "chunk_load_radius" -> {
                 int gMax = Config.chunkLoadingEnabled() ? Config.chunkLoadingRadius() : 0;
                 promptLabel = "ʀᴀᴅɪᴜꜱ (-1=ɢʟᴏʙᴀʟ, 0=ᴏꜰꜰ, 1-" + gMax + ")";
@@ -1542,6 +1791,7 @@ public final class BotSettingGui implements Listener {
             case CYCLE_PRIORITY -> lore.add(hint("◈ ", "ᴄʟɪᴄᴋ ᴛᴏ ᴄʏᴄʟᴇ"));
             case ACTION -> lore.add(hint("✎ ", "ᴄʟɪᴄᴋ ᴛᴏ ᴇᴅɪᴛ ɪɴ ᴄʜᴀᴛ"));
             case MOB_SELECTOR -> lore.add(hint("◈ ", "ᴄʟɪᴄᴋ ᴛᴏ ᴏᴘᴇɴ ᴍᴏʙ ꜱᴇʟᴇᴄᴛᴏʀ"));
+            case FOOD_SELECTOR -> lore.add(hint("◈ ", "ᴄʟɪᴄᴋ ᴛᴏ ᴏᴘᴇɴ ꜰᴏᴏᴅ ʟɪꜱᴛ"));
             case IMMEDIATE -> lore.add(hint("◈ ", "ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴇᴀʀ"));
             case DANGER -> lore.add(dangerConfirmHint(entry, viewer));
         }
@@ -1616,6 +1866,12 @@ public final class BotSettingGui implements Listener {
                 int gMax = Config.chunkLoadingEnabled() ? Config.chunkLoadingRadius() : 0;
                 yield r == -1 ? "ɢʟᴏʙᴀʟ (" + gMax + ")" : r == 0 ? "ᴅɪꜱᴀʙʟᴇᴅ" : r + " ᴄʜᴜɴᴋꜱ";
             }
+            case "auto_eat" -> bot.isAutoEatEnabled() ? "✔ ᴇɴᴀʙʟᴇᴅ" : "✘ ᴅɪꜱᴀʙʟᴇᴅ";
+            case "auto_eat_threshold" -> bot.getAutoEatHungerThreshold() + " / 20 ʜᴜɴɢᴇʀ";
+            case "auto_eat_foods" -> {
+                int n = bot.getAutoEatFoods().size();
+                yield n == 0 ? "ᴀɴʏ ꜰᴏᴏᴅ" : n + " ꜱᴇʟᴇᴄᴛᴇᴅ";
+            }
             case "reset_all" -> "⚠ ɢᴇɴᴇʀᴀʟ · ᴄʜᴀᴛ · ᴘᴠᴇ · ᴘᴀᴛʜ · ᴄᴍᴅꜱ";
             case "delete" -> bot.getName();
             case "skin_info" -> skinSummary(bot);
@@ -1668,6 +1924,7 @@ public final class BotSettingGui implements Listener {
             case "pickup_items" -> bot.isPickUpItemsEnabled();
             case "pickup_xp" -> bot.isPickUpXpEnabled();
             case "auto_milk" -> bot.isAutoMilkEnabled();
+            case "auto_eat" -> bot.isAutoEatEnabled();
             case "prevent_bad_omen" -> bot.isPreventBadOmen();
             case "nav_parkour" -> bot.isNavParkour();
             case "nav_break_blocks" -> bot.isNavBreakBlocks();
@@ -2074,6 +2331,40 @@ public final class BotSettingGui implements Listener {
                                 false)));
     }
 
+    private BotCategory autoEat() {
+        return new BotCategory(
+                "🍖 ᴀᴜᴛᴏ-ᴇᴀᴛ",
+                Material.COOKED_BEEF,
+                Material.BEEF,
+                Material.ORANGE_STAINED_GLASS_PANE,
+                List.of(
+                        BotEntry.toggle(
+                                "auto_eat",
+                                "ᴀᴜᴛᴏ-ᴇᴀᴛ",
+                                "ᴡʜᴇɴ ᴇɴᴀʙʟᴇᴅ, ᴛʜᴇ ʙᴏᴛ ᴇᴀᴛꜱ ꜰᴏᴏᴅ ꜰʀᴏᴍ\n"
+                                        + "ɪᴛꜱ ɪɴᴠᴇɴᴛᴏʀʏ ᴡʜᴇɴ ʜᴜɴɢʀʏ. ɪᴛ ᴘᴀᴜꜱᴇꜱ\n"
+                                        + "ᴡʜᴀᴛᴇᴠᴇʀ ɪᴛ'ꜱ ᴅᴏɪɴɢ, ᴇᴀᴛꜱ, ᴛʜᴇɴ ꜱᴡɪᴛᴄʜᴇꜱ\n"
+                                        + "ʙᴀᴄᴋ ᴛᴏ ᴡʜᴀᴛ ɪᴛ ᴡᴀꜱ ʜᴏʟᴅɪɴɢ.",
+                                Material.COOKED_CHICKEN,
+                                false),
+                        BotEntry.action(
+                                "auto_eat_threshold",
+                                "ʜᴜɴɢᴇʀ ᴛʜʀᴇꜱʜᴏʟᴅ",
+                                "ᴇᴀᴛ ᴡʜᴇɴ ʜᴜɴɢᴇʀ ꜰᴀʟʟꜱ ᴛᴏ ᴏʀ ʙᴇʟᴏᴡ\n"
+                                        + "ᴛʜɪꜱ ᴠᴀʟᴜᴇ (0-19, ᴡʜᴇʀᴇ 20 ɪꜱ ꜰᴜʟʟ).\n"
+                                        + "ʜɪɢʜᴇʀ = ᴇᴀᴛꜱ ꜱᴏᴏɴᴇʀ / ᴍᴏʀᴇ ᴏꜰᴛᴇɴ.",
+                                Material.CLOCK,
+                                false),
+                        BotEntry.foodSelector(
+                                "auto_eat_foods",
+                                "ᴀʟʟᴏᴡᴇᴅ ꜰᴏᴏᴅꜱ",
+                                "ᴘɪᴄᴋ ᴡʜɪᴄʜ ꜰᴏᴏᴅꜱ ᴛʜᴇ ʙᴏᴛ ᴍᴀʏ ᴇᴀᴛ.\n"
+                                        + "ᴘʀɪᴏʀɪᴛʏ: ᴏꜰꜰ-ʜᴀɴᴅ → ʜᴏᴛʙᴀʀ → ɪɴᴠᴇɴᴛᴏʀʏ.\n"
+                                        + "ɴᴏɴᴇ ꜱᴇʟᴇᴄᴛᴇᴅ = ᴇᴀᴛ ᴀɴʏ ꜰᴏᴏᴅ.",
+                                Material.APPLE,
+                                false)));
+    }
+
     private BotCategory danger() {
         return new BotCategory(
                 "⚠ ᴅᴀɴɢᴇʀ",
@@ -2113,6 +2404,14 @@ public final class BotSettingGui implements Listener {
         }
     }
 
+    private record FoodSelectorHolder(UUID playerUuid) implements InventoryHolder {
+        @SuppressWarnings("NullableProblems")
+        @Override
+        public Inventory getInventory() {
+            return null;
+        }
+    }
+
     private record ShareSelectorHolder(UUID playerUuid) implements InventoryHolder {
         @SuppressWarnings("NullableProblems")
         @Override
@@ -2136,6 +2435,7 @@ public final class BotSettingGui implements Listener {
         CYCLE_PVE_MODE,
         ACTION,
         MOB_SELECTOR,
+        FOOD_SELECTOR,
         IMMEDIATE,
         DANGER,
         COMING_SOON
@@ -2171,6 +2471,10 @@ public final class BotSettingGui implements Listener {
 
         static BotEntry mobSelector(String id, String label, String desc, Material icon, boolean opOnly) {
             return new BotEntry(id, label, desc, icon, BotEntryType.MOB_SELECTOR, opOnly);
+        }
+
+        static BotEntry foodSelector(String id, String label, String desc, Material icon, boolean opOnly) {
+            return new BotEntry(id, label, desc, icon, BotEntryType.FOOD_SELECTOR, opOnly);
         }
 
         static BotEntry immediate(String id, String label, String desc, Material icon, boolean opOnly) {

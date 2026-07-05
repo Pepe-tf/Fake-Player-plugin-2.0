@@ -77,7 +77,9 @@ permissions:
       fpp.reload:               true
       fpp.info:                 true
       fpp.tp:                   true
+      fpp.tph:                  true
       fpp.tph.all:              true
+      fpp.xp:                   true
       fpp.bypass.max:           true
       fpp.bypass.cooldown:      true
       fpp.freeze:               true

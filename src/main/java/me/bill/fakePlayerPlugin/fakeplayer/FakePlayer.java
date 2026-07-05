@@ -155,6 +155,10 @@ public final class FakePlayer {
     private Set<String> pveMobTypes = new LinkedHashSet<>();
     private final Set<UUID> sharedControllers = ConcurrentHashMap.newKeySet();
     private boolean autoEatEnabled = Config.autoEatEnabled();
+    private int autoEatHungerThreshold = Config.autoEatHungerThreshold();
+    private Set<org.bukkit.Material> autoEatFoods = new LinkedHashSet<>();
+    private volatile boolean autoEating = false;
+    private volatile boolean actionsPaused = false;
     private boolean autoPlaceBedEnabled = Config.autoPlaceBedEnabled();
     private boolean autoMilkEnabled = Config.autoMilkEnabled();
     private boolean preventBadOmen = Config.preventBadOmen();
@@ -808,6 +812,57 @@ public final class FakePlayer {
 
     public void setAutoEatEnabled(boolean autoEatEnabled) {
         this.autoEatEnabled = autoEatEnabled;
+    }
+
+    /** Hunger level (0-19) at or below which the bot will auto-eat. */
+    public int getAutoEatHungerThreshold() {
+        return autoEatHungerThreshold;
+    }
+
+    public void setAutoEatHungerThreshold(int threshold) {
+        this.autoEatHungerThreshold = Math.max(0, Math.min(19, threshold));
+    }
+
+    /** Allowed auto-eat foods; an empty set means "eat any food". */
+    public Set<org.bukkit.Material> getAutoEatFoods() {
+        return autoEatFoods;
+    }
+
+    public void setAutoEatFoods(Set<org.bukkit.Material> foods) {
+        this.autoEatFoods = foods != null ? foods : new LinkedHashSet<>();
+    }
+
+    /** Toggles a single food in the allowed set; returns true if it is now allowed. */
+    public boolean toggleAutoEatFood(org.bukkit.Material food) {
+        if (food == null) return false;
+        if (autoEatFoods.contains(food)) {
+            autoEatFoods.remove(food);
+            return false;
+        }
+        autoEatFoods.add(food);
+        return true;
+    }
+
+    /** Transient: true while the auto-eat controller is mid-eat (drives the nametag activity line). */
+    public boolean isAutoEating() {
+        return autoEating;
+    }
+
+    public void setAutoEating(boolean autoEating) {
+        this.autoEating = autoEating;
+    }
+
+    /**
+     * Transient: true while an interrupt (e.g. auto-eat) has paused this bot's active task. Every
+     * per-tick action loop checks this and no-ops while set, preserving its state so the task resumes
+     * automatically when the flag clears.
+     */
+    public boolean isActionsPaused() {
+        return actionsPaused;
+    }
+
+    public void setActionsPaused(boolean actionsPaused) {
+        this.actionsPaused = actionsPaused;
     }
 
     public boolean isAutoPlaceBedEnabled() {
