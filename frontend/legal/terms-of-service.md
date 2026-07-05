@@ -226,20 +226,22 @@ You may not:
 
 # 8. Extensions and Addons
 
-## 8.1 Extension API
+> **Removed as of v2.0.0.** The Extension / Addon API and dynamic extension loader described in this
+> section no longer exist — FPP does not load external extensions. This section is retained for
+> historical reference only. To integrate with FPP today, use the read-only `FppApi` and the
+> `FppBot*` Bukkit events from a normal plugin.
 
-FPP provides an Extension API for third-party integrations.
+## 8.1 Extension API (historical)
 
-Extensions:
+Earlier versions of FPP provided an Extension API for third-party integrations. Where any such
+integration still applies, Extensions:
 
-- Must comply with the Extensions Policy
 - Must not modify core internals through unsupported means
 - Must not redistribute FPP classes or assets
-- Must not bypass licensing restrictions
 
 ## 8.2 Responsibility
 
-Extension developers are solely responsible for:
+Where third-party integrations exist, their developers are solely responsible for:
 
 - Security
 - Compatibility
@@ -247,7 +249,7 @@ Extension developers are solely responsible for:
 - Data handling
 - Compliance with applicable laws
 
-The Developer is not responsible for third-party extensions.
+The Developer is not responsible for third-party integrations.
 
 ---
 

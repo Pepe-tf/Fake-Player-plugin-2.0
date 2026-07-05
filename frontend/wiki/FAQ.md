@@ -16,7 +16,7 @@
 
 ### Q: How do I see what a bot is doing?
 **A:** The nametag above every bot shows its live activity (idle / moving / mining / fighting /
-searching / sneaking …), updated twice a second. The `/fpp list` GUI shows the same activity per
+eating / searching / sneaking …), updated twice a second. The `/fpp list` GUI shows the same activity per
 bot, and the pathfinding particle debug view (per-bot settings → 🧭 ᴘᴀᴛʜꜰɪɴᴅɪɴɢ → ꜱʜᴏᴡ ᴘᴀᴛʜ, or
 globally via `/fpp settings` → 🐛 ᴅᴇʙᴜɢ → ꜱʜᴏᴡ ᴀʟʟ ᴘᴀᴛʜꜱ) renders each bot's route.
 
@@ -75,6 +75,31 @@ cancels everything manually.
 **A:** Search → path → mine loops: it auto-equips the best tool from the bot's inventory, gives up
 on unreachable/unbreakable blocks instead of looping, and when inventory runs low it deposits into
 the bot's nearest registered storage (`/fpp storage`) before resuming.
+
+### Q: Can a bot do two things at once (mine and fight, walk and use)?
+**A:** No — bots run **one task at a time** by design. Starting a new task (`move` / `find` /
+`left-click` / `right-click` / `attack`) stops whatever the bot was doing first. If a bot has PVE
+enabled, it fights only while it isn't running one of those manual tasks, and re-engages once the
+task finishes. Interrupts like auto-eat are the exception: they *pause* the current task and resume
+it afterward rather than replacing it.
+
+### Q: How do I make a bot eat automatically?
+**A:** Open its settings → `🍖 ᴀᴜᴛᴏ-ᴇᴀᴛ`. Toggle **ᴀᴜᴛᴏ-ᴇᴀᴛ** on, set the **ʜᴜɴɢᴇʀ ᴛʜʀᴇꜱʜᴏʟᴅ**
+(0-19; the bot eats at or below it), and open **ᴀʟʟᴏᴡᴇᴅ ꜰᴏᴏᴅꜱ** to pick which foods it may eat
+(none selected = any food). When hungry the bot prefers food in its off-hand, then hotbar, then
+inventory; it pauses its current task, eats, and switches back to what it was holding. The global
+default threshold is `automation.auto-eat-threshold` in `config.yml`.
+
+### Q: My bot flips levers / presses buttons just by looking at the wall they're on.
+**A:** Fixed — the bot now must aim at the button/lever's actual hit box to trigger it, exactly like
+a real player. Aiming at the block it's mounted on (or a corner of that face) no longer activates
+the switch.
+
+### Q: How does the bot decide where to stand for a click?
+**A:** If the target is already in reach it clicks from where it is. If not, it walks to a spot it
+can reach the target from — preferring **your own standing location** (since you just aimed at the
+target from there, it's a provably reachable vantage) before falling back to searching around the
+target itself.
 
 ## Database
 

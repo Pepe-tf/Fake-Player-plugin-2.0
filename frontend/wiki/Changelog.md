@@ -31,6 +31,17 @@ When a player runs `/fpp left-click` or `/fpp right-click` while looking at a bl
 - Right-click additionally seeds its first interaction with that exact hit point (the per-tick loop still refreshes it from the bot's own view afterward).
 - Internally, `lockAndStartClicking` now takes a pre-computed aim `Vector` instead of a `BlockFace` — the block-face-center math moved to the call sites.
 
+### Changed — Documentation & Frontend Refresh
+
+Full pass over the README and wiki/legal docs to match the current plugin:
+
+- **README / Home / Getting-Started** — added the precise-clicking, single-action, and auto-eat highlights; refreshed the nametag activity list (now includes eating) and the per-bot GUI category list (adds auto-eat + rename); corrected optional soft-depends (PlaceholderAPI / WorldEdit / Spark) and clarified there is no built-in LuckPerms integration; fixed the source-repo link.
+- **Commands / FAQ** — documented single-action (no multitasking), auto-eat, precise-aim + vantage walking, and the button/lever hit-box fix.
+- **Placeholders** — removed placeholders that no longer exist (`%fpp_chat%`, `%fpp_skin%`, `%fpp_ping%`, `%fpp_swap%`, `%fpp_peak_hours%`).
+- **Configuration** — debug-topic list corrected (added `pathfinding` / `skin-pool`, removed the stale `swap` / `chat` entries).
+- **Extensions wiki + retired extension policy + ToS §8** — reflect that the extension API is removed; repo links updated to the new repository.
+- **AGENTS.md** — added runtime invariants for single-action, pause/resume, and click-aim/button-hit-box so they aren't regressed.
+
 ### Changed — Permission Node Audit
 
 A pass over every permission node so a permission manager (LuckPerms, etc.) sees a clean, complete set:
@@ -1126,7 +1137,7 @@ Added `frontend/legal/` pages (copyright, extension policy, privacy, ToS)
 - `FlagParser` utility
 
 ## Older Versions
-https://github.com/Pepe-tf/fake-player-plugin/commits/main
+https://github.com/Pepe-tf/Fake-Player-plugin-2.0/commits/master
 
 ---
 

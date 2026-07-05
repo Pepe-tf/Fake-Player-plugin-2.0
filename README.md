@@ -23,15 +23,24 @@ identity.
   real weapon-cooldown pacing, and pathfinding-linked chasing
 - ⛏️ **Find automation** — `/fpp find` search → path → mine loops with tool auto-equip, anti-stuck
   watchdogs, and inventory-aware deposits into registered storages
+- 🎯 **Precise clicking** — `/fpp left-click` / `/fpp right-click` aim at the **exact point** you're
+  looking at, walk to a reachable vantage (preferring your own standing spot) when the target is out
+  of reach, and only trigger a button/lever when actually aimed at its hit box
+- ⏸️ **One action at a time** — tasks are mutually exclusive (no multitasking); an interrupt such as
+  auto-eat pauses the current task and resumes it afterward
+- 🍗 **Auto-eat** — per bot: eats from its inventory when hungry (off-hand → hotbar → inventory
+  priority), with a configurable allowed-food list and hunger threshold; pauses the current task,
+  eats, then switches back to what it was holding
 - 🎨 **Rarity skin pools** — bots roll their skin from configurable rarity tiers
   (`skins/1-<N>%.txt` files of NameMC URLs), signed once via MineSkin and cached forever, with
   slim/classic model auto-detection
 - 🆔 **Readable bot UUIDs** — deterministic `fb07…` UUIDs with the bot number embedded
   (`bot2` → `fb070000-…-000000000002`); zero collision risk with real accounts
 - 🏷️ **Live nametags** — three-row mannequin-style tag with a real-time activity line
-  (idle / moving / mining / fighting / searching / sneaking …)
+  (idle / moving / mining / fighting / eating / searching / sneaking …)
 - 🖥️ **Full GUI suite** — bot list hub (search, sort, live refresh, spawn & settings shortcuts),
-  per-bot settings, global settings with runtime debug toggles, and a categorized help GUI
+  per-bot settings (general, PVE, pathfinding, skin, **auto-eat**, rename, danger), global settings
+  with runtime debug toggles, and a categorized help GUI
 - 🫥 **Invisible to players** — no tab-list entry, no server-list count/sample entry, no
   advancements, no join/leave/death chat noise
 - 💾 **Persistence** — bots, inventories, XP, and tasks survive restarts (SQLite or MySQL)
@@ -78,7 +87,7 @@ reintroduced — pull requests restoring them will be declined. See
 
 ## Links
 
-- **Discord:** https://discord.gg/RfjEJDG2TM
+- **Discord:** https://discord.gg/Q9cd9frzRt
 - **Modrinth:** https://modrinth.com/plugin/fake-player-plugin-(fpp)
 - **Wiki:** [frontend/wiki/Home.md](frontend/wiki/Home.md)
 

@@ -13,8 +13,8 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 | **tp** | `[botname]` | Teleport you to a bot | `fpp.tp` |
 | **xp** | `/fpp xp <bot>` | Collect XP from a bot | `fpp.xp` |
 | **move** | `<bot\|--all> --to <bot\|player>  \|  <bot\|--all> --coords <x> <y> <z> [world]  \|  <bot\|--all> --stop` | Pathfind to a bot/player (follows live) or to coordinates | `fpp.move` (+ `fpp.move.to` / `fpp.move.coords`) |
-| **left-click** | `<bot> [--once\|--repeat\|--hold\|--stop]  \|  --stop` | Bot left-clicks: breaks targeted blocks or attacks targeted entities | `fpp.left-click` |
-| **right-click** | `<bot> [--once\|--repeat\|--hold\|--stop]  \|  --stop` | Bot right-clicks: uses held items and interacts with blocks/entities | `fpp.right-click` |
+| **left-click** | `<bot> [--once\|--repeat\|--hold\|--stop]  \|  --stop` | Bot left-clicks: breaks the block / attacks the entity at the **exact point** you're aiming at; walks to a reachable vantage first if out of reach | `fpp.left-click` |
+| **right-click** | `<bot> [--once\|--repeat\|--hold\|--stop]  \|  --stop` | Bot right-clicks: uses held items and interacts with the block/entity at the **exact point** you're aiming at; must aim at a button/lever's hit box to trigger it | `fpp.right-click` |
 | **find** | `<bot> <block> [--radius\|-r <n>] [--count\|-c <n>] [--prefer-visible]  \|  <bot> --stop  \|  --stop` | Bot searches for and reports nearby blocks | `fpp.find` |
 | **storage** | `<bot> [storage_name\|--list\|--remove <name>\|--clear\|--enable <name>\|--disable <name>\|--deposit [name]]` | Set or manage bot storage targets (chest/barrel/hopper/shulker) | `fpp.storage` |
 | **attack** | `<bot\|all> [--once] [--stop]` | Basic swing/attack command | `fpp.attack` |
@@ -66,4 +66,7 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 - `/fpp move` is pathfinding-only: `--to <bot|player>` (follows the target live if it keeps moving) or `--coords <x> <y> <z> [world]`, backed by the core Pathetic-powered pathfinding engine. Directional raw-input movement was removed.
 - `/fpp attack` is a basic swing/attack command. Rich PVE combat (mob targeting, range, priority, pathfinding-linked chasing) is configured per bot in its settings GUI under `🗡 ᴘᴠᴇ`.
 - `left-click` and `right-click` are the core click automation commands; older mine/use/place-style commands were removed.
+- **Precise aim & vantage:** click commands aim at the exact point you were looking at (not the block-face centre). If the target is out of reach, the bot walks to a spot it can reach it from — preferring your own standing location (a vantage the target is provably aim-able from) before searching around the target. `right-click` only activates a button/lever when the bot actually aims at the switch's hit box, not the block it's mounted on.
+- **One action at a time:** starting any task (`move`, `find`, `left-click`, `right-click`, `attack`) stops the bot's other tasks first — bots don't multitask. Background PVE yields while a manual task runs and re-engages afterward.
+- **Auto-eat interrupts:** when a bot gets hungry it pauses its current task, eats, then resumes exactly where it left off. Configure it per bot in the settings GUI under `🍖 ᴀᴜᴛᴏ-ᴇᴀᴛ` (toggle, hunger threshold, and an allowed-food picker).
 - All core sub-commands use `--flag` style only (no bare-word duplicates like `list`/`enable`/`toggle` as an alternative spelling of a `--flag`).

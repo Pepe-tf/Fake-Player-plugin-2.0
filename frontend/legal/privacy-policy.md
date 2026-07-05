@@ -56,8 +56,8 @@ Official project resources:
 
 | Resource | Link |
 |---|---|
-| GitHub | https://github.com/Pepe-tf/fake-player-plugin |
-| Discord | https://discord.gg/QSN7f67nkJ |
+| GitHub | https://github.com/Pepe-tf/Fake-Player-plugin-2.0 |
+| Discord | https://discord.gg/Q9cd9frzRt |
 | Modrinth | https://modrinth.com/plugin/fake-player-plugin-(fpp) |
 
 FPP is distributed as source-available software under the Fake Player Plugin License.
@@ -351,8 +351,8 @@ For questions regarding this Privacy Policy:
 
 | Channel | Link |
 |---|---|
-| Discord | https://discord.gg/QSN7f67nkJ |
-| GitHub | https://github.com/Pepe-tf/fake-player-plugin |
+| Discord | https://discord.gg/Q9cd9frzRt |
+| GitHub | https://github.com/Pepe-tf/Fake-Player-plugin-2.0 |
 | Modrinth | https://modrinth.com/plugin/fake-player-plugin-(fpp) |
 
 ---

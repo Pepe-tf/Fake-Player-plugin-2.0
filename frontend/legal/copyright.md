@@ -9,7 +9,7 @@
 > **Fake Player Plugin is source-available software distributed under a custom license.**  
 > The source code is publicly accessible for viewing, study, and private modification at:
 >
-> https://github.com/Pepe-tf/fake-player-plugin
+> https://github.com/Pepe-tf/Fake-Player-plugin-2.0
 >
 > Redistribution, resale, sublicensing, and commercial redistribution are prohibited unless explicitly authorised in writing by the Developer.
 
@@ -130,7 +130,7 @@ Nothing in this License overrides rights granted under applicable third-party li
 
 When using the Plugin in any permitted form, the following attribution must be retained:
 
-  "Fake Player Plugin by Bill_Hub — https://github.com/Pepe-tf/fake-player-plugin"
+  "Fake Player Plugin by Bill_Hub — https://github.com/Pepe-tf/Fake-Player-plugin-2.0"
 
 8. INTELLECTUAL PROPERTY
 
@@ -246,7 +246,7 @@ You may NOT:
 
 When using the Plugin in any permitted form, please retain attribution:
 
-> Fake Player Plugin by Bill_Hub — https://github.com/Pepe-tf/fake-player-plugin
+> Fake Player Plugin by Bill_Hub — https://github.com/Pepe-tf/Fake-Player-plugin-2.0
 
 ---
 
@@ -256,16 +256,16 @@ For copyright concerns or infringement notices, contact:
 
 | Channel | Details |
 |---|---|
-| Discord | https://discord.gg/QSN7f67nkJ |
-| GitHub Issues | https://github.com/Pepe-tf/fake-player-plugin/issues |
+| Discord | https://discord.gg/Q9cd9frzRt |
+| GitHub Issues | https://github.com/Pepe-tf/Fake-Player-plugin-2.0/issues |
 | Modrinth | https://modrinth.com/plugin/fake-player-plugin-(fpp) |
 
 ---
 
 # Official Links
 
-- GitHub: https://github.com/Pepe-tf/fake-player-plugin
-- Discord: https://discord.gg/QSN7f67nkJ
+- GitHub: https://github.com/Pepe-tf/Fake-Player-plugin-2.0
+- Discord: https://discord.gg/Q9cd9frzRt
 - Modrinth: https://modrinth.com/plugin/fake-player-plugin-(fpp)
 
 ---

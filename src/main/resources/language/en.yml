@@ -350,9 +350,9 @@ update-failed:     "{prefix}<gray>ᴄᴏᴜʟᴅ ɴᴏᴛ ᴄʜᴇᴄᴋ ꜰᴏ�
 
 # {version} — detected Minecraft version string (e.g. "1.22.0")
 # Shown to any sender who tries a /fpp sub-command on an unsupported MC version.
-version-unsupported: "{prefix}<red>ꜰᴀᴋᴇᴘʟᴀʏᴇʀᴘʟᴜɢɪɴ ɪꜱ <bold>ɴᴏᴛ ꜱᴜᴘᴘᴏʀᴛᴇᴅ</bold> ᴏɴ <white>MC {version}<red>. ᴀʟʟ ᴄᴏᴍᴍᴀɴᴅꜱ ᴀʀᴇ ᴅɪꜱᴀʙʟᴇᴅ. <click:open_url:'https://discord.gg/RfjEJDG2TM'><#0079FF><underlined>Discord</underlined></#0079FF></click>"
+version-unsupported: "{prefix}<red>ꜰᴀᴋᴇᴘʟᴀʏᴇʀᴘʟᴜɢɪɴ ɪꜱ <bold>ɴᴏᴛ ꜱᴜᴘᴘᴏʀᴛᴇᴅ</bold> ᴏɴ <white>MC {version}<red>. ᴀʟʟ ᴄᴏᴍᴍᴀɴᴅꜱ ᴀʀᴇ ᴅɪꜱᴀʙʟᴇᴅ. <click:open_url:'https://discord.gg/Q9cd9frzRt'><#0079FF><underlined>Discord</underlined></#0079FF></click>"
 # Shown to ops / admins on join while the server runs an unsupported version.
-version-unsupported-admin: "<dark_gray><st>━━━━━━━━━</st> <bold><red>⚠ ᴜɴꜱᴜᴘᴘᴏʀᴛᴇᴅ ᴠᴇʀꜱɪᴏɴ ⚠</red></bold> <dark_gray><st>━━━━━━━━━</st>\n  <red>ꜰᴀᴋᴇᴘʟᴀʏᴇʀᴘʟᴜɢɪɴ ɪꜱ <bold>ɴᴏᴛ ꜱᴜᴘᴘᴏʀᴛᴇᴅ</bold> ᴏɴ <white>MC {version}<red>. <dark_gray>(ꜱᴜᴘᴘᴏʀᴛᴇᴅ: ᴜᴘ ᴛᴏ <white>MC 1.21.11</white>, ᴀɴᴅ <white>26.1.x</white>)\n  <gray>ᴀʟʟ <#0079FF>/fpp</#0079FF><gray> ᴄᴏᴍᴍᴀɴᴅꜱ ʜᴀᴠᴇ ʙᴇᴇɴ ᴅɪꜱᴀʙʟᴇᴅ ᴜɴᴛɪʟ ᴀɴ ᴜᴘᴅᴀᴛᴇ ɪꜱ ʀᴇʟᴇᴀꜱᴇᴅ.\n  <gray>ɪꜰ ʏᴏᴜ ᴛʜɪɴᴋ ᴛʜɪꜱ ɪꜱ ᴀ ʙᴜɢ, ᴄᴏɴᴛᴀᴄᴛ ᴜꜱ: <click:open_url:'https://discord.gg/RfjEJDG2TM'><#0079FF><underlined>Discord</underlined></#0079FF></click><gray>.\n<dark_gray><st>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</st>"
+version-unsupported-admin: "<dark_gray><st>━━━━━━━━━</st> <bold><red>⚠ ᴜɴꜱᴜᴘᴘᴏʀᴛᴇᴅ ᴠᴇʀꜱɪᴏɴ ⚠</red></bold> <dark_gray><st>━━━━━━━━━</st>\n  <red>ꜰᴀᴋᴇᴘʟᴀʏᴇʀᴘʟᴜɢɪɴ ɪꜱ <bold>ɴᴏᴛ ꜱᴜᴘᴘᴏʀᴛᴇᴅ</bold> ᴏɴ <white>MC {version}<red>. <dark_gray>(ꜱᴜᴘᴘᴏʀᴛᴇᴅ: ᴜᴘ ᴛᴏ <white>MC 1.21.11</white>, ᴀɴᴅ <white>26.1.x</white>)\n  <gray>ᴀʟʟ <#0079FF>/fpp</#0079FF><gray> ᴄᴏᴍᴍᴀɴᴅꜱ ʜᴀᴠᴇ ʙᴇᴇɴ ᴅɪꜱᴀʙʟᴇᴅ ᴜɴᴛɪʟ ᴀɴ ᴜᴘᴅᴀᴛᴇ ɪꜱ ʀᴇʟᴇᴀꜱᴇᴅ.\n  <gray>ɪꜰ ʏᴏᴜ ᴛʜɪɴᴋ ᴛʜɪꜱ ɪꜱ ᴀ ʙᴜɢ, ᴄᴏɴᴛᴀᴄᴛ ᴜꜱ: <click:open_url:'https://discord.gg/Q9cd9frzRt'><#0079FF><underlined>Discord</underlined></#0079FF></click><gray>.\n<dark_gray><st>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</st>"
 # ═════════════════════════════════════════════════════════════════════════════
 #  22 · ATTACK COMMAND  (/fpp attack)
 # ═════════════════════════════════════════════════════════════════════════════

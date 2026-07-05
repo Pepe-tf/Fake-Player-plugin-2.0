@@ -25,17 +25,14 @@ All identifiers are prefixed with `%fpp_`.
 | `%fpp_config_version%` | Config version number |
 | `%fpp_uptime%` | Plugin uptime (e.g. `4h 12m`) |
 
-## Plugin Settings / Toggles (28 placeholders)
+## Plugin Settings / Toggles
 
 | Placeholder | Description |
 |-------------|-------------|
-| `%fpp_chat%` | `on` or `off` (fake chat enabled) |
-| `%fpp_skin%` | Current skin mode: `off`, `auto`, `player`, `url`, `file`, `random`, or `custom` |
 | `%fpp_body%` | Always `on` (bodies always enabled since v1.6.6.12) |
 | `%fpp_pushable%` | `on` or `off` |
 | `%fpp_damageable%` | `on` or `off` |
 | `%fpp_tab%` | `on` or `off` (tab list enabled) |
-| `%fpp_ping%` | `on` or `off` (random fake ping enabled) |
 | `%fpp_max_health%` | Bot max health value |
 | `%fpp_network%` | `on` or `off` (NETWORK mode) |
 | `%fpp_network_mode%` | Same as `%fpp_network%` |
@@ -56,8 +53,6 @@ All identifiers are prefixed with `%fpp_`.
 | `%fpp_join_message%` | `on` or `off` |
 | `%fpp_leave_message%` | `on` or `off` |
 | `%fpp_death_message%` | `on` or `off` |
-| `%fpp_peak_hours%` | `on` or `off` |
-| `%fpp_swap%` | `on` or `off` |
 | `%fpp_metrics%` | `on` or `off` |
 | `%fpp_update_checker%` | `on` or `off` |
 | `%fpp_badword_filter%` | `on` or `off` |

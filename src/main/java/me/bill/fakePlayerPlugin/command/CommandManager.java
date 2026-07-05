@@ -315,7 +315,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 .append(Component.text("Discord")
                         .color(ACCENT)
                         .decorate(TextDecoration.UNDERLINED)
-                        .clickEvent(ClickEvent.openUrl("https://discord.gg/RfjEJDG2TM"))
+                        .clickEvent(ClickEvent.openUrl("https://discord.gg/Q9cd9frzRt"))
                         .hoverEvent(HoverEvent.showText(Component.text("Click to join the support" + " Discord")
                                 .color(GRAY)))));
 

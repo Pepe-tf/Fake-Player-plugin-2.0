@@ -227,14 +227,14 @@ Debug logging is now controlled by `plugins/FakePlayerPlugin/debug.yml` for bett
 **Feature debug:**
 - `general: false` — General plugin operations
 - `commands: false` — Command execution
-- `chat: false` — Bot chat AI
+- `pathfinding: false` — Navigation diagnostics (stuck/recalculate cycles, no-path failures, `/fpp find` watchdog, mining stalls); also mirrored to the in-game path-debug view
+- `skin-pool: false` — Full rarity skin pipeline trace (pool load, per-spawn roll, cache hits/misses, PNG downloads, slim/classic detection, MineSkin signing, application)
 - `network: false` — Cross-server network (Velocity/BungeeCord)
 - `config-sync: false` — Config synchronization
 - `startup: false` — Plugin initialization
 - `right-click: false` — Right-click automation
 - `right-click-head: false` — Right-click head rotation
 - `head-ai: false` — Head AI tracking
-- `swap: false` — Swap system debug category
 - `packets: false` — Packet injection/manipulation
 
 > You can toggle any of these at runtime via **`/fpp settings`** → the **🐛 ᴅᴇʙᴜɢ** category. Changes are saved to `debug.yml` immediately. Run `/fpp reload` after manual edits to `debug.yml`.

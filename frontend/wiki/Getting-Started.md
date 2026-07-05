@@ -7,7 +7,8 @@ FPP spawns server-side bot entities that behave like players — useful for **AF
 - **Server:** Paper/Purpur 1.21+ (up to `1.21.11`) or Folia 1.21+
 - **Java:** JDK 21+
 - **RAM:** 2GB+ recommended for optimal performance
-- **Optional:** PlaceholderAPI, LuckPerms, WorldEdit
+- **Optional soft-depends:** PlaceholderAPI (placeholders), WorldEdit (selection helpers), Spark (`/fpp perf`)
+- **Permissions:** any permission manager (e.g. LuckPerms) works with FPP's nodes — there is no built-in LuckPerms integration to configure
 
 ## Installation
 
