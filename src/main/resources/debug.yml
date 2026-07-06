@@ -147,7 +147,12 @@ head-ai: false
 # ═══════════════════════════════════════════════════════════════════════════════
 # INTERACTION DEBUG
 # ═══════════════════════════════════════════════════════════════════════════════
-# Player-bot interaction debugging (right-click, left-click).
+# Bot click-system debugging. Each traces the full pipeline: target resolution,
+# navigation to reach, the exact serverbound packets dispatched (dig start/stop/
+# abort, attack, use-item-on, use-item, entity interact), and stop/cleanup.
+#   *-head   also traces head-aim / target-selection decisions.
 # ═══════════════════════════════════════════════════════════════════════════════
 right-click: false
 right-click-head: false
+left-click: false
+left-click-head: false

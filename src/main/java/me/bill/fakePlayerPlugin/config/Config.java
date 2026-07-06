@@ -212,6 +212,14 @@ public final class Config {
         return isDebug() || debugBool("right-click-head", false);
     }
 
+    public static boolean debugLeftClick() {
+        return isDebug() || debugBool("left-click", false);
+    }
+
+    public static boolean debugLeftClickHead() {
+        return isDebug() || debugBool("left-click-head", false);
+    }
+
     public static boolean debugGeneral() {
         return isDebug() || debugBool("general", false);
     }

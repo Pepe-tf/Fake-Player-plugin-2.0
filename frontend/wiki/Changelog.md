@@ -1,6 +1,122 @@
 # Changelog
 
-## v2.0.0
+## v2.0.1 (Beta)
+
+### Changed — Left/Right-Click Are Now Real Clicks (Authentic Serverbound Packets)
+
+The bot left-click and right-click systems no longer re-implement what the server does on a click. Every action is now
+dispatched as an **authentic serverbound packet** through the bot's real packet handler
+(`FakeServerGamePacketListenerImpl`), so the server performs the click exactly as it does for a real player — full
+reach/anti-cheat validation, native Bukkit events (`BlockBreakEvent`, `PlayerInteractEvent`,
+`PlayerInteractEntityEvent`, …), item durability, hunger, use-timing and every item's own behaviour.
+
+- **New `BotClickDispatcher`** builds and dispatches `ServerboundPlayerActionPacket` (dig), `ServerboundAttackPacket`,
+  `ServerboundInteractPacket`, `ServerboundUseItemOnPacket`, `ServerboundUseItemPacket` and `ServerboundSwingPacket`
+  through the connection's live `handle*` methods. It first sends a `ServerboundPlayerLoadedPacket` (what a real client
+  sends) so the server's `hasClientLoaded()` gate lets bot interactions through.
+- **Left-click mining** now sends `START_DESTROY_BLOCK` and lets the server drive destroy progress, sending
+  `STOP_DESTROY_BLOCK` on a client-faithful predictor (creative/instant-break complete on the START tick). Removed the
+  hand-rolled progress loop and direct `gameMode.destroyBlock` calls.
+- **Left-click attacks** go through the real attack packet (respecting the attack-strength cooldown), replacing the
+  `performAttack` + forced-attack-ticker hack.
+- **Right-click** routes block use, item use and entity interaction through the real handlers, and **deletes** the
+  fake shortcuts: directly `setType`-ing planted crops from a hardcoded seed→crop table, `applyBoneMeal`, and the manual
+  place/plant/bonemeal branches. The server's `useItemOn` now handles placement, planting, bone meal, hoeing, bucket use,
+  etc. natively for any item.
+- Protection plugins (WorldGuard, etc.) now block bot clicks the same way they block real players, since the real events
+  fire.
+- **1:1 vanilla click resolution** — the bot's clicks now resolve targets exactly like a real client's pick: the
+  combined block+entity ray from the bot's own eyes, nearest hit wins. Left-click attacks the entity directly under the
+  crosshair (paced by the real attack-speed attribute) or digs the block; right-click interacts with the entity under
+  the crosshair (armor-stand equip, feeding, breeding, trading, mounting) and, when that PASSes, falls through to the
+  in-hand item use — the same order `Minecraft.startUseItem` follows. Removed all non-vanilla targeting: sender-aim
+  entity picks (`rayTraceHostileEntity`, `rayTraceEntity`, the right-click `rayTraceTargetPlayer` entity branch), the
+  left-click forward-cone auto-attack (`findBestMobTarget`), and target lock-on. An entity behind the aimed block is
+  never picked; the sender's crosshair only designates which block to work on.
+- **Full debug tracing** — new `left-click` / `left-click-head` debug categories (in `debug.yml`, plus
+  `Config.debugLeftClick()/debugLeftClickHead()`) mirroring `right-click`. Both systems now log the whole pipeline:
+  target resolution, navigation, every dispatched packet (dig START/STOP/ABORT, attack, useItemOn, useItem, entity
+  interact), consume detection and stop/cleanup.
+
+### Fixed — Use Packets Silently Dropped by the Spam Limiter + Aim Drift
+
+Two bugs that made `--hold`/`--repeat` clicks stop working after a few seconds:
+
+- **Spam-limiter drop** — `handleUseItem`/`handleUseItemOn` feed the packet's Spigot-added `timestamp` field into
+  Paper's incoming-packet spam limiter (`checkLimit`). Directly-constructed packets leave that field `0`, which looks
+  like "no time passed since the last packet", so after ~8 uses the server **permanently dropped every use packet**
+  (eating, placing, doors — everything). `BotClickDispatcher` now stamps `System.currentTimeMillis()` onto
+  `ServerboundUseItemPacket`/`ServerboundUseItemOnPacket` (reflection-probed, no-op if the field ever disappears), so
+  the limiter sees real inter-packet timing exactly as for a networked client.
+- **Aim tracking** — the bot's head was rotated once when the command started and could drift off the commanded target
+  (knockback, entity interactions), leaving it staring at the wrong block forever. Both click loops now **re-aim at the
+  commanded target every tick** (new `aimTarget`/`aimPoint` in the click state, never overwritten by transient per-tick
+  picks): a passing entity still gets vanilla nearest-hit treatment, and the moment it's gone the crosshair is back on
+  the commanded block.
+
+### Fixed — Left-Click Resumes Mining After the Crosshair Leaves an Entity
+
+Block re-resolution in the left-click loop was gated behind a "dynamic target" flag that was false when the click
+started without a block pick (entity in front of the crosshair, a resumed task after restart, or a plain self-view
+click) — so once the entity was gone, the bot stopped instead of mining the block now under its crosshair. The loop now
+re-resolves the block pick unconditionally every tick, matching a real held click: entity in front → attack it; entity
+gone → seamlessly dig whatever the crosshair sees. The dead flag was removed.
+
+### Fixed — Full Weapon Damage & Right-Click Arm Swings
+
+- **Attacks now use the held weapon's real damage** — bots aren't driven by the normal player tick path, so two things
+  a real client gets for free never happened: the held weapon's attribute modifiers were never registered
+  (`ATTACK_DAMAGE` stayed at fist level) and the attack-strength ticker never advanced (every hit was scaled to the
+  ~20% spam-click minimum → a sword dealt ~1 damage). `BotClickDispatcher.attack` now calls `detectEquipmentUpdates()`
+  and primes the attack-strength ticker before each attack; since the click loop already paces attacks at the real
+  weapon cooldown, every hit lands at full strength — sword/axe damage, sweep, knockback and enchantments all apply.
+- **Right-click now swings the arm** — the server only broadcasts SERVER-sourced swings; for most interactions the
+  vanilla *client* swings itself, which a bot has no client to do. The bot now sends its own swing on every consumed
+  right-click (buttons, levers, bone meal, planting, placing, entity interactions) and on instant item uses (throwing
+  pearls/eggs) — but not when a multi-tick use starts (eating, bow draw), matching the vanilla client exactly.
+
+### Fixed — Bots No Longer Lose Inventory & Active Task Across Restarts
+
+Two persistence defects made every server restart / plugin update wipe bot inventories and running tasks:
+
+- **Inventory/XP restore was a one-shot timer** — applied a fixed 10–12 ticks after the restore chain spawned the bot,
+  with a silent give-up if the body hadn't finished spawning yet (typical right after startup while chunks load). Both
+  now use a retry loop (every 5 ticks, up to 30 s) that waits until the bot is online + valid, and log a warning
+  instead of silently dropping if the bot never spawns.
+- **Task persistence was hollow since the click-system migration** — the task snapshot hardcoded every field to
+  null/0 ("legacy mine/use/place removed") and the restore hook was an empty stub, so the active task was lost by
+  design. The persistence layer now saves each bot's **active left/right-click task** (mode + world + exact aim point)
+  to both the unified YAML and the `fpp_bot_tasks` DB table (`LEFT_CLICK`/`RIGHT_CLICK` rows), and resumes it after the
+  restart: once the bot is fully spawned and its inventory (tools!) is restored, it re-aims at the saved point and
+  restarts the same click mode via the normal task pipeline. New `SavedClickTask` snapshot +
+  `getSavedTask`/`resumeSavedTask` APIs on both click commands; the dead 30-field legacy task model was replaced with a
+  compact one.
+
+### Fixed — Block Interactions Blocked by the Unconfirmed-Teleport Gate
+
+`handleUseItemOn` refuses **every** block interaction while `awaitingPositionFromClient` is armed — and it gets armed by
+any teleport/rotation done through the connection (bot spawn, `/fpp tp`, action locks, `CraftPlayer#setRotation`). A
+real client confirms teleports instantly; the bot never did, so levers, buttons, bone meal, planting and placement
+silently no-oped (the packet fell into the build-limit-message branch). Two-part fix:
+
+- `BotClickDispatcher` now **confirms pending teleports like a real client** before every interaction packet: if the
+  connection is awaiting a position confirm, it dispatches a `ServerboundAcceptTeleportationPacket` with the pending id
+  (clears the gate, snaps to the awaited position — the same thing a vanilla client does).
+- `refreshAim` rotates via NMS `absSnapRotationTo` instead of `CraftPlayer#setRotation`, which internally performs a
+  connection teleport and would re-arm the gate every tick.
+
+### Changed — Vanilla Click Timing & Armor-Stand Parity
+
+- **Right-click at vanilla speed** — held right-click now acts once per 4 ticks (the vanilla client's
+  `rightClickDelay`), instead of every 8: the extra post-action pulse skip was removed. Bone meal, levers, buttons,
+  doors and planting now trigger at real-player pace.
+- **No more eating through armor stands** — the vanilla client hardcodes `interactAt` on a non-marker armor stand as
+  SUCCESS client-side, so a real player's click is always consumed there and never falls through to eating/using the
+  held item. The bot now mirrors that: aiming at an armor stand consumes the right-click even when the server-side
+  equipment swap does nothing.
+- **Held left-click attacks at exact weapon speed** — entity attacks are now paced solely by the bot's real
+  attack-speed attribute (swing + attack packet each cycle); the loop's post-break pause no longer stacks on top
+  (previously ≈16 ticks between sword hits instead of 12). Mining keeps its vanilla-like ~4-tick post-break pause.
 
 ### Added — Minecraft 26.2 Support
 
@@ -10,6 +126,7 @@ Extended the runtime compatibility gate to cover the year-based `26.2.x` release
 - The unsupported-version warning banner and wiki version ranges updated to read `up to 1.21.11, and 26.1.x–26.2.x`.
 - Compile-time Paper dev bundle stays on the stable `26.1.2.build.65-stable`; 26.2 runs via the existing version-safe NMS reflection.
 
+## v2.0.0
 
 Major version bump to **2.0.0**, opening the 2.0 release line. No behavioral changes from `1.6.6.12.8` beyond the items below.
 

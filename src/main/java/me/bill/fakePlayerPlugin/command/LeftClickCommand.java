@@ -1,7 +1,6 @@
 package me.bill.fakePlayerPlugin.command;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -14,21 +13,15 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
-import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Ghast;
-import org.bukkit.entity.Hoglin;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Monster;
-import org.bukkit.entity.Phantom;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Shulker;
-import org.bukkit.entity.Slime;
 import org.jetbrains.annotations.Nullable;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
+import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.fakeplayer.BotClickDispatcher;
 import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
 import me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
@@ -38,11 +31,11 @@ import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.BotAccess;
+import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.level.block.state.BlockState;
@@ -69,45 +62,22 @@ public final class LeftClickCommand implements FppCommand {
         STOP
     }
 
-    private static final int DEFAULT_ATTACK_COOLDOWN = 5;
-    private static final Map<org.bukkit.Material, Integer> WEAPON_COOLDOWN = Map.ofEntries(
-            Map.entry(org.bukkit.Material.NETHERITE_SWORD, 12),
-            Map.entry(org.bukkit.Material.DIAMOND_SWORD, 12),
-            Map.entry(org.bukkit.Material.IRON_SWORD, 12),
-            Map.entry(org.bukkit.Material.GOLDEN_SWORD, 12),
-            Map.entry(org.bukkit.Material.STONE_SWORD, 12),
-            Map.entry(org.bukkit.Material.WOODEN_SWORD, 12),
-            Map.entry(org.bukkit.Material.NETHERITE_AXE, 20),
-            Map.entry(org.bukkit.Material.DIAMOND_AXE, 20),
-            Map.entry(org.bukkit.Material.IRON_AXE, 22),
-            Map.entry(org.bukkit.Material.GOLDEN_AXE, 20),
-            Map.entry(org.bukkit.Material.STONE_AXE, 25),
-            Map.entry(org.bukkit.Material.WOODEN_AXE, 25),
-            Map.entry(org.bukkit.Material.TRIDENT, 22),
-            Map.entry(org.bukkit.Material.NETHERITE_PICKAXE, 16),
-            Map.entry(org.bukkit.Material.DIAMOND_PICKAXE, 16),
-            Map.entry(org.bukkit.Material.IRON_PICKAXE, 16),
-            Map.entry(org.bukkit.Material.GOLDEN_PICKAXE, 16),
-            Map.entry(org.bukkit.Material.STONE_PICKAXE, 16),
-            Map.entry(org.bukkit.Material.WOODEN_PICKAXE, 16),
-            Map.entry(org.bukkit.Material.NETHERITE_SHOVEL, 20),
-            Map.entry(org.bukkit.Material.DIAMOND_SHOVEL, 20),
-            Map.entry(org.bukkit.Material.IRON_SHOVEL, 20),
-            Map.entry(org.bukkit.Material.GOLDEN_SHOVEL, 20),
-            Map.entry(org.bukkit.Material.STONE_SHOVEL, 20),
-            Map.entry(org.bukkit.Material.WOODEN_SHOVEL, 20),
-            Map.entry(org.bukkit.Material.NETHERITE_HOE, 5),
-            Map.entry(org.bukkit.Material.DIAMOND_HOE, 5),
-            Map.entry(org.bukkit.Material.IRON_HOE, 7),
-            Map.entry(org.bukkit.Material.GOLDEN_HOE, 20),
-            Map.entry(org.bukkit.Material.STONE_HOE, 10),
-            Map.entry(org.bukkit.Material.WOODEN_HOE, 20),
-            Map.entry(org.bukkit.Material.MACE, 33));
-
     public LeftClickCommand(FakePlayerPlugin plugin, FakePlayerManager manager, PathfindingService pathfinding) {
         this.plugin = plugin;
         this.manager = manager;
         this.pathfinding = pathfinding;
+    }
+
+    private static void dbg(String msg) {
+        FppLogger.debug("LEFTCLICK", Config.debugLeftClick(), msg);
+    }
+
+    private static void dbgHead(String msg) {
+        FppLogger.debug("LEFTCLICK-HEAD", Config.debugLeftClickHead(), msg);
+    }
+
+    private static String describePos(Block b) {
+        return "@(" + b.getX() + "," + b.getY() + "," + b.getZ() + ")";
     }
 
     @Override
@@ -122,7 +92,7 @@ public final class LeftClickCommand implements FppCommand {
 
     @Override
     public String getDescription() {
-        return "Bot left-clicks (breaks blocks and attacks entities). Default: --once";
+        return "Bot left-clicks like a real player (attacks what it aims at, else breaks blocks). Default: --once";
     }
 
     @Override
@@ -215,37 +185,26 @@ public final class LeftClickCommand implements FppCommand {
 
         Object target = null;
         BlockPos blockTarget = null;
-        Entity entityTarget = null;
         BlockFace targetFace = null;
         // The exact point the sender is looking at on the block (world coords), so the bot aims at
         // precisely that spot rather than the block-face centre.
         org.bukkit.util.Vector aimPoint = null;
 
         if (sender instanceof Player player) {
-            LivingEntity hostileTarget = rayTraceHostileEntity(player);
-            if (hostileTarget != null) {
-                entityTarget = hostileTarget;
-                target = hostileTarget;
-            } else {
-                Block playerTarget = player.getTargetBlockExact((int) Math.ceil(CLICK_REACH));
-                if (playerTarget != null && !playerTarget.getType().isAir()) {
-                    blockTarget = new BlockPos(playerTarget.getX(), playerTarget.getY(), playerTarget.getZ());
-                    target = playerTarget;
-                    org.bukkit.util.RayTraceResult ray = player.rayTraceBlocks(CLICK_REACH);
-                    if (ray != null) {
-                        targetFace = ray.getHitBlockFace();
-                        aimPoint = ray.getHitPosition();
-                    }
-                } else {
-                    entityTarget = rayTraceEntity(player);
-                    if (isSelfTarget(bot, entityTarget)) {
-                        entityTarget = null;
-                    }
-                    if (entityTarget != null) {
-                        target = entityTarget;
-                    }
+            // The sender's crosshair designates the block to mine. Per-tick behaviour is 1:1 with a real
+            // client: the bot attacks whatever entity is directly under ITS OWN crosshair, else digs.
+            Block playerTarget = player.getTargetBlockExact((int) Math.ceil(CLICK_REACH));
+            if (playerTarget != null && !playerTarget.getType().isAir()) {
+                blockTarget = new BlockPos(playerTarget.getX(), playerTarget.getY(), playerTarget.getZ());
+                target = playerTarget;
+                org.bukkit.util.RayTraceResult ray = player.rayTraceBlocks(CLICK_REACH);
+                if (ray != null) {
+                    targetFace = ray.getHitBlockFace();
+                    aimPoint = ray.getHitPosition();
                 }
             }
+            dbgHead("execute: sender=" + player.getName() + " aim-block="
+                    + (playerTarget != null ? playerTarget.getType() + describePos(playerTarget) : "none"));
         }
 
         if (target == null) {
@@ -258,18 +217,23 @@ public final class LeftClickCommand implements FppCommand {
                     aimPoint = ray.getHitPosition();
                 }
             }
+            dbgHead("execute: no sender block-target; bot self-raytrace="
+                    + (target instanceof Block b2 ? b2.getType() + describePos(b2) : "none"));
         }
 
+        dbg("execute: bot=" + fp.getDisplayName() + " mode=" + mode + " target="
+                + (target instanceof Block bl ? "block " + bl.getType() : "none"));
+
         final ClickMode finalMode = mode;
-        // Aim at the exact hit point; fall back to the block-face centre when there is no precise
-        // point (entity targets, or a raytrace that returned no hit position).
+        // Aim at the exact hit point; fall back to the block-face centre when the raytrace returned no
+        // precise hit position.
         final org.bukkit.util.Vector finalAim = aimPoint != null ? aimPoint : computeFaceCenter(target, targetFace);
         if (target != null) {
             Location targetLoc = getTargetLocation(bot, target);
             if (targetLoc != null) {
                 double dist = bot.getLocation().distance(targetLoc);
                 if (dist <= CLICK_REACH) {
-                    lockAndStartClicking(fp, finalMode, target, blockTarget, entityTarget, finalAim);
+                    lockAndStartClicking(fp, finalMode, target, blockTarget, finalAim);
                     String msgKey =
                             switch (finalMode) {
                                 case ONCE -> "left-click-started-once";
@@ -284,12 +248,10 @@ public final class LeftClickCommand implements FppCommand {
                     if (standLoc != null) {
                         final Object finalTarget = target;
                         final BlockPos finalBlockTarget = blockTarget;
-                        final Entity finalEntityTarget = entityTarget;
                         startNavigation(
                                 fp,
                                 standLoc,
-                                () -> lockAndStartClicking(
-                                        fp, finalMode, finalTarget, finalBlockTarget, finalEntityTarget, finalAim));
+                                () -> lockAndStartClicking(fp, finalMode, finalTarget, finalBlockTarget, finalAim));
                         sender.sendMessage(Lang.get("left-click-walking", "name", fp.getDisplayName()));
                         return true;
                     } else {
@@ -300,7 +262,7 @@ public final class LeftClickCommand implements FppCommand {
             }
         }
 
-        lockAndStartClicking(fp, finalMode, null, null, null, (org.bukkit.util.Vector) null);
+        lockAndStartClicking(fp, finalMode, null, null, (org.bukkit.util.Vector) null);
         sender.sendMessage(Lang.get("left-click-started", "name", fp.getDisplayName()));
         return true;
     }
@@ -341,7 +303,6 @@ public final class LeftClickCommand implements FppCommand {
 
         Object target = null;
         BlockPos blockTarget = null;
-        Entity finalEntityTarget = null;
         BlockFace targetFace = null;
         org.bukkit.util.Vector aimPoint = null;
 
@@ -353,10 +314,9 @@ public final class LeftClickCommand implements FppCommand {
                 targetFace = ray.getHitBlockFace();
                 aimPoint = ray.getHitPosition();
             }
-        } else {
-            finalEntityTarget = rayTraceEntity(bot);
-            if (finalEntityTarget != null && !isSelfTarget(bot, finalEntityTarget)) target = finalEntityTarget;
         }
+        dbg("click(): bot=" + fp.getDisplayName() + " mode=" + mode + " block="
+                + (target instanceof Block cb ? cb.getType() + describePos(cb) : "none"));
 
         final org.bukkit.util.Vector aim = aimPoint != null ? aimPoint : computeFaceCenter(target, targetFace);
         if (target != null) {
@@ -366,16 +326,12 @@ public final class LeftClickCommand implements FppCommand {
                 if (standLoc == null) return false;
                 final Object finalTarget = target;
                 final BlockPos finalBlockTarget = blockTarget;
-                final Entity finalEntity = finalEntityTarget;
-                startNavigation(
-                        fp,
-                        standLoc,
-                        () -> lockAndStartClicking(fp, mode, finalTarget, finalBlockTarget, finalEntity, aim));
+                startNavigation(fp, standLoc, () -> lockAndStartClicking(fp, mode, finalTarget, finalBlockTarget, aim));
                 return true;
             }
         }
 
-        lockAndStartClicking(fp, mode, target, blockTarget, finalEntityTarget, aim);
+        lockAndStartClicking(fp, mode, target, blockTarget, aim);
         return true;
     }
 
@@ -399,25 +355,22 @@ public final class LeftClickCommand implements FppCommand {
     }
 
     private void lockAndStartClicking(
-            FakePlayer fp,
-            ClickMode mode,
-            Object target,
-            BlockPos blockTarget,
-            Entity entityTarget,
-            org.bukkit.util.Vector aim) {
+            FakePlayer fp, ClickMode mode, Object target, BlockPos blockTarget, org.bukkit.util.Vector aim) {
         FppApiImpl.fireTaskEvent(fp, "left-click", FppBotTaskEvent.Action.START);
         UUID uuid = fp.getUuid();
         Player bot = fp.getPlayer();
         if (bot == null) return;
 
-        if (isSelfTarget(bot, target) || isSelfTarget(bot, entityTarget)) {
+        if (isSelfTarget(bot, target)) {
             target = null;
-            entityTarget = null;
         }
 
+        dbg("start clicking: bot=" + fp.getDisplayName() + " mode=" + mode + " target="
+                + (target instanceof Block sb ? "block " + sb.getType() + describePos(sb) : "self-view"));
+
         if (target != null) {
-            // Aim at the exact point the sender was looking at (falls back to entity/block centre
-            // inside faceTowardTarget when aim is null).
+            // Aim at the exact point the sender was looking at (falls back to the block centre inside
+            // faceTowardTarget when aim is null).
             Location faceLoc = faceTowardTarget(bot.getLocation(), target, aim);
             bot.setRotation(faceLoc.getYaw(), faceLoc.getPitch());
             NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
@@ -432,12 +385,13 @@ public final class LeftClickCommand implements FppCommand {
         ClickState state = new ClickState();
         state.target = target;
         state.blockTarget = blockTarget;
-        state.entityTarget = entityTarget;
         state.mode = mode;
         state.holding = false;
         state.progress = 0;
-        state.dynamicTarget = (target != null);
-        state.entityCooldown = 0;
+        // The COMMANDED target — the tick loop re-aims the head at this every tick, so knockback or a
+        // passing entity can't permanently steer the crosshair off what the bot was told to mine.
+        state.aimTarget = target;
+        state.aimPoint = aim;
         clickStates.put(uuid, state);
         clickModes.put(uuid, mode);
 
@@ -473,14 +427,10 @@ public final class LeftClickCommand implements FppCommand {
                             stopClicking(uuid);
                             return;
                         }
-                        // Apply cooldown for REPEAT and HOLD modes
-                        cooldown[0] = CLICK_COOLDOWN;
-                    }
-
-                    if (mode == ClickMode.HOLD && !state.holding) {
-                        state.holding = true;
-                        if (state.blockTarget != null) {
-                            startBreakBlock(nms, state.blockTarget);
+                        // Post-break pause for REPEAT/HOLD mining (vanilla destroyDelay ≈ 5 ticks).
+                        // Entity attacks are paced solely by the weapon's attack cooldown instead.
+                        if (!state.lastActionWasAttack) {
+                            cooldown[0] = CLICK_COOLDOWN;
                         }
                     }
                 },
@@ -492,189 +442,113 @@ public final class LeftClickCommand implements FppCommand {
 
     private boolean tryBreakBlock(ServerPlayer nms, ClickState state) {
         Player bot = nms.getBukkitEntity();
+        state.lastActionWasAttack = false;
 
-        // Clear stale entity target (out of range, dead, or invalid)
-        if (state.entityTarget != null
-                && (!state.entityTarget.isValid()
-                        || state.entityTarget.isDead()
-                        || isSelfTarget(bot, state.entityTarget)
-                        || state.entityTarget.getLocation().distance(bot.getLocation()) > CLICK_REACH)) {
-            state.entityTarget = null;
-        }
+        // Keep the crosshair ON the commanded target every tick — like a player holding their aim
+        // steady. A passing entity gets vanilla treatment below; once it's gone, the next tick is
+        // back on the commanded block instead of wherever the head drifted.
+        refreshAim(bot, state);
 
-        // --- Auto-detect hostile mobs in forward cone ---
-        // If no entity target yet (or it went stale), try finding a new one
-        if (state.entityTarget == null) {
-            LivingEntity bestMob = findBestMobTarget(bot, state);
-            if (bestMob != null) {
-                state.entityTarget = bestMob;
-                Location aimLoc = computeAimingVector(bot, bestMob);
-                if (aimLoc != null) {
-                    bot.setRotation(aimLoc.getYaw(), aimLoc.getPitch());
-                    NmsPlayerSpawner.setHeadYaw(bot, aimLoc.getYaw());
-                }
-                return tryAttackEntity(nms, state, bot);
-            }
-        }
-
-        if (state.entityTarget != null) {
-            // Keep aiming at the current entity target
-            Location aimLoc = computeAimingVector(bot, state.entityTarget);
-            if (aimLoc != null) {
-                bot.setRotation(aimLoc.getYaw(), aimLoc.getPitch());
-                NmsPlayerSpawner.setHeadYaw(bot, aimLoc.getYaw());
-            }
-            return tryAttackEntity(nms, state, bot);
+        // Vanilla nearest-hit priority: a real client holding left-click attacks whatever entity is
+        // directly under the crosshair (closer than any block) and only digs when the pick is a block.
+        Entity crosshairEntity = rayTraceCrosshairEntity(bot);
+        if (crosshairEntity != null && !isSelfTarget(bot, crosshairEntity)) {
+            cancelActiveDestroy(nms, state);
+            return tryAttackEntity(nms, state, bot, crosshairEntity);
         }
 
         BlockPos pos = state.blockTarget;
+        Direction dir = state.destroyDir;
 
-        if (state.dynamicTarget) {
-            BlockPos currentTarget = rayTraceBlockTarget(nms);
-            if (currentTarget != null) {
-                // Check if an entity is blocking the way to the target block
-                Entity blockingEntity = findEntityInRange(nms);
-                if (blockingEntity != null && !isSelfTarget(bot, blockingEntity)) {
-                    state.entityTarget = blockingEntity;
-                    return tryAttackEntity(nms, state, bot);
-                } else {
-                    state.blockTarget = currentTarget;
-                    pos = currentTarget;
-                }
-            } else if (pos != null) {
-                BlockState blockState = nms.level().getBlockState(pos);
-                if (blockState.isAir()) {
-                    state.progress = 0;
-                    state.blockTarget = null;
-                    pos = null;
-                }
-            }
+        // Always re-resolve the block under the bot's crosshair — a real client holding left-click
+        // acts on whatever the pick currently sees. This also lets a click that started with no block
+        // (entity in front, resumed task, self-view) pick up the block the moment it becomes visible.
+        BlockHitResult hit = rayTraceBlockHit(nms);
+        if (hit != null) {
+            pos = hit.getBlockPos();
+            dir = hit.getDirection();
+            state.blockTarget = pos;
+            state.destroyDir = dir;
+        } else if (pos != null && nms.level().getBlockState(pos).isAir()) {
+            pos = null;
         }
 
-        if (pos == null) return false;
+        if (pos == null) {
+            cancelActiveDestroy(nms, state);
+            state.blockTarget = null;
+            return false;
+        }
 
         BlockState blockState = nms.level().getBlockState(pos);
         if (blockState.isAir()) {
-            state.progress = 0;
+            // The block already broke (server finished digging, or someone else removed it).
+            boolean wasDigging = state.activeDestroyPos != null;
+            if (wasDigging) dbg("dig: block broke @" + pos.toShortString());
+            cancelActiveDestroy(nms, state);
             state.blockTarget = null;
-            return false;
+            return wasDigging;
         }
 
         if (nms.blockActionRestricted(nms.level(), pos, nms.gameMode.getGameModeForPlayer())) {
+            dbg("dig: blocked @" + pos.toShortString() + " (blockActionRestricted) — aborting");
+            cancelActiveDestroy(nms, state);
             return false;
         }
 
-        // Creative-mode players insta-break on the very first click — no progress accumulation,
-        // matching ServerPlayerGameMode's real "creative destroy" short-circuit.
-        if (bot.getGameMode() == org.bukkit.GameMode.CREATIVE) {
-            nms.swing(InteractionHand.MAIN_HAND);
-            NmsPlayerSpawner.handleBlockBreakAction(
-                    nms,
-                    pos,
-                    ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK,
-                    Direction.DOWN,
-                    nms.level().getMaxY(),
-                    -1);
-            NmsPlayerSpawner.destroyBlockProgress(nms, -1, pos, -1);
-            nms.gameMode.destroyBlock(pos);
+        // (Re)target: hand a fresh START_DESTROY_BLOCK to the real packet handler. The server does the
+        // reach/permission checks, fires BlockBreakEvent, and — for creative or instant-break blocks —
+        // destroys the block on this very tick. For multi-tick mining the server accumulates progress
+        // in ServerPlayerGameMode#tick(); we send STOP below once our client-faithful predictor agrees.
+        if (state.activeDestroyPos == null || !state.activeDestroyPos.equals(pos)) {
+            if (state.activeDestroyPos != null) {
+                dbg("dig: retarget — abort " + state.activeDestroyPos.toShortString());
+                BotClickDispatcher.abortDestroy(nms, state.activeDestroyPos);
+            }
+            state.activeDestroyPos = pos;
+            state.destroyDir = dir;
             state.progress = 0;
-            state.blockTarget = null;
-            return true;
+            dbg("dig: START " + blockState.getBlock().getName().getString() + " @" + pos.toShortString() + " face="
+                    + dir);
+            BotClickDispatcher.startDestroy(nms, pos, dir);
+            BotClickDispatcher.swing(nms, InteractionHand.MAIN_HAND);
+            if (nms.level().getBlockState(pos).isAir()) {
+                // Instant-break / creative: the START tick already destroyed it server-side.
+                dbg("dig: instant-break completed @" + pos.toShortString());
+                cancelActiveDestroy(nms, state);
+                state.blockTarget = null;
+                return true;
+            }
+            return false;
         }
 
-        if (state.progress == 0) {
-            blockState.attack(nms.level(), pos, nms);
-        }
-
-        float speed = blockState.getDestroyProgress(nms, nms.level(), pos);
-        if (speed >= 1.0F) {
-            nms.swing(InteractionHand.MAIN_HAND);
-            NmsPlayerSpawner.handleBlockBreakAction(
-                    nms,
-                    pos,
-                    ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK,
-                    Direction.DOWN,
-                    nms.level().getMaxY(),
-                    -1);
-            NmsPlayerSpawner.destroyBlockProgress(nms, -1, pos, -1);
-            nms.gameMode.destroyBlock(pos);
-            state.progress = 0;
-            state.blockTarget = null;
-            return true;
-        }
-
-        state.progress += speed;
+        // Continuing to dig the same block: keep the arm swinging and advance the destroy predictor
+        // exactly as a real client does to decide when to send STOP_DESTROY_BLOCK.
+        BotClickDispatcher.swing(nms, InteractionHand.MAIN_HAND);
+        state.progress += blockState.getDestroyProgress(nms, nms.level(), pos);
         if (state.progress >= 1.0F) {
-            nms.swing(InteractionHand.MAIN_HAND);
-            NmsPlayerSpawner.handleBlockBreakAction(
-                    nms,
-                    pos,
-                    ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK,
-                    Direction.DOWN,
-                    nms.level().getMaxY(),
-                    -1);
-            NmsPlayerSpawner.destroyBlockProgress(nms, -1, pos, -1);
-            nms.gameMode.destroyBlock(pos);
-            state.progress = 0;
+            dbg("dig: STOP (predictor complete) @" + pos.toShortString());
+            BotClickDispatcher.stopDestroy(nms, pos, dir);
+            cancelActiveDestroy(nms, state);
             state.blockTarget = null;
             return true;
         }
-
-        NmsPlayerSpawner.destroyBlockProgress(nms, -1, pos, (int) (state.progress * 10));
-        Direction side = Direction.DOWN;
-        NmsPlayerSpawner.handleBlockBreakAction(
-                nms,
-                pos,
-                ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK,
-                side,
-                nms.level().getMaxY(),
-                -1);
-        nms.swing(InteractionHand.MAIN_HAND);
+        if (Config.debugLeftClick()) {
+            dbg(String.format("dig: progress %.2f @%s", state.progress, pos.toShortString()));
+        }
         return false;
     }
 
-    @Nullable
-    private Entity findEntityInRange(ServerPlayer nms) {
-        try {
-            Vec3 eyePos = nms.getEyePosition(1.0F);
-            Vec3 lookDir = nms.getLookAngle();
-            Vec3 endPos = eyePos.add(lookDir.scale(CLICK_REACH));
-
-            org.bukkit.World world = nms.getBukkitEntity().getWorld();
-            org.bukkit.Location eye = new org.bukkit.Location(world, eyePos.x, eyePos.y, eyePos.z);
-            org.bukkit.util.Vector dir = new org.bukkit.util.Vector(lookDir.x, lookDir.y, lookDir.z);
-
-            org.bukkit.util.RayTraceResult result = world.rayTrace(
-                    eye,
-                    dir,
-                    CLICK_REACH,
-                    org.bukkit.FluidCollisionMode.NEVER,
-                    true,
-                    0.0,
-                    e -> e != null && e.isValid() && !e.isDead() && !isSelfTarget(nms.getBukkitEntity(), e));
-
-            if (result != null && result.getHitEntity() != null) {
-                return result.getHitEntity();
-            }
-        } catch (Exception ignored) {
+    /** Aborts any in-progress server-side dig and clears the local predictor. */
+    private void cancelActiveDestroy(ServerPlayer nms, ClickState state) {
+        if (state.activeDestroyPos != null) {
+            BotClickDispatcher.abortDestroy(nms, state.activeDestroyPos);
+            state.activeDestroyPos = null;
         }
-        return null;
-    }
-
-    private void startBreakBlock(ServerPlayer nms, BlockPos pos) {
-        Direction side = Direction.DOWN;
-        NmsPlayerSpawner.handleBlockBreakAction(
-                nms,
-                pos,
-                ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK,
-                side,
-                nms.level().getMaxY(),
-                -1);
-        nms.swing(InteractionHand.MAIN_HAND);
+        state.progress = 0;
     }
 
     @Nullable
-    private BlockPos rayTraceBlockTarget(ServerPlayer nms) {
+    private BlockHitResult rayTraceBlockHit(ServerPlayer nms) {
         try {
             Vec3 eyePos = nms.getEyePosition(1.0F);
             Vec3 lookDir = nms.getLookAngle();
@@ -687,13 +561,38 @@ public final class LeftClickCommand implements FppCommand {
                             net.minecraft.world.level.ClipContext.Fluid.NONE,
                             nms));
             if (result.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
-                return result.getBlockPos();
+                return result;
             }
         } catch (Exception ignored) {
         }
         return null;
     }
 
+    /**
+     * Returns the entity directly under the bot's crosshair, but only when it is the <em>nearest</em>
+     * hit — the combined block+entity ray trace returns whichever the look vector reaches first, so an
+     * entity behind the aimed block is never picked. This is exactly how a real client resolves a
+     * left-click target.
+     */
+    @Nullable
+    private Entity rayTraceCrosshairEntity(Player bot) {
+        try {
+            org.bukkit.util.RayTraceResult result = bot.getWorld()
+                    .rayTrace(
+                            bot.getEyeLocation(),
+                            bot.getEyeLocation().getDirection(),
+                            CLICK_REACH,
+                            org.bukkit.FluidCollisionMode.NEVER,
+                            false,
+                            0.0,
+                            e -> e != null && e.isValid() && !e.isDead() && !isSelfTarget(bot, e));
+            if (result != null) return result.getHitEntity();
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    /** Ticks between full-strength hits, from the bot's real attack-speed attribute. */
     private static int getWeaponCooldown(Player bot) {
         double speed = 4.0;
         try {
@@ -705,24 +604,24 @@ public final class LeftClickCommand implements FppCommand {
         return (int) (20.0 / speed);
     }
 
-    private boolean tryAttackEntity(ServerPlayer nms, ClickState state, Player bot) {
-        if (isSelfTarget(bot, state.entityTarget)) {
-            state.entityTarget = null;
-            return false;
-        }
+    private boolean tryAttackEntity(ServerPlayer nms, ClickState state, Player bot, Entity target) {
+        // The weapon's attack speed is the ONLY pacing for attacks (the loop's post-action cooldown is
+        // skipped via lastActionWasAttack), so held attacks swing at exact vanilla attack-cooldown pace.
         if (state.entityCooldown > 0) {
             state.entityCooldown--;
             return false;
         }
 
-        nms.swing(InteractionHand.MAIN_HAND);
-        if (state.entityTarget instanceof CraftPlayer cp) {
-            NmsPlayerSpawner.performAttack(bot, cp.getHandle().getBukkitEntity(), 1.0);
-        } else if (state.entityTarget instanceof org.bukkit.craftbukkit.entity.CraftEntity ce) {
-            NmsPlayerSpawner.performAttack(bot, ce.getHandle().getBukkitEntity(), 1.0);
-        }
+        // Real left-click attack: swing (broadcast to viewers via handleAnimate), then feed a
+        // ServerboundAttackPacket through the bot's own packet handler so the server applies its reach
+        // check, the attack-strength cooldown, damage, knockback, sweep, enchantments and durability
+        // exactly as for a real player. Every hit lands at full strength.
+        dbg("attack: " + target.getType() + " (swing + ServerboundAttackPacket)");
+        BotClickDispatcher.swing(nms, InteractionHand.MAIN_HAND);
+        BotClickDispatcher.attack(nms, target);
 
         state.entityCooldown = getWeaponCooldown(bot);
+        state.lastActionWasAttack = true;
         return true;
     }
 
@@ -753,20 +652,17 @@ public final class LeftClickCommand implements FppCommand {
     public void stopClicking(UUID botUuid, boolean clearState) {
         FakePlayer fp = manager.getByUuid(botUuid);
         if (fp != null) {
+            dbg("stop: bot=" + fp.getDisplayName() + " clearState=" + clearState);
             FppApiImpl.fireTaskEvent(fp, "left-click", FppBotTaskEvent.Action.STOP);
             Player bot = fp.getPlayer();
             if (bot != null && bot.isOnline()) {
                 ServerPlayer nms = ((CraftPlayer) bot).getHandle();
                 ClickState state = clickStates.get(botUuid);
-                if (state != null && state.blockTarget != null) {
-                    NmsPlayerSpawner.destroyBlockProgress(nms, -1, state.blockTarget, -1);
-                    NmsPlayerSpawner.handleBlockBreakAction(
-                            nms,
-                            state.blockTarget,
-                            ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK,
-                            Direction.DOWN,
-                            nms.level().getMaxY(),
-                            -1);
+                if (state != null && state.activeDestroyPos != null) {
+                    // Cancel any dig the server still thinks is in progress so no ghost cracks linger.
+                    dbg("stop: abort active dig @" + state.activeDestroyPos.toShortString());
+                    BotClickDispatcher.abortDestroy(nms, state.activeDestroyPos);
+                    state.activeDestroyPos = null;
                 }
             }
         }
@@ -790,6 +686,43 @@ public final class LeftClickCommand implements FppCommand {
 
     public boolean isClicking(UUID botUuid) {
         return clickTasks.containsKey(botUuid);
+    }
+
+    /**
+     * Snapshot of the bot's active left-click task for persistence, or null when it isn't clicking.
+     */
+    @Nullable
+    public SavedClickTask getSavedTask(UUID botUuid) {
+        ClickMode mode = clickModes.get(botUuid);
+        if (mode == null || mode == ClickMode.STOP || !clickTasks.containsKey(botUuid)) return null;
+        FakePlayer fp = manager.getByUuid(botUuid);
+        Player bot = fp != null ? fp.getPlayer() : null;
+        if (bot == null) return null;
+        ClickState state = clickStates.get(botUuid);
+        return new SavedClickTask(mode.name(), bot.getWorld().getName(), state != null ? state.aimPoint : null);
+    }
+
+    /**
+     * Resumes a persisted left-click task after a restart: re-aims the bot at the saved point (when
+     * one was locked) and restarts the click loop via the normal self-view resolution.
+     */
+    public void resumeSavedTask(FakePlayer fp, String modeName, @Nullable org.bukkit.util.Vector aimPoint) {
+        Player bot = fp.getPlayer();
+        if (bot == null || !bot.isOnline()) return;
+        ClickMode mode;
+        try {
+            mode = ClickMode.valueOf(modeName);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            mode = ClickMode.HOLD;
+        }
+        if (mode == ClickMode.STOP) return;
+        if (aimPoint != null) {
+            Location faceLoc = faceTowardTarget(bot.getLocation(), null, aimPoint);
+            ((CraftPlayer) bot).getHandle().absSnapRotationTo(faceLoc.getYaw(), faceLoc.getPitch());
+            NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
+        }
+        dbg("resume: bot=" + fp.getDisplayName() + " mode=" + mode + " aim=" + aimPoint);
+        click(fp, mode);
     }
 
     public void resumeClicking(FakePlayer fp) {
@@ -819,13 +752,9 @@ public final class LeftClickCommand implements FppCommand {
             state.mode = mode;
             state.holding = false;
             state.progress = 0;
-            state.dynamicTarget = (target != null);
+            state.aimTarget = target;
             if (target instanceof Block b) {
                 state.blockTarget = new BlockPos(b.getX(), b.getY(), b.getZ());
-                state.entityTarget = null;
-            } else if (target instanceof Entity e) {
-                state.entityTarget = e;
-                state.blockTarget = null;
             }
             clickStates.put(fp.getUuid(), state);
         }
@@ -850,22 +779,13 @@ public final class LeftClickCommand implements FppCommand {
                     }
                     boolean acted = tryBreakBlock(nms, finalState);
 
-                    if (!acted && finalState.entityTarget != null) {
-                        acted = tryAttackEntity(nms, finalState, b);
-                    }
                     if (acted) {
                         if (finalMode == ClickMode.ONCE) {
                             stopClicking(fp.getUuid());
                             return;
                         }
-                        if (finalMode == ClickMode.REPEAT) {
+                        if (finalMode == ClickMode.REPEAT && !finalState.lastActionWasAttack) {
                             cooldown[0] = CLICK_COOLDOWN;
-                        }
-                    }
-                    if (finalMode == ClickMode.HOLD && !finalState.holding) {
-                        finalState.holding = true;
-                        if (finalState.blockTarget != null) {
-                            startBreakBlock(nms, finalState.blockTarget);
                         }
                     }
                 },
@@ -882,58 +802,6 @@ public final class LeftClickCommand implements FppCommand {
                     .rayTraceBlocks(eye, eye.getDirection(), CLICK_REACH, org.bukkit.FluidCollisionMode.NEVER, false);
             if (result != null && result.getHitBlock() != null) {
                 return result.getHitBlock();
-            }
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    @Nullable
-    private Entity rayTraceEntity(Player player) {
-        List<Entity> nearby = player.getNearbyEntities(CLICK_REACH, CLICK_REACH, CLICK_REACH);
-        for (Entity ent : nearby) {
-            if (ent instanceof org.bukkit.entity.LivingEntity) {
-                Location eye = player.getEyeLocation();
-                Location entEye = ent.getLocation().add(0, ent.getHeight() / 2, 0);
-                org.bukkit.util.Vector dir = eye.getDirection();
-                org.bukkit.util.Vector toEnt = entEye.toVector().subtract(eye.toVector());
-                double angle = dir.angle(toEnt);
-                if (angle < 0.5) {
-                    return ent;
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Ray-trace from the player's eyes and return the first hostile living entity
-     * the ray intersects. More precise than rayTraceEntity().
-     */
-    @Nullable
-    private LivingEntity rayTraceHostileEntity(Player player) {
-        try {
-            Location eye = player.getEyeLocation();
-            org.bukkit.util.Vector dir = eye.getDirection();
-            org.bukkit.util.RayTraceResult result = player.getWorld()
-                    .rayTrace(eye, dir, CLICK_REACH, org.bukkit.FluidCollisionMode.NEVER, true, 0.0, e -> {
-                        if (!(e instanceof LivingEntity le)) return false;
-                        if (le instanceof Player) return false;
-                        if (le.isDead() || !le.isValid()) return false;
-                        // Hostile detection matching AttackCommand.findBestTarget
-                        if (!(le instanceof Monster)
-                                && !(le instanceof Slime)
-                                && !(le instanceof Shulker)
-                                && !(le instanceof Phantom)
-                                && !(le instanceof EnderDragon)
-                                && !(le instanceof Ghast)
-                                && !(le instanceof Hoglin)) {
-                            return false;
-                        }
-                        return true;
-                    });
-            if (result != null && result.getHitEntity() instanceof LivingEntity le) {
-                return le;
             }
         } catch (Exception ignored) {
         }
@@ -1064,83 +932,37 @@ public final class LeftClickCommand implements FppCommand {
         return findStandLocationNearTarget(world, targetLoc);
     }
 
+    /**
+     * Re-faces the bot toward its commanded target (exact aim point, else target centre). Rotates via
+     * NMS {@code absSnapRotationTo} — NOT {@code CraftPlayer#setRotation}, which does a connection
+     * teleport that arms {@code awaitingPositionFromClient} and blocks all block interactions until
+     * confirmed.
+     */
+    private void refreshAim(Player bot, ClickState state) {
+        if (state.aimTarget == null && state.aimPoint == null) return;
+        Location faceLoc = faceTowardTarget(bot.getLocation(), state.aimTarget, state.aimPoint);
+        ((CraftPlayer) bot).getHandle().absSnapRotationTo(faceLoc.getYaw(), faceLoc.getPitch());
+        NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
+    }
+
     private static final class ClickState {
         Object target;
         BlockPos blockTarget;
-        Entity entityTarget;
-        BlockFace targetFace;
         ClickMode mode;
         boolean holding;
         float progress;
-        boolean dynamicTarget;
+        // Ticks until the next full-strength attack (vanilla attack-speed pacing).
         int entityCooldown;
-    }
-
-    /**
-     * Find the best hostile mob target the bot is actually facing (within a forward cone).
-     * Matches the PvE system's hostile-detection but restricts to the bot's look direction.
-     */
-    @Nullable
-    private LivingEntity findBestMobTarget(Player bot, ClickState state) {
-        Location botLoc = bot.getLocation();
-        Location botEye = bot.getEyeLocation();
-        org.bukkit.util.Vector lookDir = botEye.getDirection();
-        Collection<Entity> nearby = bot.getWorld().getNearbyEntities(botLoc, CLICK_REACH, CLICK_REACH, CLICK_REACH);
-
-        LivingEntity best = null;
-        double bestScore = Double.MAX_VALUE;
-
-        for (Entity e : nearby) {
-            if (!(e instanceof LivingEntity le)) continue;
-            if (le instanceof Player) continue;
-            if (le.isDead() || !le.isValid()) continue;
-
-            { // Hostile mob detection matching AttackCommand.findBestTarget
-                if (!(le instanceof Monster)
-                        && !(le instanceof Slime)
-                        && !(le instanceof Shulker)
-                        && !(le instanceof Phantom)
-                        && !(le instanceof EnderDragon)
-                        && !(le instanceof Ghast)
-                        && !(le instanceof Hoglin)) continue;
-            }
-
-            Location entCenter = le.getLocation().clone().add(0, le.getHeight() / 2.0, 0);
-            double dist = entCenter.distance(botEye);
-            if (dist > CLICK_REACH) continue;
-
-            // Must be within forward view cone (~70 degrees horizontal)
-            org.bukkit.util.Vector toEnt =
-                    entCenter.toVector().subtract(botEye.toVector()).normalize();
-            double angle = lookDir.angle(toEnt);
-            if (angle > 1.22) continue; // ~70 degrees
-
-            double score = dist + (angle * 2.0); // prefer closer and more centered
-            if (score < bestScore) {
-                bestScore = score;
-                best = le;
-            }
-        }
-
-        return best;
-    }
-
-    @Nullable
-    private Location computeAimingVector(Player bot, Entity target) {
-        if (target == null || !target.isValid()) return null;
-
-        Location botEye = bot.getEyeLocation();
-        double tx = target.getLocation().getX();
-        double tz = target.getLocation().getZ();
-        double ty = target.getLocation().getY() + target.getHeight() / 2.0;
-
-        double dx = tx - botEye.getX();
-        double dy = ty - botEye.getY();
-        double dz = tz - botEye.getZ();
-        double horizDist = Math.sqrt(dx * dx + dz * dz);
-
-        float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
-        float pitch = (float) -Math.toDegrees(Math.atan2(dy, horizDist));
-        return new Location(bot.getWorld(), tx, ty, tz, yaw, pitch);
+        // True when the last acted pulse was an entity attack — those skip the post-break pause and
+        // are paced purely by entityCooldown.
+        boolean lastActionWasAttack;
+        // The block the server is currently digging (START_DESTROY_BLOCK sent, not yet finished), and
+        // the face the dig was started from. Null when no dig is in progress.
+        BlockPos activeDestroyPos;
+        Direction destroyDir = Direction.DOWN;
+        // The commanded target + exact aim point, set once at start and never overwritten by per-tick
+        // picks. Used to re-aim the head every tick.
+        Object aimTarget;
+        org.bukkit.util.Vector aimPoint;
     }
 }

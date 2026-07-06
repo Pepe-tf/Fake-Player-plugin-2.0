@@ -26,10 +26,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.Nullable;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotSaveEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
+import me.bill.fakePlayerPlugin.command.SavedClickTask;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.util.BotDataYaml;
@@ -230,71 +232,31 @@ public final class BotPersistence {
 
     private Map<String, TaskEntry> snapshotTasks(Iterable<FakePlayer> players) {
         Map<String, TaskEntry> snap = new LinkedHashMap<>();
+        var leftCmd = plugin.getLeftClickCommand();
+        var rightCmd = plugin.getRightClickCommand();
         for (FakePlayer fp : players) {
             String uuidStr = fp.getUuid().toString();
-
             String rcc = fp.getRightClickCommand();
-
-            // Legacy mine/use/place removed - migrated to left-click/right-click commands
-            String useWorld = null;
-            double useX = 0, useY = 0, useZ = 0;
-            float useYaw = 0, usePitch = 0;
-            boolean useOnce = false;
-
-            String mineWorld = null;
-            double mineX = 0, mineY = 0, mineZ = 0;
-            float mineYaw = 0, minePitch = 0;
-            boolean mineOnce = false;
-
-            String placeWorld = null;
-            double placeX = 0, placeY = 0, placeZ = 0;
-            float placeYaw = 0, placePitch = 0;
-            boolean placeOnce = false;
-
-            // Area mining removed - migrated to left-click/right-click commands
-            String areaPos1World = null, areaPos2World = null;
-            double areaPos1X = 0, areaPos1Y = 0, areaPos1Z = 0;
-            double areaPos2X = 0, areaPos2Y = 0, areaPos2Z = 0;
-            boolean areaActive = false;
-
-            if (rcc != null || mineWorld != null || useWorld != null || areaPos1World != null || placeWorld != null) {
-                snap.put(
-                        uuidStr,
-                        new TaskEntry(
-                                rcc,
-                                mineWorld,
-                                mineX,
-                                mineY,
-                                mineZ,
-                                mineYaw,
-                                minePitch,
-                                mineOnce,
-                                useWorld,
-                                useX,
-                                useY,
-                                useZ,
-                                useYaw,
-                                usePitch,
-                                useOnce,
-                                areaPos1World,
-                                areaPos1X,
-                                areaPos1Y,
-                                areaPos1Z,
-                                areaPos2World,
-                                areaPos2X,
-                                areaPos2Y,
-                                areaPos2Z,
-                                areaActive,
-                                placeWorld,
-                                placeX,
-                                placeY,
-                                placeZ,
-                                placeYaw,
-                                placePitch,
-                                placeOnce));
+            ClickTaskEntry leftClick = toClickTaskEntry(leftCmd != null ? leftCmd.getSavedTask(fp.getUuid()) : null);
+            ClickTaskEntry rightClick = toClickTaskEntry(rightCmd != null ? rightCmd.getSavedTask(fp.getUuid()) : null);
+            if (rcc != null || leftClick != null || rightClick != null) {
+                snap.put(uuidStr, new TaskEntry(rcc, leftClick, rightClick));
             }
         }
         return snap;
+    }
+
+    @Nullable
+    private static ClickTaskEntry toClickTaskEntry(@Nullable SavedClickTask task) {
+        if (task == null || task.mode() == null || task.world() == null) return null;
+        var point = task.aimPoint();
+        return new ClickTaskEntry(
+                task.mode(),
+                task.world(),
+                point != null,
+                point != null ? point.getX() : 0,
+                point != null ? point.getY() : 0,
+                point != null ? point.getZ() : 0);
     }
 
     private void writeTaskSnapshot(Map<String, TaskEntry> snap) {
@@ -304,44 +266,8 @@ public final class BotPersistence {
                     String sec = e.getKey() + ".";
                     TaskEntry t = e.getValue();
                     if (t.rightClickCommand() != null) section.set(sec + "right-click-command", t.rightClickCommand());
-                    if (t.mineWorld() != null) {
-                        section.set(sec + "mine-world", t.mineWorld());
-                        section.set(sec + "mine-x", t.mineX());
-                        section.set(sec + "mine-y", t.mineY());
-                        section.set(sec + "mine-z", t.mineZ());
-                        section.set(sec + "mine-yaw", (double) t.mineYaw());
-                        section.set(sec + "mine-pitch", (double) t.minePitch());
-                        section.set(sec + "mine-once", t.mineOnce());
-                    }
-                    if (t.useWorld() != null) {
-                        section.set(sec + "use-world", t.useWorld());
-                        section.set(sec + "use-x", t.useX());
-                        section.set(sec + "use-y", t.useY());
-                        section.set(sec + "use-z", t.useZ());
-                        section.set(sec + "use-yaw", (double) t.useYaw());
-                        section.set(sec + "use-pitch", (double) t.usePitch());
-                        section.set(sec + "use-once", t.useOnce());
-                    }
-                    if (t.placeWorld() != null) {
-                        section.set(sec + "place-world", t.placeWorld());
-                        section.set(sec + "place-x", t.placeX());
-                        section.set(sec + "place-y", t.placeY());
-                        section.set(sec + "place-z", t.placeZ());
-                        section.set(sec + "place-yaw", (double) t.placeYaw());
-                        section.set(sec + "place-pitch", (double) t.placePitch());
-                        section.set(sec + "place-once", t.placeOnce());
-                    }
-                    if (t.areaPos1World() != null && t.areaPos2World() != null) {
-                        section.set(sec + "area-pos1-world", t.areaPos1World());
-                        section.set(sec + "area-pos1-x", t.areaPos1X());
-                        section.set(sec + "area-pos1-y", t.areaPos1Y());
-                        section.set(sec + "area-pos1-z", t.areaPos1Z());
-                        section.set(sec + "area-pos2-world", t.areaPos2World());
-                        section.set(sec + "area-pos2-x", t.areaPos2X());
-                        section.set(sec + "area-pos2-y", t.areaPos2Y());
-                        section.set(sec + "area-pos2-z", t.areaPos2Z());
-                        section.set(sec + "area-active", t.areaActive());
-                    }
+                    writeClickTask(section, sec + "left-click.", t.leftClick());
+                    writeClickTask(section, sec + "right-click.", t.rightClick());
                 }
             });
             deleteFile(tasksFile);
@@ -356,59 +282,51 @@ public final class BotPersistence {
         }
     }
 
+    private static void writeClickTask(ConfigurationSection section, String prefix, @Nullable ClickTaskEntry click) {
+        if (click == null) return;
+        section.set(prefix + "mode", click.mode());
+        section.set(prefix + "world", click.world());
+        section.set(prefix + "has-point", click.hasPoint());
+        if (click.hasPoint()) {
+            section.set(prefix + "x", click.x());
+            section.set(prefix + "y", click.y());
+            section.set(prefix + "z", click.z());
+        }
+    }
+
     private List<DatabaseManager.BotTaskRow> buildTaskRows(Map<String, TaskEntry> snap) {
         List<DatabaseManager.BotTaskRow> rows = new ArrayList<>();
         String serverId = Config.serverId();
         for (Map.Entry<String, TaskEntry> e : snap.entrySet()) {
             String uuid = e.getKey();
             TaskEntry t = e.getValue();
-            if (t.mineWorld() != null) {
-                rows.add(new DatabaseManager.BotTaskRow(
-                        uuid,
-                        serverId,
-                        "MINE",
-                        t.mineWorld(),
-                        t.mineX(),
-                        t.mineY(),
-                        t.mineZ(),
-                        t.mineYaw(),
-                        t.minePitch(),
-                        t.mineOnce(),
-                        null,
-                        false));
-            }
-            if (t.useWorld() != null) {
-                rows.add(new DatabaseManager.BotTaskRow(
-                        uuid,
-                        serverId,
-                        "USE",
-                        t.useWorld(),
-                        t.useX(),
-                        t.useY(),
-                        t.useZ(),
-                        t.useYaw(),
-                        t.usePitch(),
-                        t.useOnce(),
-                        null,
-                        false));
-            }
-            if (t.placeWorld() != null) {
-                rows.add(new DatabaseManager.BotTaskRow(
-                        uuid,
-                        serverId,
-                        "PLACE",
-                        t.placeWorld(),
-                        t.placeX(),
-                        t.placeY(),
-                        t.placeZ(),
-                        t.placeYaw(),
-                        t.placePitch(),
-                        t.placeOnce(),
-                        null,
-                        false));
-            }
+            addClickTaskRow(rows, uuid, serverId, "LEFT_CLICK", t.leftClick());
+            addClickTaskRow(rows, uuid, serverId, "RIGHT_CLICK", t.rightClick());
         }
         return rows;
+    }
+
+    // Row mapping for click tasks: x/y/z = aim point, onceFlag = has-aim-point, extraStr = click mode.
+    private static void addClickTaskRow(
+            List<DatabaseManager.BotTaskRow> rows,
+            String uuid,
+            String serverId,
+            String type,
+            @Nullable ClickTaskEntry click) {
+        if (click == null) return;
+        rows.add(new DatabaseManager.BotTaskRow(
+                uuid,
+                serverId,
+                type,
+                click.world(),
+                click.x(),
+                click.y(),
+                click.z(),
+                0f,
+                0f,
+                click.hasPoint(),
+                click.mode(),
+                false));
     }
 
     private Map<String, Map<String, String>> snapshotInventories(Iterable<FakePlayer> players) {
@@ -1144,19 +1062,10 @@ public final class BotPersistence {
         if (loadedInventories != null) {
             Map<String, String> invSlots = loadedInventories.get(sb.uuid.toString());
             if (invSlots != null) {
-                final UUID restoredUuid = sb.uuid;
-                final String restoredName = sb.name;
-                FppScheduler.runSyncLater(
-                        plugin,
-                        () -> {
-                            FakePlayer restored = manager.getByUuid(restoredUuid);
-                            if (restored == null) return;
-                            Player bot = restored.getPlayer();
-                            if (bot == null || !bot.isValid()) return;
-                            applyInventory(bot.getInventory(), invSlots);
-                            Config.debug("Restored inventory for bot '" + restoredName + "'.");
-                        },
-                        10L);
+                applyWhenBotReady(manager, sb.uuid, sb.name, "inventory", 10L, bot -> {
+                    applyInventory(bot.getInventory(), invSlots);
+                    Config.debug("Restored inventory for bot '" + sb.name + "'.");
+                });
             }
         }
 
@@ -1166,51 +1075,91 @@ public final class BotPersistence {
         }
         final XpEntry xpToRestore = xpEntry;
         if (xpToRestore != null) {
-            final UUID restoredUuid = sb.uuid;
-            final String restoredName = sb.name;
-            FppScheduler.runSyncLater(
-                    plugin,
-                    () -> {
-                        FakePlayer restored = manager.getByUuid(restoredUuid);
-                        if (restored == null) return;
-                        Player bot = restored.getPlayer();
-                        if (bot == null || !bot.isValid()) return;
-                        bot.setTotalExperience(0);
-                        bot.setLevel(0);
-                        bot.setExp(0f);
-                        bot.setLevel(xpToRestore.level());
-                        bot.setExp(xpToRestore.progress());
-                        bot.setTotalExperience(xpToRestore.totalExperience());
-                        Config.debug("Restored XP for bot '" + restoredName + "'.");
-                    },
-                    12L);
+            applyWhenBotReady(manager, sb.uuid, sb.name, "XP", 12L, bot -> {
+                bot.setTotalExperience(0);
+                bot.setLevel(0);
+                bot.setExp(0f);
+                bot.setLevel(xpToRestore.level());
+                bot.setExp(xpToRestore.progress());
+                bot.setTotalExperience(xpToRestore.totalExperience());
+                Config.debug("Restored XP for bot '" + sb.name + "'.");
+            });
         }
 
         if (loadedTasks != null) {
             TaskEntry te = loadedTasks.get(sb.uuid.toString());
-            if (te != null
-                    && (te.mineWorld() != null
-                            || te.useWorld() != null
-                            || te.areaPos1World() != null
-                            || te.placeWorld() != null)) {
+            if (te != null && (te.leftClick() != null || te.rightClick() != null)) {
                 final TaskEntry task = te;
-                final UUID restoredUuid = sb.uuid;
-                FppScheduler.runSyncLater(
-                        plugin,
-                        () -> {
-                            FakePlayer restored = manager.getByUuid(restoredUuid);
-                            if (restored == null) return;
-                            Player bot = restored.getPlayer();
-                            if (bot == null || !bot.isOnline()) return;
-
-                            // Legacy mine/use/place task restoration removed - migrated to left-click/right-click
-                            // commands
-                        },
-                        25L);
+                // Extra delay so the inventory (tools!) is restored before the task starts.
+                applyWhenBotReady(manager, sb.uuid, sb.name, "click task", 30L, bot -> {
+                    FakePlayer restored = manager.getByUuid(sb.uuid);
+                    if (restored == null) return;
+                    resumeClickTask(restored, bot, task);
+                });
             }
         }
 
         return index + 1;
+    }
+
+    /**
+     * Runs {@code action} once the restored bot is fully spawned (online + valid), retrying every
+     * 5 ticks for up to 30 seconds instead of silently giving up on the first attempt — right after a
+     * restart, bot bodies routinely take longer than a fixed delay to finish spawning (chunk loads).
+     */
+    private void applyWhenBotReady(
+            FakePlayerManager manager,
+            UUID botUuid,
+            String botName,
+            String what,
+            long initialDelayTicks,
+            java.util.function.Consumer<Player> action) {
+        attemptApply(manager, botUuid, botName, what, action, 0, initialDelayTicks);
+    }
+
+    private void attemptApply(
+            FakePlayerManager manager,
+            UUID botUuid,
+            String botName,
+            String what,
+            java.util.function.Consumer<Player> action,
+            int attempt,
+            long delayTicks) {
+        FppScheduler.runSyncLater(
+                plugin,
+                () -> {
+                    FakePlayer restored = manager.getByUuid(botUuid);
+                    Player bot = restored != null ? restored.getPlayer() : null;
+                    if (bot != null && bot.isValid() && bot.isOnline()) {
+                        action.accept(bot);
+                        return;
+                    }
+                    if (attempt + 1 >= 120) {
+                        FppLogger.warn("BotPersistence: gave up restoring " + what + " for bot '" + botName
+                                + "' — bot never finished spawning.");
+                        return;
+                    }
+                    attemptApply(manager, botUuid, botName, what, action, attempt + 1, 5L);
+                },
+                delayTicks);
+    }
+
+    /** Resumes the persisted click task (single-action system: left-click wins if both were saved). */
+    private void resumeClickTask(FakePlayer fp, Player bot, TaskEntry te) {
+        ClickTaskEntry click = te.leftClick() != null ? te.leftClick() : te.rightClick();
+        boolean isLeft = te.leftClick() != null;
+        if (click == null) return;
+        if (!bot.getWorld().getName().equals(click.world())) {
+            Config.debug("Skipping click-task resume for '" + fp.getDisplayName() + "' — world changed.");
+            return;
+        }
+        if (isLeft && plugin.getLeftClickCommand() != null) {
+            plugin.getLeftClickCommand().resumeSavedTask(fp, click.mode(), click.toVector());
+        } else if (!isLeft && plugin.getRightClickCommand() != null) {
+            plugin.getRightClickCommand().resumeSavedTask(fp, click.mode(), click.toVector());
+        }
+        Config.debug("Resumed " + (isLeft ? "left" : "right") + "-click task (" + click.mode() + ") for bot '"
+                + fp.getDisplayName() + "'.");
     }
 
     private void restoreExtensionMetadata(FakePlayer fp) {
@@ -1364,126 +1313,47 @@ public final class BotPersistence {
             ConfigurationSection sec = tasksSection.getConfigurationSection(uuidStr);
             if (sec == null) continue;
             String rcc = sec.getString("right-click-command");
-            String mineWorld = sec.getString("mine-world");
-            double mineX = sec.getDouble("mine-x");
-            double mineY = sec.getDouble("mine-y");
-            double mineZ = sec.getDouble("mine-z");
-            float mineYaw = (float) sec.getDouble("mine-yaw");
-            float minePitch = (float) sec.getDouble("mine-pitch");
-            boolean mineOnce = sec.getBoolean("mine-once", false);
-            String useWorld = sec.getString("use-world");
-            double useX = sec.getDouble("use-x");
-            double useY = sec.getDouble("use-y");
-            double useZ = sec.getDouble("use-z");
-            float useYaw = (float) sec.getDouble("use-yaw");
-            float usePitch = (float) sec.getDouble("use-pitch");
-            boolean useOnce = sec.getBoolean("use-once", false);
-
-            String placeWorld = sec.getString("place-world");
-            double placeX = sec.getDouble("place-x");
-            double placeY = sec.getDouble("place-y");
-            double placeZ = sec.getDouble("place-z");
-            float placeYaw = (float) sec.getDouble("place-yaw");
-            float placePitch = (float) sec.getDouble("place-pitch");
-            boolean placeOnce = sec.getBoolean("place-once", false);
-
-            String areaPos1World = sec.getString("area-pos1-world");
-            double areaPos1X = sec.getDouble("area-pos1-x");
-            double areaPos1Y = sec.getDouble("area-pos1-y");
-            double areaPos1Z = sec.getDouble("area-pos1-z");
-            String areaPos2World = sec.getString("area-pos2-world");
-            double areaPos2X = sec.getDouble("area-pos2-x");
-            double areaPos2Y = sec.getDouble("area-pos2-y");
-            double areaPos2Z = sec.getDouble("area-pos2-z");
-            boolean areaActive = sec.getBoolean("area-active", false);
-
-            loadedTasks.put(
-                    uuidStr,
-                    new TaskEntry(
-                            rcc,
-                            mineWorld,
-                            mineX,
-                            mineY,
-                            mineZ,
-                            mineYaw,
-                            minePitch,
-                            mineOnce,
-                            useWorld,
-                            useX,
-                            useY,
-                            useZ,
-                            useYaw,
-                            usePitch,
-                            useOnce,
-                            areaPos1World,
-                            areaPos1X,
-                            areaPos1Y,
-                            areaPos1Z,
-                            areaPos2World,
-                            areaPos2X,
-                            areaPos2Y,
-                            areaPos2Z,
-                            areaActive,
-                            placeWorld,
-                            placeX,
-                            placeY,
-                            placeZ,
-                            placeYaw,
-                            placePitch,
-                            placeOnce));
+            ClickTaskEntry leftClick = readClickTask(sec.getConfigurationSection("left-click"));
+            ClickTaskEntry rightClick = readClickTask(sec.getConfigurationSection("right-click"));
+            if (rcc != null || leftClick != null || rightClick != null) {
+                loadedTasks.put(uuidStr, new TaskEntry(rcc, leftClick, rightClick));
+            }
         }
         Config.debug("Loaded task state for " + loadedTasks.size() + " bot(s) from " + BotDataYaml.FILE_NAME + ".");
     }
 
-    private Map<String, TaskEntry> buildTasksFromDbRows(List<DatabaseManager.BotTaskRow> rows) {
+    @Nullable
+    private static ClickTaskEntry readClickTask(@Nullable ConfigurationSection sec) {
+        if (sec == null) return null;
+        String mode = sec.getString("mode");
+        String world = sec.getString("world");
+        if (mode == null || world == null) return null;
+        boolean hasPoint = sec.getBoolean("has-point", false);
+        return new ClickTaskEntry(
+                mode, world, hasPoint, sec.getDouble("x", 0), sec.getDouble("y", 0), sec.getDouble("z", 0));
+    }
 
+    private Map<String, TaskEntry> buildTasksFromDbRows(List<DatabaseManager.BotTaskRow> rows) {
         Map<String, Map<String, DatabaseManager.BotTaskRow>> byUuid = new LinkedHashMap<>();
         for (var row : rows) {
             byUuid.computeIfAbsent(row.botUuid(), k -> new LinkedHashMap<>()).put(row.taskType(), row);
         }
         Map<String, TaskEntry> result = new LinkedHashMap<>();
         for (var entry : byUuid.entrySet()) {
-            String uuid = entry.getKey();
-            var tasks = entry.getValue();
-            var mine = tasks.get("MINE");
-            var use = tasks.get("USE");
-            var place = tasks.get("PLACE");
-            result.put(
-                    uuid,
-                    new TaskEntry(
-                            null,
-                            mine != null ? mine.worldName() : null,
-                            mine != null ? mine.posX() : 0,
-                            mine != null ? mine.posY() : 0,
-                            mine != null ? mine.posZ() : 0,
-                            mine != null ? mine.posYaw() : 0f,
-                            mine != null ? mine.posPitch() : 0f,
-                            mine != null && mine.onceFlag(),
-                            use != null ? use.worldName() : null,
-                            use != null ? use.posX() : 0,
-                            use != null ? use.posY() : 0,
-                            use != null ? use.posZ() : 0,
-                            use != null ? use.posYaw() : 0f,
-                            use != null ? use.posPitch() : 0f,
-                            use != null && use.onceFlag(),
-                            null,
-                            0,
-                            0,
-                            0,
-                            null,
-                            0,
-                            0,
-                            0,
-                            false,
-                            place != null ? place.worldName() : null,
-                            place != null ? place.posX() : 0,
-                            place != null ? place.posY() : 0,
-                            place != null ? place.posZ() : 0,
-                            place != null ? place.posYaw() : 0f,
-                            place != null ? place.posPitch() : 0f,
-                            place != null && place.onceFlag()));
+            ClickTaskEntry leftClick = fromClickTaskRow(entry.getValue().get("LEFT_CLICK"));
+            ClickTaskEntry rightClick = fromClickTaskRow(entry.getValue().get("RIGHT_CLICK"));
+            if (leftClick != null || rightClick != null) {
+                result.put(entry.getKey(), new TaskEntry(null, leftClick, rightClick));
+            }
         }
         return result;
+    }
+
+    // Inverse of addClickTaskRow: x/y/z = aim point, onceFlag = has-aim-point, extraStr = click mode.
+    @Nullable
+    private static ClickTaskEntry fromClickTaskRow(@Nullable DatabaseManager.BotTaskRow row) {
+        if (row == null || row.extraStr() == null || row.worldName() == null) return null;
+        return new ClickTaskEntry(row.extraStr(), row.worldName(), row.onceFlag(), row.posX(), row.posY(), row.posZ());
     }
 
     private static void applyInventory(PlayerInventory inv, Map<String, String> slots) {
@@ -1654,38 +1524,16 @@ public final class BotPersistence {
         }
     }
 
-    private record TaskEntry(
-            String rightClickCommand,
-            String mineWorld,
-            double mineX,
-            double mineY,
-            double mineZ,
-            float mineYaw,
-            float minePitch,
-            boolean mineOnce,
-            String useWorld,
-            double useX,
-            double useY,
-            double useZ,
-            float useYaw,
-            float usePitch,
-            boolean useOnce,
-            String areaPos1World,
-            double areaPos1X,
-            double areaPos1Y,
-            double areaPos1Z,
-            String areaPos2World,
-            double areaPos2X,
-            double areaPos2Y,
-            double areaPos2Z,
-            boolean areaActive,
-            String placeWorld,
-            double placeX,
-            double placeY,
-            double placeZ,
-            float placeYaw,
-            float placePitch,
-            boolean placeOnce) {}
+    /** A persisted click task: mode name, world, and the exact aim point (hasPoint=false → self-view). */
+    private record ClickTaskEntry(String mode, String world, boolean hasPoint, double x, double y, double z) {
+
+        @Nullable
+        org.bukkit.util.Vector toVector() {
+            return hasPoint ? new org.bukkit.util.Vector(x, y, z) : null;
+        }
+    }
+
+    private record TaskEntry(String rightClickCommand, ClickTaskEntry leftClick, ClickTaskEntry rightClick) {}
 
     private record XpEntry(int totalExperience, int level, float progress) {}
 }

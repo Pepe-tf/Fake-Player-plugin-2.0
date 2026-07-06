@@ -2363,6 +2363,7 @@ public class FakePlayerManager {
         if (pve != null) pve.cleanupBot(uuid);
         var autoEat = plugin.getAutoEatController();
         if (autoEat != null) autoEat.cleanupBot(uuid);
+        BotClickDispatcher.forget(uuid);
 
         if (chunkLoader != null) chunkLoader.releaseForBot(fp);
         if (db != null && removalReason != null) db.recordRemoval(uuid, removalReason);

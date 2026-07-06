@@ -7,29 +7,23 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.Nullable;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.api.event.FppBotInteractEvent;
 import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
-import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.fakeplayer.BotClickDispatcher;
 import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
 import me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
@@ -42,6 +36,7 @@ import me.bill.fakePlayerPlugin.util.BotAccess;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -51,7 +46,9 @@ import net.minecraft.world.phys.Vec3;
 public final class RightClickCommand implements FppCommand {
 
     private static final double CLICK_REACH = 4.5;
-    private static final int CLICK_COOLDOWN = 1;
+    // The tick loop already runs on a 4-tick period — exactly the vanilla client's rightClickDelay —
+    // so no extra pulses are skipped after an action (0 = act on every pulse, i.e. every 4 ticks).
+    private static final int CLICK_COOLDOWN = 0;
 
     private final FakePlayerPlugin plugin;
     private final FakePlayerManager manager;
@@ -74,6 +71,10 @@ public final class RightClickCommand implements FppCommand {
         this.pathfinding = pathfinding;
     }
 
+    private static void dbg(String msg) {
+        FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), msg);
+    }
+
     @Override
     public String getName() {
         return "right-click";
@@ -86,7 +87,7 @@ public final class RightClickCommand implements FppCommand {
 
     @Override
     public String getDescription() {
-        return "Bot right-clicks (uses items, interacts with blocks/entities). Default: --once";
+        return "Bot right-clicks like a real player (interacts with what it aims at, uses items). Default: --once";
     }
 
     @Override
@@ -341,6 +342,8 @@ public final class RightClickCommand implements FppCommand {
     }
 
     private void lockAndStartClicking(FakePlayer fp, ClickMode mode, Object target, org.bukkit.util.Vector aim) {
+        dbg("start clicking: bot=" + fp.getDisplayName() + " mode=" + mode + " target="
+                + (target instanceof Block sb ? "block " + sb.getType() : target != null ? "entity" : "self-view"));
         FppApiImpl.fireTaskEvent(fp, "right-click", FppBotTaskEvent.Action.START);
         UUID uuid = fp.getUuid();
         Player bot = fp.getPlayer();
@@ -393,6 +396,11 @@ public final class RightClickCommand implements FppCommand {
         // Seed with the sender's exact aim point so the first interaction targets that spot; the tick
         // loop refreshes it from the bot's own raytrace afterwards.
         state.hitPosition = aim;
+        // The COMMANDED target — never overwritten by transient per-tick picks. The tick loop re-aims
+        // the bot's head at this every pulse, so knockback or a passing entity can't permanently steer
+        // the crosshair off what the bot was told to click.
+        state.aimTarget = target;
+        state.aimPoint = aim;
         clickStates.put(uuid, state);
         clickModes.put(uuid, mode);
 
@@ -448,11 +456,15 @@ public final class RightClickCommand implements FppCommand {
 
     private boolean performUseAction(Player bot, ClickState state) {
         ServerPlayer nms = ((CraftPlayer) bot).getHandle();
-        FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "=== performUseAction for " + bot.getName() + " ===");
 
-        // Single combined block+entity ray trace, matching how a real client resolves a right-click
-        // target: whichever is actually closer along the look vector wins, instead of always
-        // preferring a block even when an entity is standing nearer.
+        // Keep the crosshair ON the commanded target every pulse — like a player holding their aim
+        // steady. A passing entity gets vanilla treatment below; once it's gone, the very next pulse
+        // is back on the commanded block instead of wherever the head drifted.
+        refreshAim(bot, state);
+
+        // Combined block+entity ray trace — vanilla nearest-hit priority: whichever the look vector
+        // reaches first wins, exactly like a real client's pick. An entity behind the aimed block is
+        // never chosen; an entity in front of it is interacted with first.
         RayTraceResult hit = bot.getWorld()
                 .rayTrace(
                         bot.getEyeLocation(),
@@ -466,150 +478,140 @@ public final class RightClickCommand implements FppCommand {
         Entity hitEntity = hit != null ? hit.getHitEntity() : null;
         Block hitBlock = hit != null ? hit.getHitBlock() : null;
         BlockFace face = hit != null ? hit.getHitBlockFace() : null;
+        dbg("use: bot=" + bot.getName() + " crosshair="
+                + (hitEntity != null
+                        ? "entity " + hitEntity.getType()
+                        : hitBlock != null ? "block " + hitBlock.getType() + " face=" + face : "air"));
 
-        // 1. Entity interaction takes priority when the entity is the nearer hit — a real client
-        //    tries entity interact() first and only falls through to block/item use on PASS.
+        boolean usingBefore = nms.isUsingItem();
+        boolean ridingBefore = bot.isInsideVehicle();
+        net.minecraft.world.item.ItemStack mainBefore = nms.getMainHandItem().copy();
+
+        // 1. Entity is the nearest hit → real interact packet, exactly like a vanilla client. The
+        //    server fires PlayerInteractEntityEvent/AtEntity and runs interactOn (armor-stand equip,
+        //    feeding, taming, breeding, shearing, milking, mounting, leashing, trading). If the
+        //    interaction PASSes (e.g. non-equippable item on an armless armor stand), fall through to
+        //    the in-hand item use — the same order Minecraft.startUseItem follows.
         if (hitEntity != null) {
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "Ray hit entity: " + hitEntity.getType());
-            if (tryEntityInteract(bot, nms, hitEntity, hit.getHitPosition(), state)) {
-                FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   SUCCESS: Entity interaction consumed");
+            org.bukkit.util.Vector hp = hit.getHitPosition();
+            Vec3 hitVec = hp != null ? new Vec3(hp.getX(), hp.getY(), hp.getZ()) : null;
+            dbg("use: interactEntity " + hitEntity.getType() + " (ServerboundInteractPacket)");
+            BotClickDispatcher.interactEntity(nms, hitEntity, InteractionHand.MAIN_HAND, hitVec, nms.isShiftKeyDown());
+            // The vanilla client hardcodes interactAt on a non-marker armor stand as SUCCESS
+            // client-side, so a real player's click is always consumed there — they can never eat/use
+            // the held item while aiming at an armor stand, even when the server-side swap does
+            // nothing. Mirror that here.
+            boolean consumed = hitEntity instanceof org.bukkit.entity.ArmorStand
+                    || didConsume(nms, usingBefore, mainBefore)
+                    || bot.isInsideVehicle() != ridingBefore;
+            if (consumed) {
+                dbg("use: entity interaction consumed");
+                // A real client swings its own arm on a successful interaction; the server only
+                // broadcasts SERVER-sourced swings, so the bot must send the swing itself.
+                BotClickDispatcher.swing(nms, InteractionHand.MAIN_HAND);
+                state.target = hitEntity;
                 return true;
             }
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   PASSED: falling through to block/item use");
+            dbg("use: entity interaction passed — falling through to in-hand use");
+            hitBlock = null; // entity was the pick; a real client does not also click the block behind it
+            face = null;
         }
 
+        // 2. Use the item on the block. A ServerboundUseItemOn packet drives the real useItemOn path,
+        //    which fires PlayerInteractEvent/BlockPlaceEvent and natively handles block interaction,
+        //    placement, seed/sapling planting, bone meal, hoe tilling, bucket use, etc. — no per-item
+        //    table, no directly setting blocks in the world.
         if (hitBlock != null && face != null) {
-            FppLogger.debug(
-                    "RIGHTCLICK",
-                    Config.debugRightClick(),
-                    "Ray hit block: " + hitBlock.getType().name() + " face=" + face);
-
-            // NOTE: we deliberately do NOT redirect the interaction to a button/lever attached to the
-            // hit face. The ray trace above uses the block OUTLINE shape (ignorePassableBlocks=false),
-            // so aiming at a button/lever's actual hit box already returns that block directly. The bot
-            // must aim at the button/lever itself to trigger it — hitting the mounting block's face no
-            // longer activates an attached switch.
-
-            state.hitPosition = hit.getHitPosition();
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "Hit position: " + state.hitPosition);
-
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "1. Trying NMS block interaction (useItemOn)");
-            boolean interacted = triggerBlockInteraction(bot, hitBlock, face, hit);
-            if (interacted) {
-                FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   SUCCESS: Block interaction consumed");
-                state.target = hitBlock;
+            Direction dir = toDirection(face);
+            BlockPos pos = new BlockPos(hitBlock.getX(), hitBlock.getY(), hitBlock.getZ());
+            BlockPos placePos = pos.relative(dir);
+            // Snapshot the clicked block and the cell a block would be placed into, so we can tell the
+            // interaction did something even when the held item count is unchanged (e.g. creative
+            // placement, or opening a door/lever).
+            net.minecraft.world.level.block.state.BlockState before =
+                    nms.level().getBlockState(pos);
+            net.minecraft.world.level.block.state.BlockState placeBefore =
+                    nms.level().getBlockState(placePos);
+            org.bukkit.util.Vector hp = hit.getHitPosition();
+            Vec3 hitVec = hp != null
+                    ? new Vec3(hp.getX(), hp.getY(), hp.getZ())
+                    : new Vec3(hitBlock.getX() + 0.5, hitBlock.getY() + 0.5, hitBlock.getZ() + 0.5);
+            BlockHitResult blockHit = new BlockHitResult(hitVec, dir, pos, false);
+            state.hitPosition = hp;
+            state.target = hitBlock;
+            dbg("use: useItemOn " + hitBlock.getType() + " face=" + face + " (ServerboundUseItemOnPacket)");
+            BotClickDispatcher.useItemOn(nms, InteractionHand.MAIN_HAND, blockHit);
+            boolean blockChanged =
+                    nms.level().getBlockState(pos) != before || nms.level().getBlockState(placePos) != placeBefore;
+            if (blockChanged || didConsume(nms, usingBefore, mainBefore)) {
+                dbg("use: block-use consumed (blockChanged=" + blockChanged + ")");
+                // Client-sourced swing on successful block use (buttons, levers, bone meal, placing…).
+                BotClickDispatcher.swing(nms, InteractionHand.MAIN_HAND);
                 return true;
             }
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   FAILED: useItemOn did not consume action");
-
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "2. Trying to place block");
-            boolean placed = tryPlaceBlock(bot, hitBlock, face);
-            if (placed) {
-                FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   SUCCESS: Block placed");
-                state.target = hitBlock;
-                return true;
-            }
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   FAILED: Nothing to place or blocked");
-
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "3. Trying to plant");
-            boolean planted = tryPlantingAction(bot, hitBlock, face);
-            if (planted) {
-                FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   SUCCESS: Planting done");
-                state.target = hitBlock;
-                return true;
-            }
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   FAILED: No plantable item or wrong soil");
-
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "4. Trying bone meal");
-            boolean boneMealed = tryBoneMealAction(bot, hitBlock, face);
-            if (boneMealed) {
-                FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   SUCCESS: Bone meal applied");
-                state.target = hitBlock;
-                return true;
-            }
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   FAILED: No bone meal or not applicable");
-        } else {
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "No block hit (ray=null or no hitBlock/face)");
+            dbg("use: block-use passed — falling through to in-hand use");
         }
 
-        FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "5. Trying item use (eat/drink/potion/bow/shield)");
-        boolean acted = tryUseItem(bot, state);
-        if (acted) {
-            FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   SUCCESS: Item used");
-            return true;
+        // 3. Nothing acted on a block (or no block was hit): use the item in hand, exactly like a real
+        //    client sending a use-item packet — eat/drink, draw a bow/trident, raise a shield, throw an
+        //    egg/ender pearl/potion, use a spyglass/goat horn, etc.
+        dbg("use: useItem in-hand=" + nms.getMainHandItem().getItem() + " (ServerboundUseItemPacket)");
+        BotClickDispatcher.useItem(
+                nms,
+                InteractionHand.MAIN_HAND,
+                bot.getLocation().getYaw(),
+                bot.getLocation().getPitch());
+        boolean acted = didConsume(nms, usingBefore, mainBefore);
+        dbg("use: in-hand use " + (acted ? "consumed" : "did nothing"));
+        // Swing for instant uses (throwing pearls/eggs/snowballs) — but not when a multi-tick use
+        // started (eating, drawing a bow, raising a shield), matching the vanilla client.
+        if (acted && !nms.isUsingItem()) {
+            BotClickDispatcher.swing(nms, InteractionHand.MAIN_HAND);
         }
-        FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "   FAILED: No usable item in hands");
-
-        FppLogger.debug("RIGHTCLICK", Config.debugRightClick(), "=== NOTHING acted ===");
-        return false;
-    }
-
-    private boolean triggerBlockInteraction(Player bot, Block block, BlockFace face, RayTraceResult ray) {
-        ServerPlayer nms = ((CraftPlayer) bot).getHandle();
-        nms.resetLastActionTime();
-
-        org.bukkit.util.Vector hitPos = ray.getHitPosition();
-        BlockFace hitFace = ray.getHitBlockFace() != null ? ray.getHitBlockFace() : face;
-
-        net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(block.getX(), block.getY(), block.getZ());
-        Direction direction =
-                switch (hitFace) {
-                    case UP -> Direction.UP;
-                    case DOWN -> Direction.DOWN;
-                    case NORTH -> Direction.NORTH;
-                    case SOUTH -> Direction.SOUTH;
-                    case EAST -> Direction.EAST;
-                    case WEST -> Direction.WEST;
-                    default -> Direction.UP;
-                };
-
-        net.minecraft.world.phys.Vec3 hitVec =
-                new net.minecraft.world.phys.Vec3(hitPos.getX(), hitPos.getY(), hitPos.getZ());
-        BlockHitResult blockHit = new BlockHitResult(hitVec, direction, pos, false);
-
-        Object result = NmsPlayerSpawner.useItemOn(nms, InteractionHand.MAIN_HAND, blockHit);
-        boolean consumed = NmsPlayerSpawner.consumesAction(result);
-
-        if (consumed) {
-            bot.swingMainHand();
-            return true;
-        }
-
-        return false;
+        return acted;
     }
 
     /**
-     * Right-clicks an entity exactly like a real player would: fires the FPP interact event (so
-     * extensions/plugins can cancel it), then routes through the real NMS
-     * {@code Player#interactOn(Entity, InteractionHand, Vec3)} — trying main hand first, then off
-     * hand — so feeding, taming, breeding, shearing, milking, mounting, leashing, name-tagging,
-     * villager trading, etc. all actually happen instead of just swinging the arm.
+     * Best-effort "did that right-click actually do something?" check. The real (void) packet handlers
+     * don't hand us an {@code InteractionResult}, so we infer it from observable state changes: a
+     * multi-tick use started (bow/food), the held item changed (placed/consumed/damaged), or a
+     * container/trade screen opened. Block-state changes are checked separately by the caller. Used to
+     * know when a {@code --once} click is finished and whether a block-use fell through to an in-hand
+     * use.
      */
-    private boolean tryEntityInteract(
-            Player bot, ServerPlayer nms, Entity entity, org.bukkit.util.Vector hitPosVec, ClickState state) {
-        FakePlayer fp = manager.getByUuid(bot.getUniqueId());
-        if (fp != null) {
-            var interactEvent = new FppBotInteractEvent(new FppBotImpl(fp), entity, EquipmentSlot.HAND);
-            Bukkit.getPluginManager().callEvent(interactEvent);
-            if (interactEvent.isCancelled()) return false;
-        }
-
-        net.minecraft.world.entity.Entity nmsTarget = ((CraftEntity) entity).getHandle();
-        Vec3 hitPos = hitPosVec != null
-                ? new Vec3(hitPosVec.getX(), hitPosVec.getY(), hitPosVec.getZ())
-                : nmsTarget.position();
-
-        if (NmsPlayerSpawner.interactOnEntity(nms, nmsTarget, InteractionHand.MAIN_HAND, hitPos)) {
-            bot.swingMainHand();
-            state.target = entity;
+    private boolean didConsume(ServerPlayer nms, boolean usingBefore, net.minecraft.world.item.ItemStack mainBefore) {
+        if (!usingBefore && nms.isUsingItem()) return true;
+        net.minecraft.world.item.ItemStack now = nms.getMainHandItem();
+        if (now.getItem() != mainBefore.getItem() || now.getCount() != mainBefore.getCount()) {
             return true;
         }
-        if (NmsPlayerSpawner.interactOnEntity(nms, nmsTarget, InteractionHand.OFF_HAND, hitPos)) {
-            bot.swingOffHand();
-            state.target = entity;
+        if (nms.containerMenu != null && nms.containerMenu != nms.inventoryMenu) {
+            closeTransientContainer(nms);
             return true;
         }
         return false;
+    }
+
+    /** A bot can't drive a container/trade screen — close anything an interaction opened. */
+    private static void closeTransientContainer(ServerPlayer nms) {
+        if (nms.containerMenu != null && nms.containerMenu != nms.inventoryMenu) {
+            try {
+                nms.closeContainer();
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
+    private static Direction toDirection(BlockFace face) {
+        return switch (face) {
+            case UP -> Direction.UP;
+            case DOWN -> Direction.DOWN;
+            case NORTH -> Direction.NORTH;
+            case SOUTH -> Direction.SOUTH;
+            case EAST -> Direction.EAST;
+            case WEST -> Direction.WEST;
+            default -> Direction.UP;
+        };
     }
 
     private static boolean isSelfTarget(Player bot, Object target) {
@@ -618,275 +620,17 @@ public final class RightClickCommand implements FppCommand {
                 && entity.getUniqueId().equals(bot.getUniqueId());
     }
 
-    private boolean tryUseItem(Player bot, ClickState state) {
-        ServerPlayer nms = ((CraftPlayer) bot).getHandle();
-
-        for (InteractionHand hand : InteractionHand.values()) {
-            net.minecraft.world.item.ItemStack item = nms.getItemInHand(hand);
-            if (item.isEmpty()) continue;
-
-            Object useResult = NmsPlayerSpawner.useItem(nms, hand);
-            if (NmsPlayerSpawner.consumesAction(useResult)) {
-                if (nms.isUsingItem()) {
-                    state.holding = true;
-                }
-                if (hand == InteractionHand.MAIN_HAND) {
-                    bot.swingMainHand();
-                } else {
-                    bot.swingOffHand();
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean tryPlaceBlock(Player bot, Block block, BlockFace face) {
-        ServerPlayer nms = ((CraftPlayer) bot).getHandle();
-
-        for (InteractionHand hand : InteractionHand.values()) {
-            net.minecraft.world.item.ItemStack item = nms.getItemInHand(hand);
-            if (item.isEmpty()) continue;
-
-            Block targetBlock = block.getRelative(face);
-            if (!targetBlock.getType().isAir() && !targetBlock.isLiquid()) {
-                continue;
-            }
-
-            net.minecraft.core.BlockPos pos =
-                    new net.minecraft.core.BlockPos(targetBlock.getX(), targetBlock.getY(), targetBlock.getZ());
-            Direction direction =
-                    switch (face) {
-                        case UP -> Direction.UP;
-                        case DOWN -> Direction.DOWN;
-                        case NORTH -> Direction.NORTH;
-                        case SOUTH -> Direction.SOUTH;
-                        case EAST -> Direction.EAST;
-                        case WEST -> Direction.WEST;
-                        default -> Direction.UP;
-                    };
-
-            net.minecraft.world.phys.Vec3 hitVec = new net.minecraft.world.phys.Vec3(
-                    targetBlock.getX() + 0.5, targetBlock.getY() + 0.5, targetBlock.getZ() + 0.5);
-
-            BlockHitResult hit = new BlockHitResult(hitVec, direction, pos, false);
-            var result = NmsPlayerSpawner.useItemOn(nms, hand, hit);
-
-            if (NmsPlayerSpawner.consumesAction(result)) {
-                nms.swing(hand);
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private boolean tryPlantingAction(Player bot, Block block, BlockFace face) {
-        if (face != BlockFace.UP) return false;
-
-        ItemStack mItem = bot.getInventory().getItemInMainHand();
-        ItemStack oItem = bot.getInventory().getItemInOffHand();
-        ItemStack plantItem = null;
-        boolean isOffhand = false;
-
-        if (isPlantable(mItem)) {
-            plantItem = mItem;
-        } else if (isPlantable(oItem)) {
-            plantItem = oItem;
-            isOffhand = true;
-        }
-
-        if (plantItem == null) return false;
-
-        String matName = plantItem.getType().name();
-        String plantBlockName = null;
-
-        if (matName.equals("WHEAT_SEEDS")) plantBlockName = "WHEAT";
-        else if (matName.equals("CARROT") || matName.equals("CARROTS")) plantBlockName = "CARROTS";
-        else if (matName.equals("POTATO") || matName.equals("POTATOES")) plantBlockName = "POTATOES";
-        else if (matName.equals("BEETROOT_SEEDS")) plantBlockName = "BEETROOTS";
-        else if (matName.equals("MELON_SEEDS")) plantBlockName = "MELON_STEM";
-        else if (matName.equals("PUMPKIN_SEEDS")) plantBlockName = "PUMPKIN_STEM";
-        else if (matName.equals("NETHER_WART")) plantBlockName = "NETHER_WART";
-        else if (matName.equals("SWEET_BERRIES")) plantBlockName = "SWEET_BERRY_BUSH";
-        else if (matName.contains("SAPLING") || matName.equals("MANGROVE_PROPAGULE")) plantBlockName = matName;
-
-        if (plantBlockName == null) return false;
-
-        Block targetBlock = block.getRelative(BlockFace.UP);
-        if (targetBlock.getType().isAir() || targetBlock.isLiquid()) {
-            try {
-                Material plantMat = Material.valueOf(plantBlockName);
-
-                if (!canPlaceAt(bot, targetBlock, plantMat)) return false;
-
-                targetBlock.setType(plantMat, true);
-                targetBlock
-                        .getWorld()
-                        .playSound(
-                                targetBlock.getLocation(),
-                                targetBlock.getBlockData().getSoundGroup().getPlaceSound(),
-                                1.0f,
-                                1.0f);
-
-                if (isOffhand) bot.swingOffHand();
-                else bot.swingMainHand();
-
-                if (bot.getGameMode() != org.bukkit.GameMode.CREATIVE) {
-                    plantItem.setAmount(plantItem.getAmount() - 1);
-                    if (plantItem.getAmount() <= 0) {
-                        if (isOffhand) bot.getInventory().setItemInOffHand(null);
-                        else bot.getInventory().setItemInMainHand(null);
-                    }
-                }
-                return true;
-            } catch (IllegalArgumentException e) {
-                return false;
-            }
-        }
-        return false;
-    }
-
-    private boolean canPlaceAt(Player bot, Block targetBlock, Material material) {
-        Block feet = bot.getLocation().getBlock();
-        Block head = bot.getEyeLocation().getBlock();
-        if (targetBlock.equals(feet) || targetBlock.equals(head)) {
-            return false;
-        }
-
-        if (isPlantItemOrBlock(material)) {
-            Block soilBlock = targetBlock.getRelative(BlockFace.DOWN);
-            if (!isValidSoilFor(material, soilBlock.getType())) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean isPlantItemOrBlock(Material mat) {
-        if (mat == null) return false;
-        String name = mat.name();
-        return name.contains("SAPLING")
-                || name.contains("SEED")
-                || name.equals("CARROT")
-                || name.equals("CARROTS")
-                || name.equals("POTATO")
-                || name.equals("POTATOES")
-                || name.equals("NETHER_WART")
-                || name.equals("SWEET_BERRIES")
-                || name.equals("SWEET_BERRY_BUSH")
-                || name.equals("MANGROVE_PROPAGULE")
-                || name.equals("WHEAT");
-    }
-
-    private boolean isValidSoilFor(Material mat, Material soil) {
-        String matName = mat.name();
-        String soilName = soil.name();
-
-        if (matName.contains("WHEAT")
-                || matName.contains("CARROT")
-                || matName.contains("POTATO")
-                || matName.contains("BEETROOT")
-                || matName.contains("SEED")) {
-            return soilName.equals("FARMLAND");
-        }
-        if (matName.equals("NETHER_WART")) {
-            return soilName.equals("SOUL_SAND");
-        }
-        if (matName.equals("SWEET_BERRIES") || matName.equals("SWEET_BERRY_BUSH")) {
-            return soilName.equals("GRASS_BLOCK")
-                    || soilName.equals("DIRT")
-                    || soilName.equals("PODZOL")
-                    || soilName.equals("COARSE_DIRT");
-        }
-        if (matName.contains("SAPLING") || matName.equals("MANGROVE_PROPAGULE")) {
-            return soilName.equals("GRASS_BLOCK")
-                    || soilName.equals("DIRT")
-                    || soilName.equals("PODZOL")
-                    || soilName.equals("COARSE_DIRT")
-                    || soilName.equals("MOSS_BLOCK")
-                    || soilName.equals("ROOTED_DIRT");
-        }
-        return false;
-    }
-
-    private boolean isPlantable(ItemStack item) {
-        if (item == null || item.getType() == Material.AIR) return false;
-        String name = item.getType().name();
-        return name.contains("SEED")
-                || name.equals("CARROT")
-                || name.equals("CARROTS")
-                || name.equals("POTATO")
-                || name.equals("POTATOES")
-                || name.contains("SAPLING")
-                || name.equals("NETHER_WART")
-                || name.equals("SWEET_BERRIES")
-                || name.equals("MANGROVE_PROPAGULE");
-    }
-
-    private boolean tryBoneMealAction(Player bot, Block block, BlockFace face) {
-        ItemStack mItem = bot.getInventory().getItemInMainHand();
-        ItemStack oItem = bot.getInventory().getItemInOffHand();
-        ItemStack boneMealItem = null;
-        boolean isOffhand = false;
-
-        if (mItem != null && mItem.getType().name().equals("BONE_MEAL")) {
-            boneMealItem = mItem;
-        } else if (oItem != null && oItem.getType().name().equals("BONE_MEAL")) {
-            boneMealItem = oItem;
-            isOffhand = true;
-        }
-
-        if (boneMealItem == null) return false;
-
-        Block targetBlock = block.getRelative(BlockFace.UP);
-        boolean success = false;
-
-        try {
-            success = targetBlock.applyBoneMeal(face);
-            if (!success) {
-                success = block.applyBoneMeal(face);
-            }
-        } catch (Throwable t) {
-            return false;
-        }
-
-        if (success) {
-            block.getWorld().playEffect(block.getLocation(), org.bukkit.Effect.BONE_MEAL_USE, 0);
-            if (isOffhand) bot.swingOffHand();
-            else bot.swingMainHand();
-
-            if (bot.getGameMode() != org.bukkit.GameMode.CREATIVE) {
-                boneMealItem.setAmount(boneMealItem.getAmount() - 1);
-                if (boneMealItem.getAmount() <= 0) {
-                    if (isOffhand) bot.getInventory().setItemInOffHand(null);
-                    else bot.getInventory().setItemInMainHand(null);
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-
+    /**
+     * Resolves the BLOCK the commanding player is aiming at (if any). Entity targeting is intentionally
+     * NOT driven by the sender's crosshair — the bot interacts only with the entity it is itself
+     * precisely aiming at, resolved per-tick in {@link #performUseAction}.
+     */
     @Nullable
     private Object rayTraceTargetPlayer(Player player) {
         try {
             Block playerTarget = player.getTargetBlockExact((int) Math.ceil(CLICK_REACH));
             if (playerTarget != null && !playerTarget.getType().isAir()) {
                 return playerTarget;
-            }
-            List<Entity> nearby = player.getNearbyEntities(CLICK_REACH, CLICK_REACH, CLICK_REACH);
-            for (Entity ent : nearby) {
-                if (ent instanceof org.bukkit.entity.LivingEntity) {
-                    Location eye = player.getEyeLocation();
-                    Location entEye = ent.getLocation().add(0, ent.getHeight() / 2, 0);
-                    org.bukkit.util.Vector dir = eye.getDirection();
-                    org.bukkit.util.Vector toEnt = entEye.toVector().subtract(eye.toVector());
-                    double angle = dir.angle(toEnt);
-                    if (angle < 0.5) {
-                        return ent;
-                    }
-                }
             }
         } catch (Exception ignored) {
         }
@@ -969,20 +713,6 @@ public final class RightClickCommand implements FppCommand {
         result.setYaw(yaw);
         result.setPitch(pitch);
         return result;
-    }
-
-    private org.bukkit.util.Vector getExactHitPosition(Player bot, Object target) {
-        if (!(target instanceof Block)) return null;
-
-        RayTraceResult ray = bot.getWorld()
-                .rayTraceBlocks(
-                        bot.getEyeLocation(),
-                        bot.getEyeLocation().getDirection(),
-                        CLICK_REACH,
-                        FluidCollisionMode.NEVER,
-                        true);
-
-        return ray != null ? ray.getHitPosition() : null;
     }
 
     /**
@@ -1092,6 +822,7 @@ public final class RightClickCommand implements FppCommand {
     public void stopClicking(UUID botUuid, boolean clearState) {
         FakePlayer fp = manager.getByUuid(botUuid);
         if (fp != null) {
+            dbg("stop: bot=" + fp.getDisplayName() + " clearState=" + clearState);
             FppApiImpl.fireTaskEvent(fp, "right-click", FppBotTaskEvent.Action.STOP);
         }
         Integer taskId = clickTasks.remove(botUuid);
@@ -1120,6 +851,43 @@ public final class RightClickCommand implements FppCommand {
 
     public boolean isClicking(UUID botUuid) {
         return clickTasks.containsKey(botUuid);
+    }
+
+    /**
+     * Snapshot of the bot's active right-click task for persistence, or null when it isn't clicking.
+     */
+    @Nullable
+    public SavedClickTask getSavedTask(UUID botUuid) {
+        ClickMode mode = clickModes.get(botUuid);
+        if (mode == null || mode == ClickMode.STOP || !clickTasks.containsKey(botUuid)) return null;
+        FakePlayer fp = manager.getByUuid(botUuid);
+        Player bot = fp != null ? fp.getPlayer() : null;
+        if (bot == null) return null;
+        ClickState state = clickStates.get(botUuid);
+        return new SavedClickTask(mode.name(), bot.getWorld().getName(), state != null ? state.aimPoint : null);
+    }
+
+    /**
+     * Resumes a persisted right-click task after a restart: re-aims the bot at the saved point (when
+     * one was locked) and restarts the click loop via the normal self-view resolution.
+     */
+    public void resumeSavedTask(FakePlayer fp, String modeName, @Nullable org.bukkit.util.Vector aimPoint) {
+        Player bot = fp.getPlayer();
+        if (bot == null || !bot.isOnline()) return;
+        ClickMode mode;
+        try {
+            mode = ClickMode.valueOf(modeName);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            mode = ClickMode.HOLD;
+        }
+        if (mode == ClickMode.STOP) return;
+        if (aimPoint != null) {
+            Location faceLoc = faceTowardTarget(bot.getLocation(), null, aimPoint);
+            ((CraftPlayer) bot).getHandle().absSnapRotationTo(faceLoc.getYaw(), faceLoc.getPitch());
+            NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
+        }
+        dbg("resume: bot=" + fp.getDisplayName() + " mode=" + mode + " aim=" + aimPoint);
+        click(fp, mode);
     }
 
     public void resumeClicking(FakePlayer fp) {
@@ -1182,11 +950,28 @@ public final class RightClickCommand implements FppCommand {
         clickTasks.put(fp.getUuid(), newTask);
     }
 
+    /**
+     * Re-faces the bot toward its commanded target (exact aim point, else target centre). Rotates via
+     * NMS {@code absSnapRotationTo} — NOT {@code CraftPlayer#setRotation}, which does a connection
+     * teleport that arms {@code awaitingPositionFromClient} and blocks all block interactions until
+     * confirmed.
+     */
+    private void refreshAim(Player bot, ClickState state) {
+        if (state.aimTarget == null && state.aimPoint == null) return;
+        Location faceLoc = faceTowardTarget(bot.getLocation(), state.aimTarget, state.aimPoint);
+        ((CraftPlayer) bot).getHandle().absSnapRotationTo(faceLoc.getYaw(), faceLoc.getPitch());
+        NmsPlayerSpawner.setHeadYaw(bot, faceLoc.getYaw());
+    }
+
     private static final class ClickState {
         Object target;
         ClickMode mode;
         boolean holding;
         boolean dynamicTarget;
         org.bukkit.util.Vector hitPosition;
+        // The commanded target + exact aim point, set once at start and never overwritten by per-tick
+        // picks. Used to re-aim the head every pulse.
+        Object aimTarget;
+        org.bukkit.util.Vector aimPoint;
     }
 }

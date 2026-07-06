@@ -1135,6 +1135,13 @@ public final class SettingGui implements Listener {
                                 "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ʜᴇᴀᴅ",
                                 "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ᴏɴ ʙᴏᴛ ʜᴇᴀᴅ.",
                                 Material.CARVED_PUMPKIN),
+                        SettingEntry.debugToggle(
+                                "left-click", "ʟᴇꜰᴛ-ᴄʟɪᴄᴋ", "ʙᴏᴛ ʟᴇꜰᴛ-ᴄʟɪᴄᴋ (ʙʀᴇᴀᴋ / ᴀᴛᴛᴀᴄᴋ).", Material.IRON_PICKAXE),
+                        SettingEntry.debugToggle(
+                                "left-click-head",
+                                "ʟᴇꜰᴛ-ᴄʟɪᴄᴋ ʜᴇᴀᴅ",
+                                "ʟᴇꜰᴛ-ᴄʟɪᴄᴋ ᴀɪᴍ / ᴛᴀʀɢᴇᴛɪɴɢ.",
+                                Material.SKELETON_SKULL),
                         // ── NMS internals ────────────────────────────────────
                         SettingEntry.debugToggle(
                                 "nms.enabled", "ɴᴍꜱ ᴍᴀꜱᴛᴇʀ", "ʟᴏᴡ-ʟᴇᴠᴇʟ ɴᴍꜱ ɪɴᴛᴇʀᴀᴄᴛɪᴏɴꜱ.", Material.COMPASS),
