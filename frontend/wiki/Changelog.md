@@ -1,5 +1,54 @@
 # Changelog
 
+## v2.0.2 (Beta)
+
+### Fixed — Permissions No Longer Bypass LuckPerms
+
+- Removed the hard-coded `player.isOp()` shortcuts (`Perm.hasOrOp`, `BotAccess.isAdmin`, `BotListGui.isAdmin`,
+  `BotSettingGui.isOp`) that granted admin access to server operators even when a permissions plugin like LuckPerms
+  explicitly denied the relevant `fpp.*` node. Every permission check now goes through `hasPermission()` only, so
+  LuckPerms grants/denies are always respected, operators included.
+- Fixed `canUse()` gates that were stricter than the granular permission nodes they were meant to allow — players
+  granted only `fpp.left-click.once`/`.stop`, `fpp.right-click.once`/`.stop`, `fpp.despawn.own`,
+  `fpp.move.to`/`.coords`, or `fpp.inventory.own` were previously blocked at the command dispatcher before those
+  fine-grained nodes were ever checked.
+- Added the missing `fpp.inventory.own` permission constant and wired it into the `/fpp inventory` command and the
+  right-click-to-open-inventory listener — this node was documented in `plugin.yml` but had no effect at all.
+
+### Fixed — Folia Compatibility
+
+- Fixed a `TickThread` crash ("Accessing entity state off owning region's thread") when refreshing a bot's floating
+  name-tag activity line. The nametag refresh loop now dispatches to each bot's owning region thread on Folia instead
+  of running on the global region thread.
+- Fixed bots showing their vanilla over-head name doubled up with the custom name-tag display on Folia. Folia's
+  Scoreboard/Team API is a documented gap (global state the project hasn't implemented for regionised ticking), so
+  hiding the vanilla name no longer touches `Bukkit.getScoreboardManager()`/`Team` at all — a `PlayerTeam` is built
+  directly from NMS and its `ClientboundSetPlayerTeamPacket`s are sent straight down each viewer's connection.
+- Fixed a client-crashing bug in that same rework: sending a "remove from team" packet for a bot whose name had never
+  actually been added (e.g. a second bot's very first spawn) made the vanilla client throw and disconnect
+  ("Network Protocol Error"). The plugin now only sends a removal for a name it actually tracked as hidden.
+- Fixed `onDisable()` crashing on Folia with `IllegalPluginAccessException` ("Plugin attempted to register task while
+  disabled") when despawning bots during shutdown. `FppScheduler` now detects a disabled plugin and runs the work
+  directly instead of scheduling it — safe, since Folia halts all region ticking before `onDisable()` runs.
+- Fixed Head-AI being hard-disabled on Folia entirely. The restriction predated the current per-bot region-thread
+  dispatch and was never removed after the rest of the tick loop became Folia-safe; it now runs on Folia the same as
+  on Paper.
+
+### Changed — `/fpp spawn` Is Now In-Game Only
+
+- `/fpp spawn` can no longer be run from the server console (or dispatched as console) — it requires a real player
+  sender, matching most other bot commands.
+- Removed world/coordinate targeting (`/fpp spawn <world> [x y z]`) — a bot always spawns at the commanding player's
+  own location now. The `fpp.spawn.coords` permission node is gone along with it.
+
+### Performance
+
+- Removed reflective `Method.invoke()` calls from every hot per-tick NMS path in `NmsPlayerSpawner` (`doTick()`,
+  `getHandle()`, and everything built on it — `setJumping`, `setHeadYaw`, `setMovementForward`,
+  `setMovementStrafe`, `applyServerVelocity`, and more) in favor of direct calls. `ServerPlayer.tickPhysics()`'s
+  `doTick()` invocation alone accounted for ~69% of the plugin's own profiled self-time in benchmark reports; this
+  scales linearly with bot count, so the win grows with server size.
+
 ## v2.0.1 (Beta)
 
 ### Changed — Left/Right-Click Are Now Real Clicks (Authentic Serverbound Packets)

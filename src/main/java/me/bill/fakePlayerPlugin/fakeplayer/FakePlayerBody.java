@@ -1,5 +1,8 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -7,14 +10,13 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,6 +33,9 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.Team;
 
 public final class FakePlayerBody {
 
@@ -38,10 +43,69 @@ public final class FakePlayerBody {
 
     public static final String NAMETAG_PDC_VALUE = "fpp-nametag";
 
-    /** Scoreboard team used only to hide bots' vanilla over-head names (both rows live in the text_display). */
+    /**
+     * NMS team used only to hide bots' vanilla over-head names (both rows live in the text_display).
+     * Folia's Scoreboard/Team API is documented as entirely broken — global state the project hasn't
+     * implemented for regionised ticking — so this team is built directly from NMS and is
+     * deliberately never registered with Bukkit's/the server's real scoreboard. It exists purely as
+     * a data holder for building {@code ClientboundSetPlayerTeamPacket}s, which are pushed to
+     * clients by hand (see {@link #hideVanillaNameNow}/{@link #unhideVanillaNameNow}).
+     */
     private static final String HIDDEN_NAME_TEAM = "fpp_hidden_names";
 
+    private static volatile PlayerTeam hideTeam;
+
+    /** Bot names currently hidden — the source of truth, since we don't rely on the team object's own player set. */
+    private static final Set<String> hiddenNames = ConcurrentHashMap.newKeySet();
+
+    /** Viewers (real players) who have already been sent the team-create packet for {@link #hideTeam}. */
+    private static final Set<UUID> viewersKnowingTeam = ConcurrentHashMap.newKeySet();
+
     private FakePlayerBody() {}
+
+    private static PlayerTeam hideTeam() {
+        PlayerTeam t = hideTeam;
+        if (t != null) return t;
+        synchronized (FakePlayerBody.class) {
+            if (hideTeam != null) return hideTeam;
+            try {
+                MinecraftServer server = ((CraftServer) Bukkit.getServer()).getServer();
+                PlayerTeam team = new PlayerTeam(server.getScoreboard(), HIDDEN_NAME_TEAM);
+                team.setNameTagVisibility(Team.Visibility.NEVER);
+                team.setCollisionRule(Team.CollisionRule.ALWAYS);
+                hideTeam = team;
+            } catch (Throwable t2) {
+                FppLogger.debug("FakePlayerBody: failed to build hide-nametag team: " + t2.getMessage());
+            }
+            return hideTeam;
+        }
+    }
+
+    /**
+     * Brings a newly-joined (or newly-synced) viewer up to date on the hide-team and every bot
+     * currently hidden from it. Since the team is never registered with the real scoreboard, vanilla
+     * login-sync never tells the client about it — this call is the only way they learn.
+     */
+    public static void syncHiddenNamesTo(Player viewer) {
+        PlayerTeam team = hideTeam();
+        if (team == null) return;
+        viewersKnowingTeam.add(viewer.getUniqueId());
+        PacketHelper.sendTeamCreate(viewer, team);
+        for (String name : hiddenNames) {
+            PacketHelper.sendTeamMembership(viewer, team, name, true);
+        }
+    }
+
+    /** Forgets a disconnected viewer so a future rejoin gets a fresh full sync. */
+    public static void forgetViewer(UUID viewerUuid) {
+        viewersKnowingTeam.remove(viewerUuid);
+    }
+
+    private static void ensureViewerKnowsTeam(Player viewer, PlayerTeam team) {
+        if (viewersKnowingTeam.add(viewer.getUniqueId())) {
+            PacketHelper.sendTeamCreate(viewer, team);
+        }
+    }
 
     public static Player spawn(FakePlayer fp, Location loc) {
         return spawn(fp, loc, -1);
@@ -338,12 +402,23 @@ public final class FakePlayerBody {
         if (fp == null) return;
         unhideVanillaName(fp);
         Entity tag = fp.getNametagEntity();
-        if (tag != null) {
-            try {
-                tag.remove();
-            } catch (Throwable ignored) {
+        fp.setNametagEntity(null);
+        if (tag == null) return;
+        if (NmsPlayerSpawner.isFoliaServer()) {
+            FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
+            if (plugin != null) {
+                FppScheduler.runAtEntity(plugin, tag, () -> {
+                    try {
+                        tag.remove();
+                    } catch (Throwable ignored) {
+                    }
+                });
+                return;
             }
-            fp.setNametagEntity(null);
+        }
+        try {
+            tag.remove();
+        } catch (Throwable ignored) {
         }
     }
 
@@ -388,37 +463,83 @@ public final class FakePlayerBody {
         }
     }
 
-    /** Rebuilds the tag text (e.g. after an owner change). */
+    /**
+     * Rebuilds the tag text (e.g. after an owner change). The text_display is entity state, so on
+     * Folia the actual mutation must run on the region thread that currently owns it — callers may
+     * invoke this from anywhere (a command, an async callback, the global-region activity-refresh
+     * loop), so the dispatch happens here rather than being the caller's responsibility.
+     */
     public static void refreshNametag(FakePlayer fp) {
         if (fp == null) return;
-        if (fp.getNametagEntity() instanceof TextDisplay td && td.isValid()) {
-            td.text(buildNametagComponent(fp));
+        // Cheap, idempotent self-heal: re-assert the vanilla-name-hiding team membership on every
+        // refresh (every ~10 ticks, driven by the activity-label loop) in case the one-time hide at
+        // spawn didn't stick (e.g. a scoreboard that wasn't ready yet, or a missed broadcast).
+        hideVanillaName(fp);
+        if (!(fp.getNametagEntity() instanceof TextDisplay td)) return;
+        if (NmsPlayerSpawner.isFoliaServer()) {
+            FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
+            if (plugin == null) return;
+            FppScheduler.runAtEntity(plugin, td, () -> {
+                if (td.isValid()) td.text(buildNametagComponent(fp));
+            });
+            return;
         }
+        if (td.isValid()) td.text(buildNametagComponent(fp));
     }
 
     private static void hideVanillaName(FakePlayer fp) {
-        try {
-            var mgr = Bukkit.getScoreboardManager();
-            if (mgr == null) return;
-            Scoreboard board = mgr.getMainScoreboard();
-            Team team = board.getTeam(HIDDEN_NAME_TEAM);
-            if (team == null) {
-                team = board.registerNewTeam(HIDDEN_NAME_TEAM);
-                team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
-                // Keep normal collision so bots still push each other (see BotCollisionListener).
-                team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.ALWAYS);
+        // Building/sending packets touches no per-entity region state, but keep this on the global
+        // region on Folia anyway for consistency with the rest of the visual-sync pipeline.
+        if (NmsPlayerSpawner.isFoliaServer()) {
+            FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
+            if (plugin != null) {
+                FppScheduler.runSync(plugin, () -> hideVanillaNameNow(fp));
+                return;
             }
-            team.addEntry(fp.getName());
+        }
+        hideVanillaNameNow(fp);
+    }
+
+    private static void hideVanillaNameNow(FakePlayer fp) {
+        try {
+            PlayerTeam team = hideTeam();
+            if (team == null) return;
+            String name = fp.getName();
+            hiddenNames.add(name);
+            for (Player viewer : Bukkit.getOnlinePlayers()) {
+                ensureViewerKnowsTeam(viewer, team);
+                PacketHelper.sendTeamMembership(viewer, team, name, true);
+            }
         } catch (Throwable ignored) {
         }
     }
 
     private static void unhideVanillaName(FakePlayer fp) {
+        if (NmsPlayerSpawner.isFoliaServer()) {
+            FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
+            if (plugin != null) {
+                FppScheduler.runSync(plugin, () -> unhideVanillaNameNow(fp));
+                return;
+            }
+        }
+        unhideVanillaNameNow(fp);
+    }
+
+    private static void unhideVanillaNameNow(FakePlayer fp) {
         try {
-            var mgr = Bukkit.getScoreboardManager();
-            if (mgr == null) return;
-            Team team = mgr.getMainScoreboard().getTeam(HIDDEN_NAME_TEAM);
-            if (team != null) team.removeEntry(fp.getName());
+            String name = fp.getName();
+            // removeNametag() (and therefore this) unconditionally runs before EVERY spawn, including
+            // a bot's very first one — where its name was never added to any client's team roster.
+            // The vanilla client's Scoreboard#removePlayerFromTeam throws (and disconnects!) if asked
+            // to remove a name that isn't currently a member, so only broadcast REMOVE for a name that
+            // really was hidden.
+            boolean wasHidden = hiddenNames.remove(name);
+            if (!wasHidden) return;
+            PlayerTeam team = hideTeam;
+            if (team == null) return;
+            for (Player viewer : Bukkit.getOnlinePlayers()) {
+                PacketHelper.sendTeamMembership(viewer, team, name, false);
+            }
         } catch (Throwable ignored) {
         }
     }

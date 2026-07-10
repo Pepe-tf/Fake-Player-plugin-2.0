@@ -37,7 +37,7 @@ Requires JDK 21+ and the Gradle wrapper.
 - Output: `build/libs/fake-player-plugin-<version>-all.jar`
 - The runnable plugin task is `shadowJar`; plain `jar` is not the final server plugin.
 
-The build depends on the **paperweight** Paper dev bundle (`paper-1.21.11-R0.1-SNAPSHOT`). Gradle downloads this automatically via the Paperweight plugin.
+The build depends on the **paperweight** Paper dev bundle (`26.1.2.build.65-stable`). Gradle downloads this automatically via the Paperweight plugin.
 
 ## First Steps
 

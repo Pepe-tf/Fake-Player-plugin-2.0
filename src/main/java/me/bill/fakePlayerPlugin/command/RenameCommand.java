@@ -68,7 +68,7 @@ public final class RenameCommand implements FppCommand {
         }
 
         if (sender instanceof Player player
-                && !Perm.hasOrOp(sender, Perm.ADMIN)
+                && !Perm.has(sender, Perm.ADMIN)
                 && !BotAccess.canAdminister(player, fp)) {
             sender.sendMessage(Lang.get("no-permission"));
             return true;

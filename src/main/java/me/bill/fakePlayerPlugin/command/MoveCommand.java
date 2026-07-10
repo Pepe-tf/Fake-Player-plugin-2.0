@@ -61,7 +61,7 @@ public final class MoveCommand implements FppCommand {
 
     @Override
     public boolean canUse(CommandSender sender) {
-        return Perm.has(sender, Perm.MOVE);
+        return Perm.hasAny(sender, Perm.MOVE, Perm.MOVE_TO, Perm.MOVE_COORDS);
     }
 
     @Override
@@ -88,7 +88,7 @@ public final class MoveCommand implements FppCommand {
             return true;
         }
         if (sender instanceof Player player
-                && !Perm.hasOrOp(sender, Perm.ADMIN)
+                && !Perm.has(sender, Perm.ADMIN)
                 && !BotAccess.canAdminister(player, fp)) {
             sender.sendMessage(Lang.get("no-permission"));
             return true;
@@ -121,7 +121,7 @@ public final class MoveCommand implements FppCommand {
     }
 
     private boolean executeAll(CommandSender sender, String flag, String[] args) {
-        if (sender instanceof Player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+        if (sender instanceof Player && !Perm.has(sender, Perm.ADMIN)) {
             sender.sendMessage(Lang.get("no-permission"));
             return true;
         }

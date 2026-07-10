@@ -1,6 +1,9 @@
 # Permissions
 
-FPP uses a two-tier permission system with granular sub-nodes.
+FPP uses a two-tier permission system with granular sub-nodes. Every check goes through
+`CommandSender#hasPermission()` only — there is no hard-coded operator bypass anywhere in the
+plugin, so a permissions plugin such as LuckPerms can grant or deny any `fpp.*` node, including for
+server operators, and FPP will always respect it.
 
 ## Wildcard Tiers
 
@@ -17,9 +20,9 @@ FPP uses a two-tier permission system with granular sub-nodes.
 - `fpp.plugininfo` — show full info panel on bare `/fpp` (default: `op`)
 
 ### Spawn
-> `/fpp spawn` creates exactly **one** bot per command (auto-named or `--name <name>`).
-- `fpp.spawn` — admin spawn (ignores personal limits; grants `fpp.spawn.coords`)
-  - `fpp.spawn.coords` — spawn at explicit world/coordinates (enforced in-command)
+> `/fpp spawn` creates exactly **one** bot per command (auto-named or `--name <name>`), always at the
+> commanding player's own location. In-game only — there is no console spawning.
+- `fpp.spawn` — admin spawn (ignores personal limits)
 - `fpp.spawn.user` — user spawn (limited by personal bot cap)
   - `fpp.spawn.limit.1` through `fpp.spawn.limit.100` — personal bot limit
 
@@ -60,6 +63,7 @@ FPP uses a two-tier permission system with granular sub-nodes.
 - `fpp.inventory` — open bot inventory GUI
   - `fpp.inventory.cmd` — via command
   - `fpp.inventory.rightclick` — via right-click entity
+  - `fpp.inventory.own` — open the inventory of bots you personally own, without needing `.cmd`/`.rightclick`
 - `fpp.setowner` — transfer bot ownership
 - `fpp.rename` — rename a bot's display name (owners/admins can also rename from the per-bot settings GUI)
 - `fpp.save` — force-save all active bots

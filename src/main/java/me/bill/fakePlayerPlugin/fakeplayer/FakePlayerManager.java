@@ -254,17 +254,30 @@ public class FakePlayerManager {
                 plugin,
                 () -> {
                     if (activePlayers.isEmpty()) return;
+                    final boolean foliaServer = NmsPlayerSpawner.isFoliaServer();
                     for (FakePlayer fp : activePlayers.values()) {
                         // Per-bot guard: one bad bot must never kill this repeating task — a dead
                         // refresh loop freezes every nametag's activity row on its last value.
-                        try {
-                            if (fp.getNametagEntity() == null) continue;
-                            String label = BotActivity.currentLabel(fp);
-                            if (label.equals(fp.getLastRenderedActionLabel())) continue;
-                            fp.setLastRenderedActionLabel(label);
-                            FakePlayerBody.refreshNametag(fp);
-                        } catch (Throwable t) {
-                            Config.debug("Nametag activity refresh failed for '" + fp.getName() + "': " + t);
+                        Runnable refreshTick = () -> {
+                            try {
+                                if (fp.getNametagEntity() == null) return;
+                                String label = BotActivity.currentLabel(fp);
+                                if (label.equals(fp.getLastRenderedActionLabel())) return;
+                                fp.setLastRenderedActionLabel(label);
+                                FakePlayerBody.refreshNametag(fp);
+                            } catch (Throwable t) {
+                                Config.debug("Nametag activity refresh failed for '" + fp.getName() + "': " + t);
+                            }
+                        };
+                        // BotActivity.currentLabel() and the text-display update both touch entity
+                        // state, so on Folia they must run on the bot's owning region thread rather
+                        // than the global region thread this loop itself is ticking on.
+                        if (foliaServer) {
+                            Player bot = fp.getPlayer();
+                            if (bot == null) continue;
+                            FppScheduler.runAtEntity(plugin, bot, refreshTick);
+                        } else {
+                            refreshTick.run();
                         }
                     }
                 },
@@ -281,7 +294,13 @@ public class FakePlayerManager {
                     final boolean headAiOn = Config.headAiEnabled();
                     final int headAiRate = Config.headAiTickRate();
 
-                    final boolean doHeadAi = headAiOn && !foliaServer && (headAiTickCounter % headAiRate == 0);
+                    // Head-AI's target lookup reads other online players' eye locations, and its
+                    // rotation writes target the bot itself — both already happen unconditionally
+                    // elsewhere in this same per-bot tick (position-sync snapshot above, physics
+                    // below), which on Folia is dispatched onto the bot's own entity scheduler via
+                    // FppScheduler.runAtEntity. So head-AI is just as Folia-safe as the rest of the
+                    // tick; it no longer needs to be disabled on Folia specifically.
+                    final boolean doHeadAi = headAiOn && (headAiTickCounter % headAiRate == 0);
                     final double rangeSq = doHeadAi ? Config.headAiLookRange() * Config.headAiLookRange() : 0;
                     final float speed = doHeadAi ? Config.headAiTurnSpeed() : 0f;
 
@@ -2383,6 +2402,7 @@ public class FakePlayerManager {
     }
 
     public void syncToPlayer(Player player) {
+        FakePlayerBody.syncHiddenNamesTo(player);
         if (!Config.tabListEnabled()) {
 
             for (FakePlayer fp : activePlayers.values()) {

@@ -94,7 +94,7 @@ public final class BotListGui implements Listener {
     }
 
     private boolean isAdmin(Player player) {
-        return player.isOp() || Perm.hasAny(player, Perm.OP, Perm.ADMIN);
+        return Perm.hasAny(player, Perm.OP, Perm.ADMIN);
     }
 
     /** Bots this viewer may see: all bots for admins, only their own otherwise — filtered and sorted. */

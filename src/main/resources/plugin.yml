@@ -1,5 +1,5 @@
 name: FakePlayerPlugin
-version: '2.0.1'
+version: '2.0.2'
 main: me.bill.fakePlayerPlugin.FakePlayerPlugin
 api-version: '1.21'
 folia-supported: true
@@ -67,7 +67,6 @@ permissions:
       fpp.plugininfo:           true
       fpp.help:                 true
       fpp.spawn:                true
-      fpp.spawn.coords:         true
       fpp.despawn:              true
       fpp.despawn.bulk:         true
       fpp.despawn.own:          true
@@ -165,21 +164,15 @@ permissions:
 
   fpp.spawn:
     description: >
-      Admin spawn — ignores personal bot limits. Grants fpp.spawn.coords
-      automatically. Spawns one bot per command (auto-named or --name).
+      Admin spawn — ignores personal bot limits. Spawns one bot per command
+      (auto-named or --name) at the commanding player's own location.
     default: op
-    children:
-      fpp.spawn.coords:     true
 
   fpp.spawn.user:
     description: >
-      Spawn bots up to the player's personal limit (fpp.spawn.limit.<n>).
-      Cannot use coordinates. Included in fpp.use.
+      Spawn bots up to the player's personal limit (fpp.spawn.limit.<n>) at
+      your own location. Included in fpp.use.
     default: true
-
-  fpp.spawn.coords:
-    description: Spawn bots at explicit world / coordinate arguments. Admin only.
-    default: op
 
   # ── Bot limits ──────────────────────────────────────────────────────────────
   # Assign the highest node the player should be allowed.

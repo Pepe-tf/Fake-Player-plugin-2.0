@@ -3,9 +3,7 @@ package me.bill.fakePlayerPlugin.command;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -19,6 +17,9 @@ import me.bill.fakePlayerPlugin.permission.Perm;
  * Spawns exactly one bot per invocation — auto-named ({@code bot}, {@code bot2}, …) or custom-named
  * via {@code --name}. The old bulk form ({@code /fpp spawn <amount>}) and the bot-type tag were
  * removed deliberately: one command, one bot.
+ *
+ * <p>In-game only: bots always spawn at the commanding player's own location. There is no console
+ * spawning and no world/coordinate targeting — both were removed deliberately.
  */
 public class SpawnCommand implements FppCommand {
 
@@ -35,12 +36,12 @@ public class SpawnCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "[--name <name>] [world [x y z]]";
+        return "[--name <name>]";
     }
 
     @Override
     public String getDescription() {
-        return "Spawns a fake player bot (auto-named bot, bot2, ... or a custom --name).";
+        return "Spawns a fake player bot at your location (auto-named bot, bot2, ... or a custom --name).";
     }
 
     @Override
@@ -55,6 +56,11 @@ public class SpawnCommand implements FppCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(Lang.get("player-only"));
+            return true;
+        }
+
         boolean isAdmin = Perm.has(sender, Perm.SPAWN);
         boolean isUser = !isAdmin && Perm.has(sender, Perm.USER_SPAWN);
 
@@ -77,120 +83,15 @@ public class SpawnCommand implements FppCommand {
             positional.remove(nameFlag);
         }
 
-        String worldName = null;
-        double coordX = 0, coordY = 0, coordZ = 0;
-        boolean hasCoords = false;
-        int idx = 0;
+        Location location = player.getLocation().clone();
 
-        if (idx < positional.size() && !isDouble(positional.get(idx))) {
-            if (!Perm.has(sender, Perm.SPAWN_COORDS)) {
-                sender.sendMessage(Lang.get("no-permission"));
-                return true;
-            }
-            worldName = positional.get(idx++);
-            World w = Bukkit.getWorld(worldName);
-            if (w == null) {
-                sender.sendMessage(Lang.get("spawn-world-not-found", "world", worldName));
-                return true;
-            }
-        }
-
-        if (worldName != null && idx < positional.size()) {
-            String next = positional.get(idx);
-            if (next.contains(",")) {
-
-                String[] parts = next.split(",", -1);
-                if (parts.length != 3) {
-                    sender.sendMessage(Lang.get("spawn-invalid-coords"));
-                    return true;
-                }
-                try {
-                    coordX = Double.parseDouble(parts[0]);
-                    coordY = Double.parseDouble(parts[1]);
-                    coordZ = Double.parseDouble(parts[2]);
-                    hasCoords = true;
-                } catch (NumberFormatException e) {
-                    sender.sendMessage(Lang.get("spawn-invalid-coords"));
-                    return true;
-                }
-            } else if (isTildeOrDouble(next)
-                    && idx + 2 < positional.size()
-                    && isTildeOrDouble(positional.get(idx + 1))
-                    && isTildeOrDouble(positional.get(idx + 2))) {
-
-                Location origin = (sender instanceof Player p) ? p.getLocation() : null;
-                try {
-                    coordX = resolveTilde(positional.get(idx), origin != null ? origin.getX() : 0);
-                    coordY = resolveTilde(positional.get(idx + 1), origin != null ? origin.getY() : 0);
-                    coordZ = resolveTilde(positional.get(idx + 2), origin != null ? origin.getZ() : 0);
-                    hasCoords = true;
-                } catch (NumberFormatException e) {
-                    sender.sendMessage(Lang.get("spawn-invalid-coords"));
-                    return true;
-                }
-            }
-        }
-
-        Location location;
-        if (sender instanceof Player player) {
-            if (worldName != null) {
-                World w = Bukkit.getWorld(worldName);
-                if (w == null) {
-                    sender.sendMessage(Lang.get("spawn-world-not-found", "world", worldName));
-                    return true;
-                }
-
-                location = hasCoords
-                        ? new Location(
-                                w,
-                                coordX,
-                                coordY,
-                                coordZ,
-                                player.getLocation().getYaw(),
-                                player.getLocation().getPitch())
-                        : new Location(
-                                w,
-                                player.getLocation().getX(),
-                                player.getLocation().getY(),
-                                player.getLocation().getZ(),
-                                player.getLocation().getYaw(),
-                                player.getLocation().getPitch());
-            } else {
-                location = player.getLocation().clone();
-            }
-        } else {
-
-            if (worldName != null) {
-                World w = Bukkit.getWorld(worldName);
-                if (w == null) {
-                    sender.sendMessage(Lang.get("spawn-world-not-found", "world", worldName));
-                    return true;
-                }
-                location = hasCoords ? new Location(w, coordX, coordY, coordZ) : w.getSpawnLocation();
-            } else {
-                List<World> worlds = Bukkit.getWorlds();
-                if (worlds.isEmpty()) {
-                    sender.sendMessage(Lang.get("spawn-console-no-world"));
-                    return true;
-                }
-                location = worlds.getFirst().getSpawnLocation();
-            }
-        }
-
-        if (sender instanceof Player player
-                && !Perm.has(sender, Perm.BYPASS_COOLDOWN)
-                && manager.isOnCooldown(player.getUniqueId())) {
+        if (!Perm.has(sender, Perm.BYPASS_COOLDOWN) && manager.isOnCooldown(player.getUniqueId())) {
             long remaining = manager.getRemainingCooldown(player.getUniqueId());
             sender.sendMessage(Lang.get("spawn-cooldown", "seconds", String.valueOf(remaining)));
             return true;
         }
 
         if (isUser) {
-            if (!(sender instanceof Player player)) {
-                sender.sendMessage(Lang.get("player-only"));
-                return true;
-            }
-
             int permLimit = Perm.resolveUserBotLimit(sender);
             int limit = permLimit >= 0 ? permLimit : Config.userBotLimit();
             int alreadyOwned = manager.getBotsOwnedBy(player.getUniqueId()).size();
@@ -211,13 +112,10 @@ public class SpawnCommand implements FppCommand {
         }
 
         boolean bypassMax = Perm.has(sender, Perm.BYPASS_MAX);
-        Player spawner = (sender instanceof Player p) ? p : null;
 
-        int result = manager.spawn(location, 1, spawner, customName, bypassMax, BotType.AFK);
+        int result = manager.spawn(location, 1, player, customName, bypassMax, BotType.AFK);
         if (handleSpawnResult(sender, result, customName)) {
-            if (sender instanceof Player p) {
-                manager.recordSpawnCooldown(p.getUniqueId());
-            }
+            manager.recordSpawnCooldown(player.getUniqueId());
             sender.sendMessage(Lang.get("spawn-success", "count", "1", "total", String.valueOf(manager.getCount())));
         }
         return true;
@@ -244,9 +142,6 @@ public class SpawnCommand implements FppCommand {
     public List<String> tabComplete(CommandSender sender, String[] args) {
         if (!canUse(sender)) return List.of();
 
-        boolean isAdmin = Perm.has(sender, Perm.SPAWN);
-        List<String> suggestions = new ArrayList<>();
-
         List<String> positional = new ArrayList<>(List.of(args));
         String typed = positional.isEmpty() ? "" : positional.getLast().toLowerCase();
 
@@ -256,73 +151,7 @@ public class SpawnCommand implements FppCommand {
         }
 
         boolean nameUsed = positional.contains("--name");
-        if (!nameUsed && "--name".startsWith(typed)) suggestions.add("--name");
-
-        // Strip a completed "--name <value>" pair before reasoning about positional args.
-        int nameFlag = positional.indexOf("--name");
-        if (nameFlag >= 0 && nameFlag + 1 < positional.size()) {
-            positional.remove(nameFlag + 1);
-            positional.remove(nameFlag);
-        }
-        int completedTokens = Math.max(0, positional.size() - 1);
-
-        if (completedTokens == 0) {
-            if (isAdmin) {
-                Bukkit.getWorlds().stream()
-                        .map(World::getName)
-                        .filter(n -> n.toLowerCase().startsWith(typed))
-                        .forEach(suggestions::add);
-            }
-        } else if (completedTokens == 1) {
-            String prev = positional.get(completedTokens - 1);
-            if (Bukkit.getWorld(prev) != null) {
-                if (typed.isEmpty() || "~".startsWith(typed)) suggestions.add("~");
-                if (typed.isEmpty()) suggestions.add("<x>");
-            }
-        } else {
-            String prevPrev = positional.get(completedTokens - 2);
-            String prev = positional.get(completedTokens - 1);
-            boolean prevIsCoord = isTildeOrDouble(prev);
-            boolean prevPrevIsCoord = isTildeOrDouble(prevPrev);
-            if (prevIsCoord && !prevPrevIsCoord) {
-                if (typed.isEmpty() || "~".startsWith(typed)) suggestions.add("~");
-                if (typed.isEmpty()) suggestions.add("<y>");
-            } else if (prevIsCoord && prevPrevIsCoord) {
-                if (typed.isEmpty() || "~".startsWith(typed)) suggestions.add("~");
-                if (typed.isEmpty()) suggestions.add("<z>");
-            }
-        }
-
-        return suggestions;
-    }
-
-    private static boolean isDouble(String s) {
-        if (s == null || s.isEmpty()) return false;
-        try {
-            Double.parseDouble(s);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    private static boolean isTildeOrDouble(String s) {
-        if (s == null || s.isEmpty()) return false;
-        if (s.equals("~")) return true;
-        if (s.startsWith("~")) {
-            try {
-                Double.parseDouble(s.substring(1));
-                return true;
-            } catch (NumberFormatException e) {
-                return false;
-            }
-        }
-        return isDouble(s);
-    }
-
-    private static double resolveTilde(String s, double playerVal) {
-        if (s.equals("~")) return playerVal;
-        if (s.startsWith("~")) return playerVal + Double.parseDouble(s.substring(1));
-        return Double.parseDouble(s);
+        if (!nameUsed && "--name".startsWith(typed)) return List.of("--name");
+        return List.of();
     }
 }

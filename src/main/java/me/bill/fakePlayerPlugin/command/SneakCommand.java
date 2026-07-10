@@ -56,7 +56,7 @@ public final class SneakCommand implements FppCommand {
             return true;
         }
         if (sender instanceof Player player
-                && !Perm.hasOrOp(sender, Perm.ADMIN)
+                && !Perm.has(sender, Perm.ADMIN)
                 && !BotAccess.canAdminister(player, fp)) {
             sender.sendMessage(Lang.get("no-permission"));
             return true;

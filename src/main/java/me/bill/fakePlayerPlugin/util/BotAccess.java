@@ -12,7 +12,7 @@ public final class BotAccess {
     private BotAccess() {}
 
     public static boolean isAdmin(Player player) {
-        return player != null && (player.isOp() || Perm.hasAny(player, Perm.ADMIN, Perm.OP));
+        return player != null && Perm.hasAny(player, Perm.ADMIN, Perm.OP);
     }
 
     public static boolean isOwner(Player player, FakePlayer bot) {

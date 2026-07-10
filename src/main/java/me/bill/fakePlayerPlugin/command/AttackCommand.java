@@ -137,7 +137,7 @@ public final class AttackCommand implements FppCommand {
             return true;
         }
         if (sender instanceof Player player
-                && !Perm.hasOrOp(sender, Perm.ADMIN)
+                && !Perm.has(sender, Perm.ADMIN)
                 && !BotAccess.canAdminister(player, fp)) {
             sender.sendMessage(Lang.get("no-permission"));
             return true;
@@ -166,7 +166,7 @@ public final class AttackCommand implements FppCommand {
         int count = 0;
         for (FakePlayer fp : manager.getActivePlayers()) {
             if (sender instanceof Player player
-                    && !Perm.hasOrOp(sender, Perm.ADMIN)
+                    && !Perm.has(sender, Perm.ADMIN)
                     && !BotAccess.canAdminister(player, fp)) {
                 continue;
             }

@@ -127,7 +127,7 @@ public class InventoryCommand implements FppCommand, Listener {
 
     @Override
     public boolean canUse(CommandSender sender) {
-        return Perm.has(sender, Perm.INVENTORY_CMD);
+        return Perm.hasAny(sender, Perm.INVENTORY_CMD, Perm.INVENTORY_OWN);
     }
 
     @Override
@@ -496,7 +496,7 @@ public class InventoryCommand implements FppCommand, Listener {
             return;
         }
 
-        if (!Perm.has(player, Perm.INVENTORY_RIGHTCLICK)) return;
+        if (!Perm.hasAny(player, Perm.INVENTORY_RIGHTCLICK, Perm.INVENTORY_OWN)) return;
         if (!BotAccess.canAdminister(player, fp)) return;
         event.setCancelled(true);
         openGui(player, fp);

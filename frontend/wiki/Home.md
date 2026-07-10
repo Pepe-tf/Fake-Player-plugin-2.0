@@ -45,7 +45,7 @@ always wear a mandatory "ʙᴏᴛ ʙʏ {owner}" nametag, and can never take a re
 
 ---
 
-## Latest Version: v2.0.0
+## Latest Version: v2.0.2
 
 **Highlights:**
 - 🧭 **Real Pathfinding Engine** — Pathetic-backed A* navigation with parkour, block-breaking,
@@ -75,6 +75,9 @@ always wear a mandatory "ʙᴏᴛ ʙʏ {owner}" nametag, and can never take a re
   with runtime debug toggles, and a categorized help GUI
 - 🫥 **Invisible to Players** — no tab-list entry, no server-list ping count/sample entry, no
   advancements, no join/leave/death chat noise
-- ✅ **Folia Support** — full compatibility with Folia's region-threaded architecture
+- ✅ **Folia Support** — region-thread-safe ticking, nametag rendering, and Head-AI on Folia's
+  regionised architecture
+- 🔐 **LuckPerms-Faithful Permissions** — no hard-coded operator bypasses anywhere; every `fpp.*`
+  node (including for server operators) is decided purely by your permissions plugin
 - 📊 **Performance Tooling** — `/fpp perf` dashboard, history, benchmark reports, and Spark
-  integration
+  integration; hot per-tick NMS paths call directly instead of through reflection

@@ -46,6 +46,11 @@ public class DeleteCommand implements FppCommand {
     }
 
     @Override
+    public boolean canUse(CommandSender sender) {
+        return Perm.hasAny(sender, Perm.DELETE, Perm.DELETE_ALL, Perm.DESPAWN_OWN);
+    }
+
+    @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (args.length == 0) {
             sender.sendMessage(Lang.get("unknown-command", "0", "fpp"));

@@ -64,12 +64,6 @@ spawn-name-online:        "{prefix}<red>ᴀ ʀᴇᴀʟ ᴘʟᴀʏᴇʀ ɴᴀᴍ�
 # {name} — bot name  |  {rarity} — e.g. 1/5000; sent to the spawner when a rare pool skin is rolled
 skin-rare-rolled:         "{prefix}<gold>✨ <#0079FF>{name}</#0079FF> <gold>ꜱᴘᴀᴡɴᴇᴅ ᴡɪᴛʜ ᴀ ʀᴀʀᴇ ꜱᴋɪɴ! <dark_gray>(<white>{rarity}</white> ᴄʜᴀɴᴄᴇ<dark_gray>)"
 
-# ── Console / location errors ──────────────────────────────────────────────────
-# {world} — the world name that was not found
-spawn-console-no-world:   "{prefix}<red>ɴᴏ ᴡᴏʀʟᴅ ɪꜱ ʟᴏᴀᴅᴇᴅ — ᴄᴀɴɴᴏᴛ ᴅᴇᴛᴇʀᴍɪɴᴇ ᴀ ꜱᴘᴀᴡɴ ʟᴏᴄᴀᴛɪᴏɴ."
-spawn-world-not-found:    "{prefix}<red>ᴡᴏʀʟᴅ '<white>{world}<red>' ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ ᴏʀ ɪꜱ ɴᴏᴛ ʟᴏᴀᴅᴇᴅ."
-spawn-invalid-coords:     "{prefix}<red>ɪɴᴠᴀʟɪᴅ ᴄᴏᴏʀᴅɪɴᴀᴛᴇꜱ. <gray>ᴜꜱᴇ ꜰᴏʀᴍᴀᴛ: <white>x,y,z <gray><dark_gray>(ᴇ.ɢ. <white>100,64,200<gray>)"
-
 player-not-found:   "{prefix}<red>ᴘʟᴀʏᴇʀ <white>{player} <red>ɪꜱ ɴᴏᴛ ᴏɴʟɪɴᴇ."
 
 # ── Spawn cooldown ─────────────────────────────────────────────────────────────

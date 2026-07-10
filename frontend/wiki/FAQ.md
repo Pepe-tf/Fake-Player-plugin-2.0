@@ -52,6 +52,11 @@ bits. They can never collide with real accounts.
 **A:** No — `/fpp spawn` intentionally creates exactly one bot per command (auto-named, or
 `--name <name>` for a custom name).
 
+### Q: Can I run `/fpp spawn` from the server console?
+**A:** No — `/fpp spawn` is in-game only and always spawns the bot at the commanding player's own
+location. There's no world/coordinate targeting either. Console senders get the same "only a player
+can run this command" rejection as any other player-only command.
+
 ## Tasks, Combat & Pathfinding
 
 ### Q: How do I make a bot fight mobs?

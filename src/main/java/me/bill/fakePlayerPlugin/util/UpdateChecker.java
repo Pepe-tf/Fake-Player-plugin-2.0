@@ -81,7 +81,7 @@ public final class UpdateChecker {
                             + ")");
 
             for (Player p : plugin.getServer().getOnlinePlayers()) {
-                if (Perm.hasOrOp(p, Perm.OP)) p.sendMessage(failMsg);
+                if (Perm.has(p, Perm.OP)) p.sendMessage(failMsg);
             }
             return;
         }
@@ -101,7 +101,7 @@ public final class UpdateChecker {
             Component msg = Lang.get("update-available", "current", currentClean, "latest", latestClean);
 
             for (Player p : plugin.getServer().getOnlinePlayers()) {
-                if (Perm.hasOrOp(p, Perm.OP)) p.sendMessage(msg);
+                if (Perm.has(p, Perm.OP)) p.sendMessage(msg);
             }
 
             if (plugin instanceof FakePlayerPlugin fpp) {
@@ -122,7 +122,7 @@ public final class UpdateChecker {
             Component msg = Lang.get("update-beta", "current", currentClean, "latest", latestClean);
 
             for (Player p : plugin.getServer().getOnlinePlayers()) {
-                if (Perm.hasOrOp(p, Perm.OP)) p.sendMessage(msg);
+                if (Perm.has(p, Perm.OP)) p.sendMessage(msg);
             }
 
             if (plugin instanceof FakePlayerPlugin fpp) {

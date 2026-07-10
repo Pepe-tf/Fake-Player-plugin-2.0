@@ -15,6 +15,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
+import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerBody;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.fakeplayer.PacketHelper;
@@ -123,7 +124,7 @@ public class PlayerJoinListener implements Listener {
             var upd = plugin.getUpdateNotification();
             if (upd != null) {
                 var p = event.getPlayer();
-                if (Perm.hasOrOp(p, Perm.OP) || Perm.has(p, Perm.NOTIFY)) {
+                if (Perm.has(p, Perm.OP) || Perm.has(p, Perm.NOTIFY)) {
                     try {
                         p.sendMessage(upd);
                     } catch (NoSuchMethodError | NoClassDefFoundError e) {
@@ -135,7 +136,7 @@ public class PlayerJoinListener implements Listener {
         }
 
         try {
-            if (plugin.isVersionUnsupported() && Perm.hasOrOp(event.getPlayer(), Perm.OP)) {
+            if (plugin.isVersionUnsupported() && Perm.has(event.getPlayer(), Perm.OP)) {
                 event.getPlayer()
                         .sendMessage(Lang.get("version-unsupported-admin", "version", plugin.getDetectedMcVersion()));
             }
@@ -212,6 +213,10 @@ public class PlayerJoinListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
+
+        // The hide-nametag team is never registered with the real scoreboard, so a rejoining client
+        // has no memory of it — forget them so the next join re-syncs from scratch.
+        FakePlayerBody.forgetViewer(uuid);
 
         if (manager.hasSyntheticQuit(uuid)) {
             event.quitMessage(null);

@@ -1,7 +1,6 @@
 package me.bill.fakePlayerPlugin.permission;
 
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 @SuppressWarnings("unused")
 public final class Perm {
@@ -20,8 +19,6 @@ public final class Perm {
     public static final String SPAWN = "fpp.spawn";
 
     public static final String USER_SPAWN = "fpp.spawn.user";
-
-    public static final String SPAWN_COORDS = "fpp.spawn.coords";
 
     public static final String BOT_LIMIT_PREFIX = "fpp.spawn.limit.";
 
@@ -66,6 +63,8 @@ public final class Perm {
     public static final String INVENTORY_CMD = "fpp.inventory.cmd";
 
     public static final String INVENTORY_RIGHTCLICK = "fpp.inventory.rightclick";
+
+    public static final String INVENTORY_OWN = "fpp.inventory.own";
 
     public static final String MINE = "fpp.mine";
 
@@ -128,11 +127,6 @@ public final class Perm {
     public static final String NOTIFY = "fpp.notify";
 
     public static boolean has(CommandSender sender, String permission) {
-        return sender.hasPermission(permission);
-    }
-
-    public static boolean hasOrOp(CommandSender sender, String permission) {
-        if (sender instanceof Player p && p.isOp()) return true;
         return sender.hasPermission(permission);
     }
 

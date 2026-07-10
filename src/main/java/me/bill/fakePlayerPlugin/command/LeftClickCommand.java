@@ -102,7 +102,14 @@ public final class LeftClickCommand implements FppCommand {
 
     @Override
     public boolean canUse(CommandSender sender) {
-        return Perm.has(sender, Perm.LEFT_CLICK);
+        return Perm.hasAny(
+                sender,
+                Perm.LEFT_CLICK,
+                Perm.LEFT_CLICK_START,
+                Perm.LEFT_CLICK_ONCE,
+                Perm.LEFT_CLICK_REPEAT,
+                Perm.LEFT_CLICK_HOLD,
+                Perm.LEFT_CLICK_STOP);
     }
 
     @Override
@@ -129,7 +136,7 @@ public final class LeftClickCommand implements FppCommand {
             return true;
         }
 
-        if (sender instanceof Player player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+        if (sender instanceof Player player && !Perm.has(sender, Perm.ADMIN)) {
             if (!BotAccess.canAdminister(player, fp)) {
                 sender.sendMessage(Lang.get("no-permission"));
                 return true;

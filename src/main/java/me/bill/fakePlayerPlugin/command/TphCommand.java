@@ -54,7 +54,7 @@ public class TphCommand implements FppCommand {
             return true;
         }
 
-        boolean isAdmin = Perm.hasOrOp(sender, Perm.ADMIN);
+        boolean isAdmin = Perm.has(sender, Perm.ADMIN);
 
         List<FakePlayer> candidates =
                 isAdmin ? List.copyOf(manager.getActivePlayers()) : manager.getBotsOwnedBy(player.getUniqueId());

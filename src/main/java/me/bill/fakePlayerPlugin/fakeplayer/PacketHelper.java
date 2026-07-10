@@ -33,7 +33,9 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.scores.PlayerTeam;
 
 @SuppressWarnings("unused")
 public final class PacketHelper {
@@ -1189,6 +1191,42 @@ public final class PacketHelper {
     private static void sendDirect(ServerPlayer nms, Object packet) {
         if (nms == null || packet == null) return;
         nms.connection.send((Packet<?>) packet);
+    }
+
+    /**
+     * Directly sends a "team created/updated" packet (name + options, e.g. NAME_TAG_VISIBILITY) to
+     * one receiver. Folia's Scoreboard/Team API is documented as entirely broken (global state that
+     * hasn't been implemented for regionised ticking — see the Folia README's "Current broken API"
+     * section), so bot name-tag hiding is done with a {@code PlayerTeam} that is never registered
+     * with Bukkit's/NMS's real scoreboard — it exists purely as a packet-building helper, and this
+     * class is responsible for pushing it to clients directly instead.
+     */
+    public static void sendTeamCreate(Player receiver, PlayerTeam team) {
+        if (!ensureReady()) return;
+        try {
+            ServerPlayer nms = getServerPlayer(receiver);
+            if (nms == null) return;
+            sendDirect(nms, ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(team, true));
+        } catch (Exception ignored) {
+        }
+    }
+
+    /**
+     * Directly sends a single player's team-membership (add/remove) packet to one receiver. Must
+     * only be called for a viewer that has already received {@link #sendTeamCreate} for this team —
+     * otherwise the client has no record of the team to add/remove the entry from.
+     */
+    public static void sendTeamMembership(Player receiver, PlayerTeam team, String entryName, boolean add) {
+        if (!ensureReady()) return;
+        try {
+            ServerPlayer nms = getServerPlayer(receiver);
+            if (nms == null) return;
+            ClientboundSetPlayerTeamPacket.Action action = add
+                    ? ClientboundSetPlayerTeamPacket.Action.ADD
+                    : ClientboundSetPlayerTeamPacket.Action.REMOVE;
+            sendDirect(nms, ClientboundSetPlayerTeamPacket.createPlayerPacket(team, entryName, action));
+        } catch (Exception ignored) {
+        }
     }
 
     private static void sendPacket(Object serverPlayer, Object packet) throws Exception {

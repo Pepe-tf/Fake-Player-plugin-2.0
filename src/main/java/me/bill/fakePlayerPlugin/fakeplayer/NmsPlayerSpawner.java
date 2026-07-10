@@ -75,7 +75,6 @@ public final class NmsPlayerSpawner {
     private static Constructor<?> gameProfileConstructor;
     private static Class<?> gameProfileClass;
     private static Method setPosMethod;
-    private static Method doTickMethod;
     private static Method getPlayerListMethod;
     private static volatile Method serverPlayerGetBukkitEntityMethod;
     private static volatile Method playerListPlaceNewPlayerMethod;
@@ -206,13 +205,10 @@ public final class NmsPlayerSpawner {
             if (setPosMethod == null)
                 setPosMethod = findMethodBySignature(serverPlayerClass, 3, double.class, double.class, double.class);
 
-            doTickMethod = findMethod(serverPlayerClass, "doTick", 0);
-            if (doTickMethod == null) doTickMethod = findMethod(serverPlayerClass, "tick", 0);
-            if (doTickMethod != null) {
-                FppLogger.debug("NmsPlayerSpawner: doTick cached as " + doTickMethod.getName() + "()");
-            } else {
-                FppLogger.warn("NmsPlayerSpawner: doTick() not found - bots will have no physics");
-            }
+            // doTick() used to be resolved reflectively here and invoked once per bot per tick — by
+            // far the hottest call in the plugin (~70% of profiled self-time). ServerPlayer is a
+            // direct compile-time import (this project targets one pinned Paper/Folia version via
+            // paperweight-userdev), so tickPhysicsInternal() now calls nmsPlayer.doTick() directly.
 
             Class<?> entityClass;
             try {
@@ -335,9 +331,7 @@ public final class NmsPlayerSpawner {
             }
 
             initialized = true;
-            FppLogger.debug("NmsPlayerSpawner initialised (doTick="
-                    + (doTickMethod != null)
-                    + ", connectionField="
+            FppLogger.debug("NmsPlayerSpawner initialised (connectionField="
                     + (connectionFieldInPlayer != null)
                     + ", attack="
                     + (attackMethod != null)
@@ -522,7 +516,7 @@ public final class NmsPlayerSpawner {
     }
 
     public static void tickPhysics(Player bot) {
-        if (!initialized || doTickMethod == null) return;
+        if (!initialized) return;
         if (!bot.isOnline() || !bot.isValid() || bot.isDead()) return;
 
         if (dispatchTickPhysicsToRegionThread(bot)) {
@@ -533,7 +527,7 @@ public final class NmsPlayerSpawner {
     }
 
     private static void tickPhysicsInternal(Player bot) {
-        if (!initialized || doTickMethod == null) return;
+        if (!initialized) return;
         if (!bot.isOnline() || !bot.isValid() || bot.isDead()) return;
         try {
             ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
@@ -544,14 +538,14 @@ public final class NmsPlayerSpawner {
                 double x = loc.getX(), y = loc.getY(), z = loc.getZ();
 
                 initPreviousPosition(nmsPlayer, x, y, z);
-                doTickMethod.invoke(nmsPlayer);
+                nmsPlayer.doTick();
 
                 if (setPosMethod != null) setPosMethod.invoke(nmsPlayer, x, y, z);
                 initPreviousPosition(nmsPlayer, x, y, z);
 
             } else {
 
-                doTickMethod.invoke(nmsPlayer);
+                nmsPlayer.doTick();
             }
 
         } catch (Exception e) {
@@ -645,7 +639,7 @@ public final class NmsPlayerSpawner {
     public static void correctPendingSpawnLocation(Player player, Location requested) {
         if (player == null || requested == null || requested.getWorld() == null) return;
         try {
-            Object serverPlayer = craftPlayerGetHandleMethod != null ? craftPlayerGetHandleMethod.invoke(player) : null;
+            ServerPlayer serverPlayer = player instanceof CraftPlayer craft ? craft.getHandle() : null;
             if (serverPlayer != null) {
                 correctSpawnLocation(serverPlayer, player, requested);
             } else {
@@ -663,7 +657,7 @@ public final class NmsPlayerSpawner {
     public static void setPosition(Player bot, double x, double y, double z) {
         if (!initialized || setPosMethod == null || craftPlayerGetHandleMethod == null) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             setPosMethod.invoke(nmsPlayer, x, y, z);
         } catch (Exception e) {
             FppLogger.debug("NmsPlayerSpawner.setPosition failed: " + e.getMessage());
@@ -675,7 +669,7 @@ public final class NmsPlayerSpawner {
         Boolean previous = lastJumpingState.put(bot.getUniqueId(), jumping);
         if (previous != null && previous == jumping) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             jumpingField.setBoolean(nmsPlayer, jumping);
         } catch (Exception e) {
             FppLogger.debug("NmsPlayerSpawner.setJumping failed: " + e.getMessage());
@@ -685,7 +679,7 @@ public final class NmsPlayerSpawner {
     public static boolean setListed(Player bot, boolean listed) {
         if (!initialized || listedField == null || craftPlayerGetHandleMethod == null) return false;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             listedField.setBoolean(nmsPlayer, listed);
             return true;
         } catch (Exception e) {
@@ -697,7 +691,7 @@ public final class NmsPlayerSpawner {
     public static void setHeadYaw(Player bot, float yaw) {
         if (!initialized || craftPlayerGetHandleMethod == null) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             if (yHeadRotField != null) {
                 yHeadRotField.setFloat(nmsPlayer, yaw);
             }
@@ -724,7 +718,7 @@ public final class NmsPlayerSpawner {
     public static void primeAttackStrength(Player bot) {
         if (!initialized || attackStrengthTickerField == null || craftPlayerGetHandleMethod == null) return;
         try {
-            Object nmsBot = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsBot = ((CraftPlayer) bot).getHandle();
             attackStrengthTickerField.set(nmsBot, 999);
         } catch (Exception e) {
             FppLogger.debug("NmsPlayerSpawner.primeAttackStrength failed: " + e.getMessage());
@@ -741,7 +735,7 @@ public final class NmsPlayerSpawner {
         }
 
         try {
-            Object nmsBot = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsBot = ((CraftPlayer) bot).getHandle();
 
             Object nmsTarget = target.getClass().getMethod("getHandle").invoke(target);
 
@@ -768,7 +762,7 @@ public final class NmsPlayerSpawner {
     public static void setMovementForward(Player bot, float forward) {
         if (!initialized || zzaField == null || craftPlayerGetHandleMethod == null) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             zzaField.setFloat(nmsPlayer, forward);
         } catch (Exception e) {
             FppLogger.debug("NmsPlayerSpawner.setMovementForward failed: " + e.getMessage());
@@ -778,7 +772,7 @@ public final class NmsPlayerSpawner {
     public static void setMovementStrafe(Player bot, float strafe) {
         if (!initialized || xxaField == null || craftPlayerGetHandleMethod == null) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             xxaField.setFloat(nmsPlayer, strafe);
         } catch (Exception e) {
             FppLogger.debug("NmsPlayerSpawner.setMovementStrafe failed: " + e.getMessage());
@@ -788,7 +782,7 @@ public final class NmsPlayerSpawner {
     public static void applyServerVelocity(Player bot, Vector velocity) {
         if (!initialized || craftPlayerGetHandleMethod == null || bot == null || velocity == null) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             Class<?> vec3Class = Class.forName("net.minecraft.world.phys.Vec3");
             Object vec3 = vec3Class
                     .getConstructor(double.class, double.class, double.class)
@@ -879,7 +873,7 @@ public final class NmsPlayerSpawner {
                         && getPlayerListMethod != null
                         && playerListRemoveMethod != null) {
                     try {
-                        Object nmsPlayer = craftPlayerGetHandleMethod.invoke(player);
+                        ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
                         Object minecraftServer = craftServerGetServerMethod.invoke(Bukkit.getServer());
                         Object playerList = getPlayerListMethod.invoke(minecraftServer);
                         playerListRemoveMethod.invoke(playerList, nmsPlayer);
@@ -977,7 +971,7 @@ public final class NmsPlayerSpawner {
             return;
         }
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             if (nmsPlayer == null) return;
 
             Object currentConn = connectionFieldInPlayer.get(nmsPlayer);
@@ -1050,7 +1044,7 @@ public final class NmsPlayerSpawner {
     public static void refreshAfterTeleport(Player bot) {
         if (bot == null || !initialized || craftPlayerGetHandleMethod == null) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             if (nmsPlayer == null) return;
 
             reInjectFakeListener(bot);
@@ -1235,7 +1229,7 @@ public final class NmsPlayerSpawner {
     public static void startUsingMainHandItem(Player bot) {
         if (!initialized || craftPlayerGetHandleMethod == null) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             ClassLoader cl = nmsPlayer.getClass().getClassLoader();
 
             Class<?> interactionHandClass = cl.loadClass("net.minecraft.world.InteractionHand");
@@ -1269,7 +1263,7 @@ public final class NmsPlayerSpawner {
     public static void interactBlock(Player bot, Block block) {
         if (!initialized || craftPlayerGetHandleMethod == null) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             ClassLoader cl = nmsPlayer.getClass().getClassLoader();
 
             Class<?> interactionHandClass = cl.loadClass("net.minecraft.world.InteractionHand");
@@ -1329,7 +1323,7 @@ public final class NmsPlayerSpawner {
                 || synchedEntityDataSetMethod == null
                 || craftPlayerGetHandleMethod == null) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
+            ServerPlayer nmsPlayer = ((CraftPlayer) bot).getHandle();
             Object entityData = entityDataFieldForSkinParts.get(nmsPlayer);
 
             synchedEntityDataSetMethod.invoke(entityData, skinPartsDataAccessor, (byte) 0x7F);
@@ -1342,7 +1336,7 @@ public final class NmsPlayerSpawner {
     public static void applySkinToGameProfile(Player player, SkinProfile skin) {
         if (player == null || !isAvailable() || craftPlayerGetHandleMethod == null) return;
         try {
-            Object nmsPlayer = craftPlayerGetHandleMethod.invoke(player);
+            ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
             Object gameProfile = resolveGameProfile(nmsPlayer);
             if (gameProfile == null) return;
             if (skin != null && skin.isValid()) SkinProfileInjector.apply(gameProfile, skin);
@@ -1359,7 +1353,7 @@ public final class NmsPlayerSpawner {
         try {
             craftPlayerRefreshPlayerMethod.invoke(player);
             try {
-                Object nmsPlayer = craftPlayerGetHandleMethod.invoke(player);
+                ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
                 Method triggerHealthUpdate = findMethodByName(nmsPlayer.getClass(), "triggerHealthUpdate", 0);
                 if (triggerHealthUpdate != null) {
                     triggerHealthUpdate.setAccessible(true);

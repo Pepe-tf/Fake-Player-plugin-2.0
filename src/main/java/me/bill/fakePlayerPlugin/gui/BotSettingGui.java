@@ -2117,7 +2117,7 @@ public final class BotSettingGui implements Listener {
     }
 
     private boolean isOp(Player player) {
-        return player.isOp() || Perm.has(player, Perm.OP);
+        return Perm.has(player, Perm.OP);
     }
 
     private void sendActionBarConfirm(Player player, String label, String value) {

@@ -97,7 +97,14 @@ public final class RightClickCommand implements FppCommand {
 
     @Override
     public boolean canUse(CommandSender sender) {
-        return Perm.has(sender, Perm.RIGHT_CLICK);
+        return Perm.hasAny(
+                sender,
+                Perm.RIGHT_CLICK,
+                Perm.RIGHT_CLICK_START,
+                Perm.RIGHT_CLICK_ONCE,
+                Perm.RIGHT_CLICK_REPEAT,
+                Perm.RIGHT_CLICK_HOLD,
+                Perm.RIGHT_CLICK_STOP);
     }
 
     @Override
@@ -124,7 +131,7 @@ public final class RightClickCommand implements FppCommand {
             return true;
         }
 
-        if (sender instanceof Player player && !Perm.hasOrOp(sender, Perm.ADMIN)) {
+        if (sender instanceof Player player && !Perm.has(sender, Perm.ADMIN)) {
             if (!BotAccess.canAdminister(player, fp)) {
                 sender.sendMessage(Lang.get("no-permission"));
                 return true;
