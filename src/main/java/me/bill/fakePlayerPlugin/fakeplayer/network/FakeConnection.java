@@ -25,6 +25,11 @@ public final class FakeConnection extends Connection {
         Connection.configureSerialization(this.channel.pipeline(), PacketFlow.SERVERBOUND, false, null);
     }
 
+    /** The synthetic Netty channel backing this connection — e.g. for registering it as a known connection with ViaVersion. */
+    public FakeChannel getFakeChannel() {
+        return (FakeChannel) this.channel;
+    }
+
     @Override
     public void tick() {
         // Prevent parent Connection.tick() from running keepalive state machines.

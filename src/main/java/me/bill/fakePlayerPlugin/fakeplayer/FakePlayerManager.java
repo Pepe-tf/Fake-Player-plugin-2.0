@@ -260,7 +260,22 @@ public class FakePlayerManager {
                         // refresh loop freezes every nametag's activity row on its last value.
                         Runnable refreshTick = () -> {
                             try {
-                                if (fp.getNametagEntity() == null) return;
+                                // Self-heal: the nametag is a real world entity (a TextDisplay), so
+                                // anything that can remove an entity — /kill, WorldEdit, another
+                                // plugin's cleanup pass — can remove it too. getNametagEntity() only
+                                // ever goes null when WE clear it; an external removal leaves a stale
+                                // non-null reference behind, so check isValid(), not just null, and
+                                // respawn immediately when it's gone. This is what makes the tag
+                                // effectively unremovable instead of merely "usually present".
+                                Entity tag = fp.getNametagEntity();
+                                if (tag == null || !tag.isValid()) {
+                                    if (!Config.nametagSecondLineEnabled()) return;
+                                    Player body = fp.getPlayer();
+                                    if (body == null || !body.isOnline()) return;
+                                    FakePlayerBody.spawnNametag(fp, body);
+                                    fp.setLastRenderedActionLabel(BotActivity.currentLabel(fp));
+                                    return;
+                                }
                                 String label = BotActivity.currentLabel(fp);
                                 if (label.equals(fp.getLastRenderedActionLabel())) return;
                                 fp.setLastRenderedActionLabel(label);

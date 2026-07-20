@@ -45,9 +45,11 @@ always wear a mandatory "ʙᴏᴛ ʙʏ {owner}" nametag, and can never take a re
 
 ---
 
-## Latest Version: v2.0.2
+## Latest Version: v2.0.3
 
 **Highlights:**
+- 🔌 **ViaVersion-Aware** — bots register with ViaVersion (if installed) as running the server's own
+  native protocol version, so it never treats them as an unrecognized connection
 - 🧭 **Real Pathfinding Engine** — Pathetic-backed A* navigation with parkour, block-breaking,
   bridging, stuck detection with a hard give-up budget, pre-flight path verification, and a
   Baritone-style particle debug view (per bot or globally)

@@ -1,5 +1,41 @@
 # Changelog
 
+## v2.0.3 (Beta)
+
+### Fixed — Left-Click Mining Could Get a Bot Kicked ("Invalid Entity Attacked")
+
+- While mining, a held left-click resolves its target with the same combined block+entity ray a real
+  client uses — but unlike a real client, nothing stopped it from picking a **dropped item, XP orb, or
+  arrow** floating near the block it was breaking and sending an attack packet at it. The vanilla server
+  disconnects any client that attacks one of those
+  (`multiplayer.disconnect.invalid_entity_attacked`) — a real client's own UI never lets you target them
+  with left-click, so this path only existed because a bot drives raw packets directly. The crosshair
+  ray trace in `LeftClickCommand` now excludes `Item`, `ExperienceOrb`, and `AbstractArrow` from valid
+  attack targets, matching what `AttackCommand`'s ray trace (via `Entity#isAttackable()`) already did.
+
+### Fixed — Bot Nametag Could Be Permanently Lost
+
+- The bot's floating name tag is a real world entity (a `TextDisplay`), so anything capable of removing
+  an entity — `/kill`, WorldEdit, another plugin's cleanup pass — could remove it. The periodic refresh
+  loop only checked whether its cached reference was `null`, not whether the entity was still *valid*,
+  so an externally-removed tag never came back. It now checks `isValid()` and respawns the tag within
+  half a second (10 ticks) of it disappearing, making the tag effectively unremovable instead of merely
+  "usually present."
+
+### Added — ViaVersion-Aware Bot Connections
+
+- A bot's connection never performs a real handshake/login, so ViaVersion (when installed) had no
+  record of it — any lookup of the bot's protocol version came back empty, which is the source of
+  console warnings about not being able to determine a bot's client version. Bots are now registered
+  with Via's connection manager as running the **server's own native protocol version** (i.e. "no
+  translation needed"), using the same `UserConnectionImpl` + `ProtocolPipelineImpl` construction Via's
+  own channel initializer uses for a real connection, and unregistered again on despawn. Entirely
+  reflective and a no-op if ViaVersion isn't installed or its internals ever change shape.
+
+### Version
+
+- `2.0.2` → `2.0.3` (`build.gradle.kts`, `plugin.yml`, Velocity companion `velocity-plugin.json`).
+
 ## v2.0.2 (Beta)
 
 ### Fixed — Permissions No Longer Bypass LuckPerms

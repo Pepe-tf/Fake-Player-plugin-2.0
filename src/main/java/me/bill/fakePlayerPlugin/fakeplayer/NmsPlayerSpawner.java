@@ -487,6 +487,13 @@ public final class NmsPlayerSpawner {
             if (setPosMethod != null) setPosMethod.invoke(serverPlayer, x, y, z);
             initPreviousPosition(serverPlayer, x, y, z);
 
+            // The bot's connection never goes through a real handshake, so ViaVersion never learns its
+            // protocol version on its own — register it as running the server's own native version so
+            // Via (and anything querying it) doesn't treat the bot as an unrecognized connection.
+            if (conn instanceof FakeConnection fakeConn) {
+                ViaVersionCompat.registerBot(fakeConn, uuid, name);
+            }
+
             injectFakeListener(minecraftServer, conn, serverPlayer, gameProfile, clientInfo);
 
             Method getBukkitEntity = getServerPlayerGetBukkitEntityMethod();
@@ -835,6 +842,7 @@ public final class NmsPlayerSpawner {
         if (player == null) return;
         try {
             firstTickSet.remove(player.getUniqueId());
+            ViaVersionCompat.unregisterBot(player.getUniqueId());
             if (player.isOnline()) {
                 final String name = player.getName();
                 final UUID uuid = player.getUniqueId();

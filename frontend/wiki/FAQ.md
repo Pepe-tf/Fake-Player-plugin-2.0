@@ -12,7 +12,10 @@
 **A:** JDK 21+ for both the server and for building from source.
 
 ### Q: Can I use this on a server with ViaVersion?
-**A:** Yes, but the server itself must be Paper 1.21+. ViaVersion only affects client versions.
+**A:** Yes, but the server itself must be Paper 1.21+ — ViaVersion only affects the *client* versions
+that can connect, not the server's own version. If ViaVersion is installed, bots automatically register
+themselves with it as running the server's own native protocol version, so Via never treats a bot as an
+unrecognized connection (no "can't find version" console warnings).
 
 ### Q: How do I see what a bot is doing?
 **A:** The nametag above every bot shows its live activity (idle / moving / mining / fighting /
@@ -36,6 +39,11 @@ messages.
 seconds) the first time it's ever used; after that it's cached forever in `data/skin-cache.yml`.
 Enable the `skin-pool` debug topic to trace the pipeline. To disable skins set
 `skin.rare-pools: false`.
+
+### Q: I removed a bot's name tag (e.g. with `/kill @e[type=text_display]`) and it came back — why?
+**A:** By design. The name tag is a real world entity, so anything that can remove an entity can remove
+it — but a self-heal check runs every 10 ticks and respawns it the moment it's gone. There's no way to
+make a bot permanently tag-less; the mandatory "ʙᴏᴛ ʙʏ {owner}" disclosure row can't be disabled either.
 
 ### Q: How do bot UUIDs work?
 **A:** Deterministic and name-derived with a recognizable `fb07` prefix: `bot` →

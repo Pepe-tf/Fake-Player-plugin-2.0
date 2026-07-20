@@ -592,11 +592,28 @@ public final class LeftClickCommand implements FppCommand {
                             org.bukkit.FluidCollisionMode.NEVER,
                             false,
                             0.0,
-                            e -> e != null && e.isValid() && !e.isDead() && !isSelfTarget(bot, e));
+                            e -> e != null
+                                    && e.isValid()
+                                    && !e.isDead()
+                                    && !isSelfTarget(bot, e)
+                                    && isValidAttackTarget(e));
             if (result != null) return result.getHitEntity();
         } catch (Exception ignored) {
         }
         return null;
+    }
+
+    /**
+     * Mirrors the server's own {@code handleAttack} guard: attacking a dropped item, an XP orb, or an
+     * arrow gets the client disconnected with "invalid entity attacked" — a real client never lets you
+     * target these with left-click, but our raw crosshair ray trace otherwise would (most commonly
+     * dropped items floating next to the block a bot is mining). Excluding them here keeps left-click
+     * from ever sending an attack packet the server would kick the bot over.
+     */
+    private static boolean isValidAttackTarget(Entity entity) {
+        return !(entity instanceof org.bukkit.entity.Item)
+                && !(entity instanceof org.bukkit.entity.ExperienceOrb)
+                && !(entity instanceof org.bukkit.entity.AbstractArrow);
     }
 
     /** Ticks between full-strength hits, from the bot's real attack-speed attribute. */
