@@ -32,10 +32,6 @@
   own channel initializer uses for a real connection, and unregistered again on despawn. Entirely
   reflective and a no-op if ViaVersion isn't installed or its internals ever change shape.
 
-### Version
-
-- `2.0.2` → `2.0.3` (`build.gradle.kts`, `plugin.yml`, Velocity companion `velocity-plugin.json`).
-
 ## v2.0.2 (Beta)
 
 ### Fixed — Permissions No Longer Bypass LuckPerms
