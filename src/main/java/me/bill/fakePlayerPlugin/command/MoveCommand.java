@@ -87,9 +87,7 @@ public final class MoveCommand implements FppCommand {
             sender.sendMessage(Lang.get("move-bot-not-found", "name", target));
             return true;
         }
-        if (sender instanceof Player player
-                && !Perm.has(sender, Perm.ADMIN)
-                && !BotAccess.canAdminister(player, fp)) {
+        if (sender instanceof Player player && !Perm.has(sender, Perm.ADMIN) && !BotAccess.canAdminister(player, fp)) {
             sender.sendMessage(Lang.get("no-permission"));
             return true;
         }
@@ -296,8 +294,6 @@ public final class MoveCommand implements FppCommand {
      */
     private void startPathfindMove(
             FakePlayer fp, Supplier<Location> destination, String destinationLabel, CommandSender sender) {
-        UUID uuid = fp.getUuid();
-        manager.beginExclusiveAction(uuid, FakePlayerManager.BotAction.MOVE);
         pathfinding.navigate(
                 fp,
                 new PathfindingService.NavigationRequest(
@@ -331,7 +327,13 @@ public final class MoveCommand implements FppCommand {
     }
 
     private void stopMovement(FakePlayer fp) {
-        pathfinding.cancel(fp.getUuid());
+        UUID uuid = fp.getUuid();
+        // Only release the nav slot if /fpp move itself currently owns it — another concurrently
+        // running task (mining, using, finding, PVE) may hold it instead, and stopping *this* bot's
+        // move command must never cancel someone else's navigation.
+        if (pathfinding.isNavigating(uuid, PathfindingService.Owner.MOVE)) {
+            pathfinding.cancel(uuid);
+        }
         FppApiImpl.fireTaskEvent(fp, "move", FppBotTaskEvent.Action.STOP);
     }
 
@@ -342,7 +344,9 @@ public final class MoveCommand implements FppCommand {
     }
 
     public void cleanupBot(@NotNull UUID botUuid) {
-        pathfinding.cancel(botUuid);
+        if (pathfinding.isNavigating(botUuid, PathfindingService.Owner.MOVE)) {
+            pathfinding.cancel(botUuid);
+        }
     }
 
     @Override

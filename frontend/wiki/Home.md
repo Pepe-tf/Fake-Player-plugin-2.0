@@ -22,6 +22,7 @@ always wear a mandatory "ʙᴏᴛ ʙʏ {owner}" nametag, and can never take a re
 
 | Page | Description |
 |------|-------------|
+| [Economy](Economy) | Bot rental — pay real currency for a bot and hours; Vault / ExcellentEconomy / custom shop plugins |
 | [Placeholders](Placeholders) | PlaceholderAPI integration reference |
 | [Database](Database) | SQLite / MySQL setup, network tables, and proxy-merged architecture |
 | [Proxy Support](Proxy-Support) | Velocity / BungeeCord multi-server networks with shared MySQL |
@@ -45,26 +46,32 @@ always wear a mandatory "ʙᴏᴛ ʙʏ {owner}" nametag, and can never take a re
 
 ---
 
-## Latest Version: v2.0.3
+## Latest Version: v2.0.4
 
 **Highlights:**
+- 💰 **Bot Rental Economy** — pay real currency (Vault, "Vault2.0", or ExcellentEconomy) for a bot and
+  hours of runtime via `/fpp rent buy`/`extend`; `/fpp rent give` is a zero-economy-required entry
+  point for wiring up your own shop plugin instead — see [Economy](Economy)
+- 🧵 **Multitasking** — `move`, `find`, `left-click`, `right-click`, `attack`, and PVE auto-combat can
+  all run at once on the same bot instead of one cancelling the others; movement (the one true
+  single-body limit) is arbitrated by priority instead of by hijacking
+- ⏱️ **Configurable click pacing** — `/fpp left-click`/`/fpp right-click` `--repeat`/`--hold` interval
+  is a server-wide default (`config.yml`) with a per-bot override in the settings GUI
 - 🔌 **ViaVersion-Aware** — bots register with ViaVersion (if installed) as running the server's own
   native protocol version, so it never treats them as an unrecognized connection
 - 🧭 **Real Pathfinding Engine** — Pathetic-backed A* navigation with parkour, block-breaking,
   bridging, stuck detection with a hard give-up budget, pre-flight path verification, and a
   Baritone-style particle debug view (per bot or globally)
 - 🗡️ **PVE Combat** — per-bot smart attack with mob-type selection, detect range, target priority,
-  weapon-cooldown pacing, and pathfinding-linked chasing
+  weapon-cooldown pacing, and pathfinding-linked chasing; now always active alongside other tasks
 - ⛏️ **`/fpp find` Automation** — search → path → mine loops with tool auto-equip, anti-stuck
   watchdogs, and inventory-aware deposits into registered storages
 - 🎯 **Precise Clicking** — `/fpp left-click` / `/fpp right-click` aim at the exact point you're
   looking at, walk to a reachable vantage (preferring your standing spot) when out of reach, and
   only trigger a button/lever when actually aimed at its hit box
-- ⏸️ **One Action at a Time** — tasks are mutually exclusive (no multitasking); interrupts like
-  auto-eat pause the current task and resume it afterward
 - 🍗 **Auto-Eat** — per bot: eats from its inventory when hungry (off-hand → hotbar → inventory),
-  configurable food list + hunger threshold, pauses/resumes the current task and switches back to
-  the held item
+  configurable food list + hunger threshold; off-hand eating runs fully in parallel with everything
+  else, main-hand eating still pauses briefly and switches back to the held item afterward
 - 🎨 **Rarity Skin Pools** — bots roll their skin from configurable rarity tiers
   (`skins/1-<N>%.txt`), signed once via MineSkin and cached forever; slim/classic model
   auto-detection

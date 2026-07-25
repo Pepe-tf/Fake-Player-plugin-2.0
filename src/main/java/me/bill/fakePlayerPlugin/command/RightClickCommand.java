@@ -46,9 +46,15 @@ import net.minecraft.world.phys.Vec3;
 public final class RightClickCommand implements FppCommand {
 
     private static final double CLICK_REACH = 4.5;
-    // The tick loop already runs on a 4-tick period — exactly the vanilla client's rightClickDelay —
-    // so no extra pulses are skipped after an action (0 = act on every pulse, i.e. every 4 ticks).
+    // The tick loop's own period *is* the interval (server/per-bot configurable, defaulting to 4
+    // ticks — the vanilla client's own rightClickDelay), so no extra pulses are skipped after an
+    // action (0 = act on every pulse of that period).
     private static final int CLICK_COOLDOWN = 0;
+
+    /** Valid range for a bot's configurable right-click interval (server default or per-bot override). */
+    public static final int MIN_INTERVAL_TICKS = 1;
+
+    public static final int MAX_INTERVAL_TICKS = 40;
 
     private final FakePlayerPlugin plugin;
     private final FakePlayerManager manager;
@@ -392,7 +398,6 @@ public final class RightClickCommand implements FppCommand {
         bot.setSprinting(false);
 
         Location actualLoc = bot.getLocation().clone();
-        manager.beginExclusiveAction(uuid, FakePlayerManager.BotAction.USE);
         manager.lockForAction(uuid, actualLoc, false);
 
         ClickState state = new ClickState();
@@ -413,6 +418,7 @@ public final class RightClickCommand implements FppCommand {
 
         final int[] cooldown = {0};
         Player botPlayer = fp.getPlayer();
+        long intervalTicks = fp.resolveRightClickIntervalTicks();
 
         int taskId = FppScheduler.runSyncRepeatingWithId(
                 plugin,
@@ -456,7 +462,7 @@ public final class RightClickCommand implements FppCommand {
                     }
                 },
                 0L,
-                4L);
+                intervalTicks);
 
         clickTasks.put(uuid, taskId);
     }
@@ -809,7 +815,12 @@ public final class RightClickCommand implements FppCommand {
     }
 
     private void cancelAll(UUID botUuid) {
-        pathfinding.cancel(botUuid);
+        // Only release the nav slot if right-click's own walk-to-vantage currently owns it — another
+        // concurrently running task (move, find, PVE) may hold it instead, and resetting *this* bot's
+        // click task must never cancel someone else's navigation.
+        if (pathfinding.isNavigating(botUuid, PathfindingService.Owner.USE)) {
+            pathfinding.cancel(botUuid);
+        }
         stopClicking(botUuid);
         FakePlayer fp = manager.getByUuid(botUuid);
         if (fp != null) {
@@ -919,6 +930,7 @@ public final class RightClickCommand implements FppCommand {
         final ClickState finalState = state;
         final ClickMode finalMode = mode;
         final int[] cooldown = {0};
+        long intervalTicks = fp.resolveRightClickIntervalTicks();
 
         int newTask = FppScheduler.runSyncRepeatingWithId(
                 plugin,
@@ -953,7 +965,7 @@ public final class RightClickCommand implements FppCommand {
                     }
                 },
                 0L,
-                4L);
+                intervalTicks);
         clickTasks.put(fp.getUuid(), newTask);
     }
 

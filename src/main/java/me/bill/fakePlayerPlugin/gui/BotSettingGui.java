@@ -41,7 +41,10 @@ import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.event.FppBotDespawnEvent;
 import me.bill.fakePlayerPlugin.api.event.FppBotSettingChangeEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
+import me.bill.fakePlayerPlugin.command.LeftClickCommand;
+import me.bill.fakePlayerPlugin.command.RightClickCommand;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.economy.RentalPurchases;
 import me.bill.fakePlayerPlugin.fakeplayer.BotFoods;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -1007,6 +1010,92 @@ public final class BotSettingGui implements Listener {
                 restartPveIfActive(bot);
                 sendActionBarConfirm(player, "ᴘᴠᴇ ʀᴀɴɢᴇ", (int) val + " ʙʟᴏᴄᴋꜱ");
             }
+            case "rental_extend" -> {
+                if (!player.hasPermission(Perm.RENT)) {
+                    player.sendMessage(Lang.get("no-permission"));
+                    return;
+                }
+                int hours;
+                try {
+                    hours = Integer.parseInt(raw.trim());
+                } catch (NumberFormatException e) {
+                    player.sendMessage(Lang.get("rent-invalid-hours", "value", raw.trim()));
+                    return;
+                }
+                int min = Config.rentalMinHours();
+                int max = Config.rentalMaxHours();
+                if (hours < min || hours > max) {
+                    player.sendMessage(Lang.get(
+                            "rent-hours-out-of-range", "min", String.valueOf(min), "max", String.valueOf(max)));
+                    return;
+                }
+                RentalPurchases.Result result = RentalPurchases.extend(plugin, player, bot, hours);
+                player.sendMessage(result.message());
+            }
+            case "left_click_interval" -> {
+                int val;
+                try {
+                    val = Integer.parseInt(raw.trim());
+                } catch (NumberFormatException e) {
+                    player.sendMessage(Component.empty()
+                            .decoration(TextDecoration.ITALIC, false)
+                            .append(Component.text("✘ ").color(OFF_RED))
+                            .append(Component.text("ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ — ᴇɴᴛᴇʀ "
+                                            + LeftClickCommand.MIN_INTERVAL_TICKS
+                                            + "-"
+                                            + LeftClickCommand.MAX_INTERVAL_TICKS
+                                            + ", ᴏʀ 0 ꜰᴏʀ ɢʟᴏʙᴀʟ ᴅᴇꜰᴀᴜʟᴛ.")
+                                    .color(GRAY)));
+                    return;
+                }
+                if (val <= 0) {
+                    val = -1;
+                } else {
+                    val = Math.max(
+                            LeftClickCommand.MIN_INTERVAL_TICKS, Math.min(LeftClickCommand.MAX_INTERVAL_TICKS, val));
+                }
+                bot.setLeftClickIntervalTicks(val);
+                manager.persistBotSettings(bot);
+                persistClickIntervals(bot);
+                String display = val == -1 ? "ɢʟᴏʙᴀʟ (" + Config.leftClickIntervalTicks() + ")" : val + " ᴛɪᴄᴋꜱ";
+                sendActionBarConfirm(player, "ʟᴇꜰᴛ-ᴄʟɪᴄᴋ ɪɴᴛᴇʀᴠᴀʟ", display);
+            }
+            case "right_click_interval" -> {
+                int val;
+                try {
+                    val = Integer.parseInt(raw.trim());
+                } catch (NumberFormatException e) {
+                    player.sendMessage(Component.empty()
+                            .decoration(TextDecoration.ITALIC, false)
+                            .append(Component.text("✘ ").color(OFF_RED))
+                            .append(Component.text("ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ — ᴇɴᴛᴇʀ "
+                                            + RightClickCommand.MIN_INTERVAL_TICKS
+                                            + "-"
+                                            + RightClickCommand.MAX_INTERVAL_TICKS
+                                            + ", ᴏʀ 0 ꜰᴏʀ ɢʟᴏʙᴀʟ ᴅᴇꜰᴀᴜʟᴛ.")
+                                    .color(GRAY)));
+                    return;
+                }
+                if (val <= 0) {
+                    val = -1;
+                } else {
+                    val = Math.max(
+                            RightClickCommand.MIN_INTERVAL_TICKS, Math.min(RightClickCommand.MAX_INTERVAL_TICKS, val));
+                }
+                bot.setRightClickIntervalTicks(val);
+                manager.persistBotSettings(bot);
+                persistClickIntervals(bot);
+                String display = val == -1 ? "ɢʟᴏʙᴀʟ (" + Config.rightClickIntervalTicks() + ")" : val + " ᴛɪᴄᴋꜱ";
+                sendActionBarConfirm(player, "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ɪɴᴛᴇʀᴠᴀʟ", display);
+            }
+        }
+    }
+
+    private void persistClickIntervals(FakePlayer bot) {
+        var db = plugin.getDatabaseManager();
+        if (db != null) {
+            db.updateBotClickIntervals(
+                    bot.getUuid().toString(), bot.getLeftClickIntervalTicks(), bot.getRightClickIntervalTicks());
         }
     }
 
@@ -1648,6 +1737,35 @@ public final class BotSettingGui implements Listener {
                 promptLabel = "ᴅᴇᴛᴇᴄᴛ ʀᴀɴɢᴇ (1-64)";
                 currentVal = (int) bot.getPveRange() + " ʙʟᴏᴄᴋꜱ";
             }
+            case "rental_extend" -> {
+                int min = Config.rentalMinHours();
+                int max = Config.rentalMaxHours();
+                promptLabel = "ʜᴏᴜʀꜱ ᴛᴏ ʙᴜʏ (" + min + "-" + max + ", " + Config.rentalPricePerHour() + "/ʜ)";
+                currentVal = bot.isRented()
+                        ? RentalPurchases.formatRemaining(
+                                RentalPurchases.currentExpiry(bot) - System.currentTimeMillis())
+                        : "ᴘᴇʀᴍᴀɴᴇɴᴛ";
+            }
+            case "left_click_interval" -> {
+                promptLabel = "ᴛɪᴄᴋꜱ ("
+                        + LeftClickCommand.MIN_INTERVAL_TICKS
+                        + "-"
+                        + LeftClickCommand.MAX_INTERVAL_TICKS
+                        + ", 0 = ɢʟᴏʙᴀʟ ᴅᴇꜰᴀᴜʟᴛ)";
+                currentVal = bot.getLeftClickIntervalTicks() > 0
+                        ? bot.getLeftClickIntervalTicks() + " ᴛɪᴄᴋꜱ"
+                        : "ɢʟᴏʙᴀʟ (" + Config.leftClickIntervalTicks() + ")";
+            }
+            case "right_click_interval" -> {
+                promptLabel = "ᴛɪᴄᴋꜱ ("
+                        + RightClickCommand.MIN_INTERVAL_TICKS
+                        + "-"
+                        + RightClickCommand.MAX_INTERVAL_TICKS
+                        + ", 0 = ɢʟᴏʙᴀʟ ᴅᴇꜰᴀᴜʟᴛ)";
+                currentVal = bot.getRightClickIntervalTicks() > 0
+                        ? bot.getRightClickIntervalTicks() + " ᴛɪᴄᴋꜱ"
+                        : "ɢʟᴏʙᴀʟ (" + Config.rightClickIntervalTicks() + ")";
+            }
             default -> {
                 promptLabel = entry.label();
                 currentVal = "?";
@@ -1866,6 +1984,15 @@ public final class BotSettingGui implements Listener {
                 int gMax = Config.chunkLoadingEnabled() ? Config.chunkLoadingRadius() : 0;
                 yield r == -1 ? "ɢʟᴏʙᴀʟ (" + gMax + ")" : r == 0 ? "ᴅɪꜱᴀʙʟᴇᴅ" : r + " ᴄʜᴜɴᴋꜱ";
             }
+            case "rental_extend" -> bot.isRented()
+                    ? RentalPurchases.formatRemaining(RentalPurchases.currentExpiry(bot) - System.currentTimeMillis())
+                    : "ᴘᴇʀᴍᴀɴᴇɴᴛ";
+            case "left_click_interval" -> bot.getLeftClickIntervalTicks() > 0
+                    ? bot.getLeftClickIntervalTicks() + " ᴛɪᴄᴋꜱ"
+                    : "ɢʟᴏʙᴀʟ (" + Config.leftClickIntervalTicks() + ")";
+            case "right_click_interval" -> bot.getRightClickIntervalTicks() > 0
+                    ? bot.getRightClickIntervalTicks() + " ᴛɪᴄᴋꜱ"
+                    : "ɢʟᴏʙᴀʟ (" + Config.rightClickIntervalTicks() + ")";
             case "auto_eat" -> bot.isAutoEatEnabled() ? "✔ ᴇɴᴀʙʟᴇᴅ" : "✘ ᴅɪꜱᴀʙʟᴇᴅ";
             case "auto_eat_threshold" -> bot.getAutoEatHungerThreshold() + " / 20 ʜᴜɴɢᴇʀ";
             case "auto_eat_foods" -> {
@@ -2218,6 +2345,36 @@ public final class BotSettingGui implements Listener {
                                         + "ᴛᴏ ɢʀᴀɴᴛ ᴏʀ ʀᴇᴠᴏᴋᴇ ᴄᴏɴᴛʀᴏʟ.\n"
                                         + "ᴏɴʟʏ ᴏᴡɴᴇʀꜱ ᴀɴᴅ ᴀᴅᴍɪɴꜱ ᴄᴀɴ ꜱʜᴀʀᴇ.",
                                 Material.PLAYER_HEAD,
+                                false),
+                        BotEntry.action(
+                                "rental_extend",
+                                "ʀᴇɴᴛᴀʟ ᴛɪᴍᴇ",
+                                "ᴛʜɪꜱ ʙᴏᴛ'ꜱ ʀᴇᴍᴀɪɴɪɴɢ ᴘᴀɪᴅ ᴛɪᴍᴇ.\n"
+                                        + "ᴄʟɪᴄᴋ ᴛᴏ ʙᴜʏ ᴍᴏʀᴇ ʜᴏᴜʀꜱ ᴡɪᴛʜ ʏᴏᴜʀ\n"
+                                        + "ᴇᴄᴏɴᴏᴍʏ ʙᴀʟᴀɴᴄᴇ (" + Config.rentalPricePerHour() + "/ʜ).\n"
+                                        + "ɴᴏᴛ ʀᴇɴᴛᴇᴅ = ᴘᴇʀᴍᴀɴᴇɴᴛ, ɴᴇᴠᴇʀ ᴇxᴘɪʀᴇꜱ.",
+                                Material.CLOCK,
+                                false),
+                        BotEntry.action(
+                                "left_click_interval",
+                                "ʟᴇꜰᴛ-ᴄʟɪᴄᴋ ɪɴᴛᴇʀᴠᴀʟ",
+                                "ᴛɪᴄᴋꜱ ʙᴇᴛᴡᴇᴇɴ ʙʟᴏᴄᴋ ʙʀᴇᴀᴋꜱ ᴡʜɪʟᴇ\n"
+                                        + "ʀᴇᴘᴇᴀᴛ/ʜᴏʟᴅ ᴍɪɴɪɴɢ. ᴇɴᴛɪᴛʏ ᴀᴛᴛᴀᴄᴋꜱ ᴀʀᴇ\n"
+                                        + "ᴜɴᴀꜰꜰᴇᴄᴛᴇᴅ (ᴡᴇᴀᴘᴏɴ ꜱᴘᴇᴇᴅ ᴘᴀᴄᴇꜱ ᴛʜᴏꜱᴇ).\n"
+                                        + "ɢʟᴏʙᴀʟ ᴅᴇꜰᴀᴜʟᴛ: "
+                                        + Config.leftClickIntervalTicks()
+                                        + " ᴛɪᴄᴋꜱ.",
+                                Material.IRON_PICKAXE,
+                                false),
+                        BotEntry.action(
+                                "right_click_interval",
+                                "ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ɪɴᴛᴇʀᴠᴀʟ",
+                                "ᴛɪᴄᴋꜱ ʙᴇᴛᴡᴇᴇɴ ʜᴇʟᴅ ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ᴘᴜʟꜱᴇꜱ.\n"
+                                        + "ᴠᴀɴɪʟʟᴀ'ꜱ ᴏᴡɴ ᴄʟɪᴇɴᴛ ᴜꜱᴇꜱ ~4.\n"
+                                        + "ɢʟᴏʙᴀʟ ᴅᴇꜰᴀᴜʟᴛ: "
+                                        + Config.rightClickIntervalTicks()
+                                        + " ᴛɪᴄᴋꜱ.",
+                                Material.IRON_HOE,
                                 false)));
     }
 

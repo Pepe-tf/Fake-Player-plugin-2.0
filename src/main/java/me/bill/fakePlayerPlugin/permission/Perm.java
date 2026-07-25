@@ -66,16 +66,6 @@ public final class Perm {
 
     public static final String INVENTORY_OWN = "fpp.inventory.own";
 
-    public static final String MINE = "fpp.mine";
-
-    public static final String MINE_START = "fpp.mine.start";
-
-    public static final String MINE_ONCE = "fpp.mine.once";
-
-    public static final String MINE_STOP = "fpp.mine.stop";
-
-    public static final String MINE_AREA = "fpp.mine.area";
-
     public static final String LEFT_CLICK = "fpp.left-click";
     public static final String LEFT_CLICK_START = "fpp.left-click.start";
     public static final String LEFT_CLICK_ONCE = "fpp.left-click.once";
@@ -125,6 +115,18 @@ public final class Perm {
     public static final String BYPASS_COOLDOWN = "fpp.bypass.cooldown";
 
     public static final String NOTIFY = "fpp.notify";
+
+    /** Buy/extend a rented bot with real economy currency. */
+    public static final String RENT = "fpp.rent";
+
+    /** View rental time remaining. */
+    public static final String RENT_INFO = "fpp.rent.info";
+
+    /** Grant rental time without charging - console/admin/other-shop-plugin integration point. */
+    public static final String RENT_GIVE = "fpp.rent.give";
+
+    /** This player's/bot's rentals never expire from time running out. */
+    public static final String RENT_UNLIMITED = "fpp.rent.unlimited";
 
     public static boolean has(CommandSender sender, String permission) {
         return sender.hasPermission(permission);

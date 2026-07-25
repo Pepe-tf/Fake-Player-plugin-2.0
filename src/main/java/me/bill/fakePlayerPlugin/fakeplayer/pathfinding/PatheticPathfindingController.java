@@ -114,9 +114,37 @@ public final class PatheticPathfindingController implements PathfindingService.C
 
     // ── Controller: starting a navigation ───────────────────────────────────
 
+    /**
+     * A bot has exactly one body, so only one navigation can actually drive it at a time — but with
+     * multiple task systems now running concurrently, more than one can want to relocate the bot in
+     * the same tick. Rather than the old "whoever calls navigate() last wins" (silent hijack), the
+     * single slot is arbitrated by priority: an explicit {@code /fpp move} always gets to relocate the
+     * bot; a manual hand-action's short walk-to-reach leg outranks background/automatic movement
+     * (PVE's chase, an auto-deposit trip); background movement never interrupts anything. Same-owner
+     * requests always replace (that's just the same task retargeting, not a takeover).
+     */
+    private static int priority(PathfindingService.Owner owner) {
+        return switch (owner) {
+            case MOVE -> 3;
+            case MINE, USE, FIND -> 2;
+            case ATTACK, SYSTEM, PLACE -> 1;
+        };
+    }
+
     @Override
     public void navigate(@NotNull FakePlayer fp, @NotNull PathfindingService.NavigationRequest request) {
         UUID uuid = fp.getUuid();
+        NavState existing = states.get(uuid);
+        if (existing != null
+                && existing.owner != request.owner()
+                && priority(existing.owner) >= priority(request.owner())) {
+            // A same-or-higher priority owner already holds the bot's single movement slot — decline
+            // instead of hijacking it. Treated exactly like "no path found": the caller's existing
+            // failure handling runs, and it's free to ask again once the slot frees up.
+            failImmediately(request);
+            return;
+        }
+
         NavState previous = states.remove(uuid);
         if (previous != null) stop(uuid, previous); // superseded, not an external cancel — no onCancel
 

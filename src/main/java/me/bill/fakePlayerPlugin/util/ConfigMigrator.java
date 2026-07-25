@@ -15,7 +15,7 @@ import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 
 public final class ConfigMigrator {
 
-    public static final int CURRENT_VERSION = 77;
+    public static final int CURRENT_VERSION = 79;
 
     private static boolean rawDebug = false;
 
@@ -142,6 +142,8 @@ public final class ConfigMigrator {
         if (stored < 75) anyChange |= v74to75(cfg);
         if (stored < 76) anyChange |= v75to76(cfg);
         if (stored < 77) anyChange |= v76to77(cfg);
+        if (stored < 78) anyChange |= v77to78(cfg);
+        if (stored < 79) anyChange |= v78to79(cfg);
 
         fillDefaults(plugin, cfg);
 
@@ -1113,6 +1115,68 @@ public final class ConfigMigrator {
         }
         if (setIfMissing(cfg, "performance.self-profiler.export-on-warning", true)) {
             log("v76→v77", "added performance.self-profiler.export-on-warning = true");
+            changed = true;
+        }
+        return changed;
+    }
+
+    private static boolean v77to78(YamlConfiguration cfg) {
+        boolean changed = false;
+        if (setIfMissing(cfg, "economy.enabled", false)) {
+            log("v77→v78", "added economy.enabled = false");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "economy.provider", "auto")) {
+            log("v77→v78", "added economy.provider = auto");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "economy.excellent-economy-currency-id", "money")) {
+            log("v77→v78", "added economy.excellent-economy-currency-id = money");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "economy.rental.price-per-hour", 100.0)) {
+            log("v77→v78", "added economy.rental.price-per-hour = 100.0");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "economy.rental.price-per-bot-slot", 0.0)) {
+            log("v77→v78", "added economy.rental.price-per-bot-slot = 0.0");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "economy.rental.min-hours", 1)) {
+            log("v77→v78", "added economy.rental.min-hours = 1");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "economy.rental.max-hours", 72)) {
+            log("v77→v78", "added economy.rental.max-hours = 72");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "economy.rental.max-banked-hours", 168)) {
+            log("v77→v78", "added economy.rental.max-banked-hours = 168");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "economy.rental.warn-minutes-before-expiry", 10)) {
+            log("v77→v78", "added economy.rental.warn-minutes-before-expiry = 10");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "economy.rental.sweep-interval-seconds", 30)) {
+            log("v77→v78", "added economy.rental.sweep-interval-seconds = 30");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "economy.rental.max-bots-per-player", 3)) {
+            log("v77→v78", "added economy.rental.max-bots-per-player = 3");
+            changed = true;
+        }
+        return changed;
+    }
+
+    private static boolean v78to79(YamlConfiguration cfg) {
+        boolean changed = false;
+        if (setIfMissing(cfg, "left-click.interval-ticks", 4)) {
+            log("v78→v79", "added left-click.interval-ticks = 4");
+            changed = true;
+        }
+        if (setIfMissing(cfg, "right-click.interval-ticks", 4)) {
+            log("v78→v79", "added right-click.interval-ticks = 4");
             changed = true;
         }
         return changed;

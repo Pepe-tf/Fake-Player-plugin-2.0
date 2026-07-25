@@ -64,6 +64,7 @@ public final class BotActivity {
             case PLACE -> "ʙᴜɪʟᴅɪɴɢ";
             case USE -> "ᴜꜱɪɴɢ ɪᴛᴇᴍ";
             case ATTACK -> "ᴄʜᴀꜱɪɴɢ ᴛᴀʀɢᴇᴛ";
+            case FIND -> "ꜱᴇᴀʀᴄʜɪɴɢ";
             case SYSTEM -> "ᴍᴏᴠɪɴɢ";
         };
     }

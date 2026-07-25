@@ -36,6 +36,15 @@ public final class FakePlayer {
     private BotRecord dbRecord;
     private Instant spawnTime = Instant.now();
 
+    /**
+     * Epoch-millis timestamp this bot's paid rental time runs out, or {@code null} for a bot that
+     * isn't rented (spawned normally / admin bot / unlimited-rental permission) and never expires.
+     */
+    private volatile Long rentalExpiresAt = null;
+
+    /** True once the low-rental-time warning has fired for the current rental period (reset on extend). */
+    private volatile boolean rentalWarningSent = false;
+
     private String displayName = null;
 
     private String rawDisplayName = null;
@@ -117,6 +126,12 @@ public final class FakePlayer {
     private boolean swimAiEnabled = Config.swimAiEnabled();
 
     private int chunkLoadRadius = -1;
+
+    /** Ticks between block breaks for held left-click mining. -1 = use config's left-click.interval-ticks. */
+    private volatile int leftClickIntervalTicks = -1;
+
+    /** Ticks between held right-click pulses. -1 = use config's right-click.interval-ticks. */
+    private volatile int rightClickIntervalTicks = -1;
 
     public enum PveSmartAttackMode {
         OFF,
@@ -546,6 +561,32 @@ public final class FakePlayer {
         this.chunkLoadRadius = r;
     }
 
+    public int getLeftClickIntervalTicks() {
+        return leftClickIntervalTicks;
+    }
+
+    public void setLeftClickIntervalTicks(int ticks) {
+        this.leftClickIntervalTicks = ticks;
+    }
+
+    /** The interval this bot's left-click loop should actually use — its own override, or the config default. */
+    public int resolveLeftClickIntervalTicks() {
+        return leftClickIntervalTicks > 0 ? leftClickIntervalTicks : Config.leftClickIntervalTicks();
+    }
+
+    public int getRightClickIntervalTicks() {
+        return rightClickIntervalTicks;
+    }
+
+    public void setRightClickIntervalTicks(int ticks) {
+        this.rightClickIntervalTicks = ticks;
+    }
+
+    /** The interval this bot's right-click loop should actually use — its own override, or the config default. */
+    public int resolveRightClickIntervalTicks() {
+        return rightClickIntervalTicks > 0 ? rightClickIntervalTicks : Config.rightClickIntervalTicks();
+    }
+
     @Nullable
     public String getNameTagNick() {
         return nameTagNick;
@@ -649,6 +690,29 @@ public final class FakePlayer {
 
     public Instant getSpawnTime() {
         return spawnTime;
+    }
+
+    /** Null means this bot isn't rented and never expires from time running out. */
+    @Nullable
+    public Long getRentalExpiresAt() {
+        return rentalExpiresAt;
+    }
+
+    public void setRentalExpiresAt(@Nullable Long epochMillis) {
+        this.rentalExpiresAt = epochMillis;
+        this.rentalWarningSent = false;
+    }
+
+    public boolean isRented() {
+        return rentalExpiresAt != null;
+    }
+
+    public boolean isRentalWarningSent() {
+        return rentalWarningSent;
+    }
+
+    public void setRentalWarningSent(boolean sent) {
+        this.rentalWarningSent = sent;
     }
 
     public void setSpawnedBy(String name, UUID uuid) {

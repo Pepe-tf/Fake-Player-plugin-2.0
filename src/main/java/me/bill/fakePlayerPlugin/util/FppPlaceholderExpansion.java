@@ -243,6 +243,22 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
                 yield String.valueOf(total);
             }
 
+            case "rental_count" -> {
+                if (player == null) yield "0";
+                yield String.valueOf(getUserBots(player).stream()
+                        .filter(FakePlayer::isRented)
+                        .count());
+            }
+            case "rental_remaining" -> {
+                if (player == null) yield "";
+                yield getUserBots(player).stream()
+                        .filter(FakePlayer::isRented)
+                        .map(FakePlayer::getRentalExpiresAt)
+                        .min(Comparator.naturalOrder())
+                        .map(expiresAt -> formatRentalRemaining(expiresAt - System.currentTimeMillis()))
+                        .orElse("");
+            }
+
             default -> handleDynamic(p, player, localBots, remoteEntries);
         };
     }
@@ -471,5 +487,12 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
         if (secs < 3600) return (secs / 60) + "m " + (secs % 60) + "s";
         long h = secs / 3600, m = (secs % 3600) / 60;
         return h + "h " + m + "m";
+    }
+
+    private static String formatRentalRemaining(long millis) {
+        if (millis <= 0) return "0m";
+        long totalMinutes = millis / 60_000L;
+        long h = totalMinutes / 60, m = totalMinutes % 60;
+        return h > 0 ? h + "h " + m + "m" : m + "m";
     }
 }

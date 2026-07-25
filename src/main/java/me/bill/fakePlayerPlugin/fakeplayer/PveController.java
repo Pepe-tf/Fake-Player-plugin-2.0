@@ -133,16 +133,6 @@ public final class PveController {
         }
         if (fp.isFrozen() || fp.isInventoryOpen() || fp.isActionsPaused()) return;
 
-        // Single-action: yield to any user-issued task (move/find/mine/use/attack) instead of
-        // multitasking. PVE re-engages automatically once that task finishes.
-        if (manager.hasActiveManualAction(uuid)) {
-            currentTarget.remove(uuid);
-            if (pathfinding.isNavigating(uuid, PathfindingService.Owner.ATTACK)) {
-                pathfinding.cancel(uuid);
-            }
-            return;
-        }
-
         int cooldown = cooldownTicks.getOrDefault(uuid, 0);
         if (cooldown > 0) cooldownTicks.put(uuid, cooldown - 1);
 

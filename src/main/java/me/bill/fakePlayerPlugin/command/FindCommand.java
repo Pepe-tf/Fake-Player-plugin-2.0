@@ -232,9 +232,8 @@ public final class FindCommand implements FppCommand {
             }
         }
 
-        // Stop any existing find/click jobs for this bot, plus any other active task (single-action).
+        // Stop any existing find job for this bot before starting a new one.
         cleanupBot(fp.getUuid());
-        manager.beginExclusiveAction(fp.getUuid(), FakePlayerManager.BotAction.FIND);
 
         UUID starterUuid = sender instanceof Player p ? p.getUniqueId() : null;
         FindJob job = new FindJob(material, radius, count, preferVisible, starterUuid, sender instanceof Player);
@@ -315,11 +314,9 @@ public final class FindCommand implements FppCommand {
             }
         }
 
+        // Stop any existing find job for this bot before starting a new one. Left/right-click are
+        // independent task systems now and are left running, same as the primary /fpp find entry point.
         cleanupBot(fp.getUuid());
-        var leftCmd = plugin.getLeftClickCommand();
-        if (leftCmd != null) leftCmd.stopClicking(fp.getUuid());
-        var rightCmd = plugin.getRightClickCommand();
-        if (rightCmd != null) rightCmd.stopClicking(fp.getUuid());
         UUID starterUuid = sender instanceof Player p ? p.getUniqueId() : null;
         FindJob job = new FindJob(material, radius, count, preferVisible, starterUuid, sender instanceof Player);
         jobs.put(fp.getUuid(), job);
@@ -469,14 +466,16 @@ public final class FindCommand implements FppCommand {
             UUID uuid = fp.getUuid();
             startNavWatchdog(fp, target, () -> {
                 // Stuck too long chasing this block — give up on it and try the next one.
-                pathfinding.cancel(uuid);
+                if (pathfinding.isNavigating(uuid, PathfindingService.Owner.FIND)) {
+                    pathfinding.cancel(uuid);
+                }
                 releaseReservation(found.key(), uuid);
                 findAndMineNext(fp, job);
             });
             pathfinding.navigate(
                     fp,
                     new PathfindingService.NavigationRequest(
-                            PathfindingService.Owner.MINE,
+                            PathfindingService.Owner.FIND,
                             () -> faceLoc,
                             Config.pathfindingArrivalDistance(),
                             0.0,
@@ -522,14 +521,16 @@ public final class FindCommand implements FppCommand {
         if (!isAtLockLocation(bot, lockLoc)) {
             UUID uuid = fp.getUuid();
             startNavWatchdog(fp, target, () -> {
-                pathfinding.cancel(uuid);
+                if (pathfinding.isNavigating(uuid, PathfindingService.Owner.FIND)) {
+                    pathfinding.cancel(uuid);
+                }
                 releaseReservation(blockKey(target), uuid);
                 findAndMineNext(fp, job);
             });
             pathfinding.navigate(
                     fp,
                     new PathfindingService.NavigationRequest(
-                            PathfindingService.Owner.MINE,
+                            PathfindingService.Owner.FIND,
                             () -> lockLoc,
                             Config.pathfindingArrivalDistance(),
                             0.0,
@@ -1194,7 +1195,9 @@ public final class FindCommand implements FppCommand {
     public void cleanupBot(UUID botUuid) {
         jobs.remove(botUuid);
         releaseReservations(botUuid);
-        pathfinding.cancel(botUuid);
+        if (pathfinding.isNavigating(botUuid, PathfindingService.Owner.FIND)) {
+            pathfinding.cancel(botUuid);
+        }
         stopCurrentMine(botUuid);
         cancelNavWatchdog(botUuid);
     }

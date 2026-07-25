@@ -111,6 +111,17 @@ Defaults copied to newly spawned bots:
 - `auto-milk: true`
 - `prevent-bad-omen: true`
 
+### `left-click` / `right-click`
+Server-wide default pacing for held `/fpp left-click`/`/fpp right-click` (`--repeat`/`--hold`).
+Each bot can override its own interval in the settings GUI (`⚙ ɢᴇɴᴇʀᴀʟ` → ʟᴇꜰᴛ/ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ɪɴᴛᴇʀᴠᴀʟ);
+these are only the fallback for bots that haven't been given their own value.
+- `left-click.interval-ticks: 4` — ticks between block breaks while `--repeat`/`--hold` mining
+  (vanilla's own `destroyDelay` is ~5 ticks; default matches that). Entity attacks are unaffected —
+  those are paced solely by the held weapon's real attack-speed cooldown, exactly like a real player.
+- `right-click.interval-ticks: 4` — ticks between held right-click pulses (default matches the
+  vanilla client's own `rightClickDelay`).
+- Both accept 1-40 ticks (enforced per-bot too).
+
 ---
 
 ## 4. AI & Navigation
@@ -236,10 +247,34 @@ Debug logging is now controlled by `plugins/FakePlayerPlugin/debug.yml` for bett
 - `right-click-head: false` — Right-click head rotation
 - `head-ai: false` — Head AI tracking
 - `packets: false` — Packet injection/manipulation
+- `rental: false` — Economy provider resolution, every rent purchase/extend/give, and expiry-sweep despawns
 
 > You can toggle any of these at runtime via **`/fpp settings`** → the **🐛 ᴅᴇʙᴜɢ** category. Changes are saved to `debug.yml` immediately. Run `/fpp reload` after manual edits to `debug.yml`.
 ---
 
+## 10. Economy / Rental
+
+### `economy`
+Off by default. See [Economy](Economy) for the full picture (supported providers, custom shop
+plugin integration, notifications). Quick reference:
+- `enabled: false` — master switch for the self-service `/fpp rent buy`/`extend` purchase path.
+  `/fpp rent give` (the console/shop-plugin grant path) works regardless of this setting, since it
+  never touches an economy plugin.
+- `provider: auto` — `auto` \| `vault` \| `excellenteconomy` \| `none`. `auto` tries Vault first
+  (this also covers "Vault2.0" and Vault-bridged ExcellentEconomy automatically), then native
+  ExcellentEconomy, then gives up.
+- `excellent-economy-currency-id: money` — which ExcellentEconomy currency to charge; only used when
+  the resolved provider is ExcellentEconomy (it supports unlimited custom currencies, so there's no
+  single fixed default — this must match one you've actually created).
+- `rental.price-per-hour: 100.0` — cost per hour of rented bot time.
+- `rental.price-per-bot-slot: 0.0` — one-time extra charge for a brand-new rented bot.
+- `rental.min-hours: 1` / `rental.max-hours: 72` — bounds on a single buy/extend.
+- `rental.max-banked-hours: 168` — hard cap on time a bot can have banked across repeated extensions.
+- `rental.warn-minutes-before-expiry: 10` — owner gets a one-time warning this many minutes out (`0` disables).
+- `rental.sweep-interval-seconds: 30` — how often the expiry check runs.
+- `rental.max-bots-per-player: 3` — cap on rented bots per player (`fpp.rent.unlimited` bypasses this).
+
+---
 
 The plugin includes a built-in **ConfigMigrator** that:
 1. Creates a timestamped backup before any change

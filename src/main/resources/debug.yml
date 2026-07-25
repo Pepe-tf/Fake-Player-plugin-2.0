@@ -121,6 +121,14 @@ chat: false
 pathfinding: false
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# RENTAL / ECONOMY DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Logs the economy provider that was resolved (Vault/ExcellentEconomy/none), every
+# purchase/extend/give, and every expiry-sweep despawn.
+# ═══════════════════════════════════════════════════════════════════════════════
+rental: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # SKIN POOL DEBUG
 # ═══════════════════════════════════════════════════════════════════════════════
 # Full trace of the rarity skin pipeline: pool loading, the roll each spawn makes,

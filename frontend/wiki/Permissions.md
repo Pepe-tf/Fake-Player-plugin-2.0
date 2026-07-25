@@ -75,6 +75,12 @@ server operators, and FPP will always respect it.
 > foods and setting the hunger threshold — without needing `fpp.settings`. The node is only required
 > to manage bots you don't own. None of these individual per-bot toggles have their own node.
 
+### Economy / Rental
+- `fpp.rent` — buy/extend a rented bot with real economy currency (`/fpp rent buy`/`extend`); included in `fpp.use`
+- `fpp.rent.info` — check remaining rental time (`/fpp rent info`); included in `fpp.use`
+- `fpp.rent.give` — grant rental time without charging (`/fpp rent give`/`clear`) — the console/shop-plugin integration point
+- `fpp.rent.unlimited` — this player's rented bots never expire from time running out
+
 ### System
 - `fpp.reload` — hot-reload config, lang, and skin pools
 - `fpp.check` — run `/fpp check` system diagnostics

@@ -22,6 +22,7 @@ import me.bill.fakePlayerPlugin.command.MoveCommand;
 import me.bill.fakePlayerPlugin.command.PerfCommand;
 import me.bill.fakePlayerPlugin.command.ReloadCommand;
 import me.bill.fakePlayerPlugin.command.RenameCommand;
+import me.bill.fakePlayerPlugin.command.RentCommand;
 import me.bill.fakePlayerPlugin.command.RightClickCommand;
 import me.bill.fakePlayerPlugin.command.SaveCommand;
 import me.bill.fakePlayerPlugin.command.SetOwnerCommand;
@@ -37,6 +38,7 @@ import me.bill.fakePlayerPlugin.command.XpCommand;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
+import me.bill.fakePlayerPlugin.economy.EconomyManager;
 import me.bill.fakePlayerPlugin.fakeplayer.BotPersistence;
 import me.bill.fakePlayerPlugin.fakeplayer.ChunkLoader;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -44,6 +46,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
 import me.bill.fakePlayerPlugin.fakeplayer.PveController;
 import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotCache;
 import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry;
+import me.bill.fakePlayerPlugin.fakeplayer.RentalService;
 import me.bill.fakePlayerPlugin.fakeplayer.SkinManager;
 import me.bill.fakePlayerPlugin.fakeplayer.SkinPoolService;
 import me.bill.fakePlayerPlugin.gui.BotListGui;
@@ -120,6 +123,8 @@ public final class FakePlayerPlugin extends JavaPlugin {
     private SkinPoolService skinPoolService;
     private PveController pveController;
     private me.bill.fakePlayerPlugin.fakeplayer.AutoEatController autoEatController;
+    private EconomyManager economyManager;
+    private RentalService rentalService;
     private HeartbeatSender heartbeatSender;
     private PerformanceMonitor performanceMonitor;
 
@@ -294,7 +299,12 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
         autoEatController = new me.bill.fakePlayerPlugin.fakeplayer.AutoEatController(fakePlayerManager);
 
+        economyManager = new EconomyManager();
+        rentalService = new RentalService(this, fakePlayerManager);
+        rentalService.start();
+
         commandManager = new CommandManager(this);
+        commandManager.register(new RentCommand(this, fakePlayerManager));
         commandManager.register(new SpawnCommand(fakePlayerManager));
         commandManager.register(new DeleteCommand(fakePlayerManager));
         commandManager.register(new ListCommand(this, fakePlayerManager));
@@ -480,6 +490,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
         if (pveController != null) pveController.shutdown();
         if (autoEatController != null) autoEatController.shutdown();
+        if (rentalService != null) rentalService.shutdown();
 
         if (pathfindingService != null) pathfindingService.cancelAll();
 
@@ -595,6 +606,14 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     public me.bill.fakePlayerPlugin.fakeplayer.AutoEatController getAutoEatController() {
         return autoEatController;
+    }
+
+    public EconomyManager getEconomyManager() {
+        return economyManager;
+    }
+
+    public RentalService getRentalService() {
+        return rentalService;
     }
 
     public XpCommand getXpCommand() {

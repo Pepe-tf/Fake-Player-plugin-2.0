@@ -16,37 +16,48 @@ identity.
 
 ## Features
 
+- 💰 **Bot rental economy** — pay real currency (Vault, "Vault2.0", or ExcellentEconomy) for a bot
+  and hours of runtime via `/fpp rent buy`/`extend`; auto-despawns the instant paid time runs out.
+  `/fpp rent give` needs no economy plugin at all — a zero-integration entry point for wiring up
+  your own shop plugin instead. Off by default; see [Economy](frontend/wiki/Economy.md)
+- 🧵 **Multitasking** — `move`, `find`, `left-click`, `right-click`, `attack`, and PVE auto-combat can
+  all run at once on the same bot instead of one cancelling the others; movement (the one true
+  single-body limit) is arbitrated by priority instead of by hijacking
 - 🧭 **Real pathfinding engine** — [Pathetic](https://github.com/bsommerfeld/pathetic)-backed A*
   navigation with parkour, block-breaking, bridging, stuck detection with a hard give-up budget,
   pre-flight path verification, and a Baritone-style particle debug view
 - 🗡️ **PVE combat** — per-bot smart attack with mob-type selection, detect range, target priority,
-  real weapon-cooldown pacing, and pathfinding-linked chasing
+  real weapon-cooldown pacing, and pathfinding-linked chasing; always active alongside other tasks
 - ⛏️ **Find automation** — `/fpp find` search → path → mine loops with tool auto-equip, anti-stuck
   watchdogs, and inventory-aware deposits into registered storages
-- 🎯 **Precise clicking** — `/fpp left-click` / `/fpp right-click` aim at the **exact point** you're
-  looking at, walk to a reachable vantage (preferring your own standing spot) when the target is out
-  of reach, and only trigger a button/lever when actually aimed at its hit box
-- ⏸️ **One action at a time** — tasks are mutually exclusive (no multitasking); an interrupt such as
-  auto-eat pauses the current task and resumes it afterward
+- 🎯 **Precise, configurable clicking** — `/fpp left-click` / `/fpp right-click` aim at the **exact
+  point** you're looking at, walk to a reachable vantage (preferring your own standing spot) when
+  the target is out of reach, and only trigger a button/lever when actually aimed at its hit box;
+  the `--repeat`/`--hold` pacing is configurable server-wide and per bot
 - 🍗 **Auto-eat** — per bot: eats from its inventory when hungry (off-hand → hotbar → inventory
-  priority), with a configurable allowed-food list and hunger threshold; pauses the current task,
-  eats, then switches back to what it was holding
+  priority), with a configurable allowed-food list and hunger threshold; off-hand eating runs fully
+  in parallel with everything else, main-hand eating still pauses briefly and resumes afterward
+- 🔌 **ViaVersion-aware** — bots register with ViaVersion (if installed) as running the server's own
+  native protocol version, so it never treats them as an unrecognized connection
+- 🏷️ **Unremovable live nametags** — three-row mannequin-style tag with a real-time activity line
+  (idle / moving / mining / fighting / eating / searching / sneaking …); the real over-head name stays
+  packet-hidden and self-heals every sweep, and the tag entity itself respawns if ever removed
 - 🎨 **Rarity skin pools** — bots roll their skin from configurable rarity tiers
   (`skins/1-<N>%.txt` files of NameMC URLs), signed once via MineSkin and cached forever, with
   slim/classic model auto-detection
 - 🆔 **Readable bot UUIDs** — deterministic `fb07…` UUIDs with the bot number embedded
   (`bot2` → `fb070000-…-000000000002`); zero collision risk with real accounts
-- 🏷️ **Live nametags** — three-row mannequin-style tag with a real-time activity line
-  (idle / moving / mining / fighting / eating / searching / sneaking …)
 - 🖥️ **Full GUI suite** — bot list hub (search, sort, live refresh, spawn & settings shortcuts),
   per-bot settings (general, PVE, pathfinding, skin, **auto-eat**, rename, danger), global settings
   with runtime debug toggles, and a categorized help GUI
 - 🫥 **Invisible to players** — no tab-list entry, no server-list count/sample entry, no
   advancements, no join/leave/death chat noise
-- 💾 **Persistence** — bots, inventories, XP, and tasks survive restarts (SQLite or MySQL)
+- 💾 **Persistence** — bots, inventories, XP, rentals, and tasks survive restarts (SQLite or MySQL)
 - 🌐 **Proxy networks** — Velocity/BungeeCord support with shared MySQL, cross-server placeholders,
   and config sync
 - ✅ **Folia support** — full compatibility with Folia's region-threaded architecture
+- 🔐 **LuckPerms-faithful permissions** — no hard-coded operator bypasses; every `fpp.*` node
+  (including for server operators) is decided purely by your permissions plugin
 - 📊 **Performance tooling** — `/fpp perf` dashboard, history, benchmark reports, Spark integration
 
 ## Quick Start

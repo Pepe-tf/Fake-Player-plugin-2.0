@@ -136,9 +136,7 @@ public final class AttackCommand implements FppCommand {
             sender.sendMessage(Lang.get("attack-not-found", "name", botName));
             return true;
         }
-        if (sender instanceof Player player
-                && !Perm.has(sender, Perm.ADMIN)
-                && !BotAccess.canAdminister(player, fp)) {
+        if (sender instanceof Player player && !Perm.has(sender, Perm.ADMIN) && !BotAccess.canAdminister(player, fp)) {
             sender.sendMessage(Lang.get("no-permission"));
             return true;
         }
@@ -182,7 +180,6 @@ public final class AttackCommand implements FppCommand {
         Player bot = fp.getPlayer();
         if (bot == null) return;
         stopAttacking(fp.getUuid());
-        manager.beginExclusiveAction(fp.getUuid(), FakePlayerManager.BotAction.ATTACK);
         FppApiImpl.fireTaskEvent(fp, "attack", FppBotTaskEvent.Action.START);
         UUID uuid = fp.getUuid();
         cooldownTicks.put(uuid, 0);

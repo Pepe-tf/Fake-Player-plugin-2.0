@@ -99,6 +99,8 @@ All identifiers are prefixed with `%fpp_`.
 | `%fpp_user_total_damage%` | Total damage taken by player's bots |
 | `%fpp_user_deaths%` | Total deaths of player's bots |
 | `%fpp_user_count_<world>%` | Player's bot count in a specific world |
+| `%fpp_rental_count%` | Number of the player's currently rented (paid) bots |
+| `%fpp_rental_remaining%` | Time left on the player's soonest-expiring rented bot (e.g. `3h 20m`), empty if none |
 
 ## Per-Bot (22 placeholders)
 

@@ -45,7 +45,11 @@ import net.minecraft.world.phys.Vec3;
 public final class LeftClickCommand implements FppCommand {
 
     private static final double CLICK_REACH = 5.0;
-    private static final int CLICK_COOLDOWN = 4;
+
+    /** Valid range for a bot's configurable left-click interval (server default or per-bot override). */
+    public static final int MIN_INTERVAL_TICKS = 1;
+
+    public static final int MAX_INTERVAL_TICKS = 40;
 
     private final FakePlayerPlugin plugin;
     private final FakePlayerManager manager;
@@ -386,7 +390,6 @@ public final class LeftClickCommand implements FppCommand {
         bot.setSprinting(false);
 
         Location actualLoc = bot.getLocation().clone();
-        manager.beginExclusiveAction(uuid, FakePlayerManager.BotAction.MINE);
         manager.lockForAction(uuid, actualLoc, false);
 
         ClickState state = new ClickState();
@@ -434,10 +437,11 @@ public final class LeftClickCommand implements FppCommand {
                             stopClicking(uuid);
                             return;
                         }
-                        // Post-break pause for REPEAT/HOLD mining (vanilla destroyDelay ≈ 5 ticks).
-                        // Entity attacks are paced solely by the weapon's attack cooldown instead.
+                        // Post-break pause for REPEAT/HOLD mining (vanilla destroyDelay ≈ 5 ticks by
+                        // default; per-bot/server configurable). Entity attacks are paced solely by
+                        // the weapon's attack cooldown instead.
                         if (!state.lastActionWasAttack) {
-                            cooldown[0] = CLICK_COOLDOWN;
+                            cooldown[0] = fp.resolveLeftClickIntervalTicks();
                         }
                     }
                 },
@@ -656,7 +660,12 @@ public final class LeftClickCommand implements FppCommand {
     }
 
     private void cancelAll(UUID botUuid) {
-        pathfinding.cancel(botUuid);
+        // Only release the nav slot if left-click's own walk-to-vantage currently owns it — another
+        // concurrently running task (move, find, PVE) may hold it instead, and resetting *this* bot's
+        // click task must never cancel someone else's navigation.
+        if (pathfinding.isNavigating(botUuid, PathfindingService.Owner.MINE)) {
+            pathfinding.cancel(botUuid);
+        }
         stopClicking(botUuid);
         FakePlayer fp = manager.getByUuid(botUuid);
         if (fp != null) {
@@ -809,7 +818,7 @@ public final class LeftClickCommand implements FppCommand {
                             return;
                         }
                         if (finalMode == ClickMode.REPEAT && !finalState.lastActionWasAttack) {
-                            cooldown[0] = CLICK_COOLDOWN;
+                            cooldown[0] = fp.resolveLeftClickIntervalTicks();
                         }
                     }
                 },

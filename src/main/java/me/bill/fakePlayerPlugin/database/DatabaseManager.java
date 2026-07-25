@@ -22,6 +22,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.jetbrains.annotations.Nullable;
+
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.BackupManager;
@@ -29,7 +31,7 @@ import me.bill.fakePlayerPlugin.util.FppLogger;
 
 public class DatabaseManager {
 
-    private static final int SCHEMA_VERSION = 25;
+    private static final int SCHEMA_VERSION = 27;
 
     public static int getCurrentSchemaVersion() {
         return SCHEMA_VERSION;
@@ -128,7 +130,10 @@ public class DatabaseManager {
             + "  prevent_bad_omen  BOOLEAN DEFAULT 1,"
             + "  respawn_on_death   BOOLEAN DEFAULT 0,"
             + "  skin_texture   TEXT DEFAULT NULL,"
-            + "  skin_signature TEXT DEFAULT NULL"
+            + "  skin_signature TEXT DEFAULT NULL,"
+            + "  rental_expires_at BIGINT DEFAULT NULL,"
+            + "  left_click_interval_ticks  INT DEFAULT -1,"
+            + "  right_click_interval_ticks INT DEFAULT -1"
             + ")";
 
     private static final String CREATE_ACTIVE_MYSQL = "CREATE TABLE IF NOT EXISTS fpp_active_bots ("
@@ -172,7 +177,10 @@ public class DatabaseManager {
             + "  prevent_bad_omen  BOOLEAN DEFAULT 1,"
             + "  respawn_on_death   BOOLEAN DEFAULT 0,"
             + "  skin_texture   TEXT DEFAULT NULL,"
-            + "  skin_signature TEXT DEFAULT NULL"
+            + "  skin_signature TEXT DEFAULT NULL,"
+            + "  rental_expires_at BIGINT DEFAULT NULL,"
+            + "  left_click_interval_ticks  INT DEFAULT -1,"
+            + "  right_click_interval_ticks INT DEFAULT -1"
             + ")";
 
     private static final String CREATE_IDENTITIES_SQLITE = "CREATE TABLE IF NOT EXISTS fpp_bot_identities ("
@@ -474,6 +482,11 @@ public class DatabaseManager {
                     + "  INDEX idx_status (status),"
                     + "  INDEX idx_target_server (target_server)"
                     + ")"
+        },
+        {"ALTER TABLE fpp_active_bots ADD COLUMN rental_expires_at BIGINT DEFAULT NULL"},
+        {
+            "ALTER TABLE fpp_active_bots ADD COLUMN left_click_interval_ticks  INT DEFAULT -1",
+            "ALTER TABLE fpp_active_bots ADD COLUMN right_click_interval_ticks INT DEFAULT -1"
         }
     };
 
@@ -687,6 +700,9 @@ public class DatabaseManager {
         execSilent("ALTER TABLE fpp_active_bots ADD COLUMN ping_user_set      BOOLEAN DEFAULT 0");
         execSilent("ALTER TABLE fpp_active_bots ADD COLUMN skin_texture        TEXT DEFAULT NULL");
         execSilent("ALTER TABLE fpp_active_bots ADD COLUMN skin_signature      TEXT DEFAULT NULL");
+        execSilent("ALTER TABLE fpp_active_bots ADD COLUMN rental_expires_at   BIGINT DEFAULT NULL");
+        execSilent("ALTER TABLE fpp_active_bots ADD COLUMN left_click_interval_ticks  INT DEFAULT -1");
+        execSilent("ALTER TABLE fpp_active_bots ADD COLUMN right_click_interval_ticks INT DEFAULT -1");
         execSilent("ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_texture   TEXT DEFAULT NULL");
         execSilent("ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_signature TEXT DEFAULT NULL");
         execSilent("CREATE INDEX IF NOT EXISTS idx_sessions_bot_name    ON fpp_bot_sessions(bot_name)");
@@ -1211,6 +1227,22 @@ public class DatabaseManager {
             pingUserSet = rs.getBoolean("ping_user_set");
         } catch (SQLException ignored) {
         }
+        Long rentalExpiresAt = null;
+        try {
+            long raw = rs.getLong("rental_expires_at");
+            if (!rs.wasNull()) rentalExpiresAt = raw;
+        } catch (SQLException ignored) {
+        }
+        int leftClickIntervalTicks = -1;
+        try {
+            leftClickIntervalTicks = rs.getInt("left_click_interval_ticks");
+        } catch (SQLException ignored) {
+        }
+        int rightClickIntervalTicks = -1;
+        try {
+            rightClickIntervalTicks = rs.getInt("right_click_interval_ticks");
+        } catch (SQLException ignored) {
+        }
         return new ActiveBotRow(
                 rs.getString("bot_uuid"),
                 rs.getString("bot_name"),
@@ -1251,7 +1283,10 @@ public class DatabaseManager {
                 autoMilkEnabled,
                 preventBadOmen,
                 respawnOnDeath,
-                pingUserSet);
+                pingUserSet,
+                rentalExpiresAt,
+                leftClickIntervalTicks,
+                rightClickIntervalTicks);
     }
 
     public List<BotRecord> getActiveSessions() {
@@ -2122,6 +2157,40 @@ public class DatabaseManager {
         updateNullableString("bot_display", uuid, display, "DB updateBotDisplay");
     }
 
+    /** {@code null} clears the rental expiry (bot becomes permanent / not rented). */
+    public void updateBotRentalExpiry(String uuid, @Nullable Long rentalExpiresAt) {
+        if (!isAlive()) return;
+        enqueue(() -> {
+            if (!isAlive()) return;
+            try (PreparedStatement ps =
+                    connection.prepareStatement("UPDATE fpp_active_bots SET rental_expires_at=? WHERE bot_uuid=?")) {
+                if (rentalExpiresAt != null) ps.setLong(1, rentalExpiresAt);
+                else ps.setNull(1, Types.BIGINT);
+                ps.setString(2, uuid);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                FppLogger.error("DB updateBotRentalExpiry: " + e.getMessage());
+            }
+        });
+    }
+
+    /** {@code -1} for either value means "use the config default" - matches FakePlayer's own sentinel. */
+    public void updateBotClickIntervals(String uuid, int leftClickIntervalTicks, int rightClickIntervalTicks) {
+        if (!isAlive()) return;
+        enqueue(() -> {
+            if (!isAlive()) return;
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "UPDATE fpp_active_bots SET left_click_interval_ticks=?,right_click_interval_ticks=? WHERE bot_uuid=?")) {
+                ps.setInt(1, leftClickIntervalTicks);
+                ps.setInt(2, rightClickIntervalTicks);
+                ps.setString(3, uuid);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                FppLogger.error("DB updateBotClickIntervals: " + e.getMessage());
+            }
+        });
+    }
+
     public void updateBotOwner(String uuid, String ownerName, String ownerUuid) {
         if (!isAlive()) return;
         enqueue(() -> {
@@ -2487,7 +2556,10 @@ public class DatabaseManager {
             boolean autoMilkEnabled,
             boolean preventBadOmen,
             boolean respawnOnDeath,
-            boolean pingUserSet) {}
+            boolean pingUserSet,
+            @Nullable Long rentalExpiresAt,
+            int leftClickIntervalTicks,
+            int rightClickIntervalTicks) {}
 
     public record DespawnSnapshotRow(
             String botName,

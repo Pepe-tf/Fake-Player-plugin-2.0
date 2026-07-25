@@ -461,6 +461,9 @@ public final class BotPersistence {
             section.put("auto-milk-enabled", fp.isAutoMilkEnabled());
             section.put("prevent-bad-omen", fp.isPreventBadOmen());
             section.put("chunk-load-radius", fp.getChunkLoadRadius());
+            section.put("left-click-interval-ticks", fp.getLeftClickIntervalTicks());
+            section.put("right-click-interval-ticks", fp.getRightClickIntervalTicks());
+            if (fp.getRentalExpiresAt() != null) section.put("rental-expires-at", fp.getRentalExpiresAt());
             if (fp.hasSharedControllers()) {
                 Set<UUID> sharedControllers = fp.getSharedControllers();
                 section.put(
@@ -544,6 +547,9 @@ public final class BotPersistence {
             section.put("auto-milk-enabled", fp.isAutoMilkEnabled());
             section.put("prevent-bad-omen", fp.isPreventBadOmen());
             section.put("chunk-load-radius", fp.getChunkLoadRadius());
+            section.put("left-click-interval-ticks", fp.getLeftClickIntervalTicks());
+            section.put("right-click-interval-ticks", fp.getRightClickIntervalTicks());
+            if (fp.getRentalExpiresAt() != null) section.put("rental-expires-at", fp.getRentalExpiresAt());
             if (fp.hasSharedControllers()) {
                 section.put(
                         "shared-controllers",
@@ -675,7 +681,10 @@ public final class BotPersistence {
                                 Config.autoPlaceBedEnabled(),
                                 row.autoMilkEnabled(),
                                 row.preventBadOmen(),
-                                pingExtensionLoaded && row.pingUserSet()));
+                                pingExtensionLoaded && row.pingUserSet(),
+                                row.rentalExpiresAt(),
+                                row.leftClickIntervalTicks(),
+                                row.rightClickIntervalTicks()));
                     } catch (Exception e) {
                         FppLogger.warn("Skipping malformed DB active-bot row: " + e.getMessage());
                     }
@@ -787,6 +796,10 @@ public final class BotPersistence {
                 }
                 Object clrRaw = map.get("chunk-load-radius");
                 int chunkLoadRadius = clrRaw instanceof Number clrn ? clrn.intValue() : -1;
+                Object lciRaw = map.get("left-click-interval-ticks");
+                int leftClickIntervalTicks = lciRaw instanceof Number lcin ? lcin.intValue() : -1;
+                Object rciRaw = map.get("right-click-interval-ticks");
+                int rightClickIntervalTicks = rciRaw instanceof Number rcin ? rcin.intValue() : -1;
                 Object pingRaw = map.get("ping");
                 int ping = pingRaw instanceof Number pr ? pr.intValue() : -1;
                 Object pingUserSetRaw = map.get("ping-user-set");
@@ -823,6 +836,8 @@ public final class BotPersistence {
                 String skinTexture = skinExtensionLoaded && skinTexRaw instanceof String st ? st : null;
                 Object skinSigRaw = map.get("skin-signature");
                 String skinSignature = skinExtensionLoaded && skinSigRaw instanceof String ss ? ss : null;
+                Object rentalExpRaw = map.get("rental-expires-at");
+                Long rentalExpiresAt = rentalExpRaw instanceof Number ren ? ren.longValue() : null;
                 if (name == null || worldName == null) continue;
                 saved.add(new SavedBot(
                         name,
@@ -871,7 +886,10 @@ public final class BotPersistence {
                         autoPlaceBedEnabled,
                         autoMilkEnabled,
                         preventBadOmen,
-                        pingExtensionLoaded && pingUserSet));
+                        pingExtensionLoaded && pingUserSet,
+                        rentalExpiresAt,
+                        leftClickIntervalTicks,
+                        rightClickIntervalTicks));
             } catch (Exception e) {
                 FppLogger.warn("Skipping malformed bot entry in " + FILE_NAME + ": " + e.getMessage());
             }
@@ -1015,6 +1033,9 @@ public final class BotPersistence {
             fp.setAutoPlaceBedEnabled(sb.autoPlaceBedEnabled);
             fp.setAutoMilkEnabled(sb.autoMilkEnabled);
             fp.setPreventBadOmen(sb.preventBadOmen);
+            fp.setRentalExpiresAt(sb.rentalExpiresAt);
+            fp.setLeftClickIntervalTicks(sb.leftClickIntervalTicks);
+            fp.setRightClickIntervalTicks(sb.rightClickIntervalTicks);
             for (UUID shared : sb.sharedControllers) fp.addSharedController(shared);
             if (sb.pingUserSet && sb.ping >= 0) {
                 fp.setUserPing(sb.ping);
@@ -1144,10 +1165,17 @@ public final class BotPersistence {
                 delayTicks);
     }
 
-    /** Resumes the persisted click task (single-action system: left-click wins if both were saved). */
+    /**
+     * Resumes the persisted click task(s). Left-click and right-click are independent, concurrent
+     * task systems, so both are resumed if both were saved — this used to only restore one ("wins if
+     * both were saved") back when a bot could only run one task at a time.
+     */
     private void resumeClickTask(FakePlayer fp, Player bot, TaskEntry te) {
-        ClickTaskEntry click = te.leftClick() != null ? te.leftClick() : te.rightClick();
-        boolean isLeft = te.leftClick() != null;
+        resumeOneClickTask(fp, bot, te.leftClick(), true);
+        resumeOneClickTask(fp, bot, te.rightClick(), false);
+    }
+
+    private void resumeOneClickTask(FakePlayer fp, Player bot, @Nullable ClickTaskEntry click, boolean isLeft) {
         if (click == null) return;
         if (!bot.getWorld().getName().equals(click.world())) {
             Config.debug("Skipping click-task resume for '" + fp.getDisplayName() + "' — world changed.");
@@ -1480,7 +1508,10 @@ public final class BotPersistence {
             boolean autoPlaceBedEnabled,
             boolean autoMilkEnabled,
             boolean preventBadOmen,
-            boolean pingUserSet) {}
+            boolean pingUserSet,
+            @Nullable Long rentalExpiresAt,
+            int leftClickIntervalTicks,
+            int rightClickIntervalTicks) {}
 
     private UUID resolveRestoredUuid(String botName, UUID storedUuid) {
         if (botName == null || botName.isBlank()) return storedUuid;

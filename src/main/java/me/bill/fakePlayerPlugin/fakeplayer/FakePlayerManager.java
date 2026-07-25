@@ -260,6 +260,16 @@ public class FakePlayerManager {
                         // refresh loop freezes every nametag's activity row on its last value.
                         Runnable refreshTick = () -> {
                             try {
+                                // Unconditional, every sweep (not gated on label change): a bot that
+                                // gets put on some OTHER scoreboard team (another plugin's own
+                                // prefix/color system, an admin's /scoreboard teams join, …) is
+                                // silently evicted from our hide-team by the client — Minecraft only
+                                // allows one team per player — bringing the real name back without
+                                // ever touching the text_display. A bot whose activity label never
+                                // changes would otherwise never get re-hidden. Cheap (one tiny
+                                // packet), so doing it every 10 ticks for every bot is fine.
+                                FakePlayerBody.reassertVanillaNameHidden(fp);
+
                                 // Self-heal: the nametag is a real world entity (a TextDisplay), so
                                 // anything that can remove an entity — /kill, WorldEdit, another
                                 // plugin's cleanup pass — can remove it too. getNametagEntity() only
@@ -336,7 +346,7 @@ public class FakePlayerManager {
                             UUID uuid = fp.getUuid();
                             boolean isNavigating = plugin.getPathfindingService() != null
                                     && plugin.getPathfindingService().isNavigating(uuid);
-                            boolean isActing = actingBots.contains(uuid);
+                            boolean isActing = actingBots.containsKey(uuid);
                             boolean isNavLocked = navLockedBots.contains(uuid);
                             boolean hasMiningLock = actionLockedBots.containsKey(uuid);
                             boolean sendVisualSyncThisTick = shouldSendLaggedVisualUpdate(fp);
@@ -2611,31 +2621,6 @@ public class FakePlayerManager {
         entityIdIndex.remove(entityId);
     }
 
-    public void interruptNavigationOwner(UUID botUuid, PathfindingService.Owner owner) {
-        if (botUuid == null || owner == null) return;
-        switch (owner) {
-            case MOVE -> {
-                var cmd = plugin.getMoveCommand();
-                if (cmd != null) cmd.cleanupBot(botUuid);
-            }
-            case MINE, USE, PLACE -> {
-                // Legacy task types — migrated to left-click/right-click
-                var leftCmd = plugin.getLeftClickCommand();
-                if (leftCmd != null) leftCmd.stopClicking(botUuid);
-                var rightCmd = plugin.getRightClickCommand();
-                if (rightCmd != null) rightCmd.stopClicking(botUuid);
-            }
-            case ATTACK -> {
-                var cmd = plugin.getAttackCommand();
-                if (cmd != null) cmd.stopAttacking(botUuid);
-            }
-            case SYSTEM -> {
-                var pathfinding = plugin.getPathfindingService();
-                if (pathfinding != null) pathfinding.cancel(botUuid);
-            }
-        }
-    }
-
     public void registerEntityIndex(int entityId, FakePlayer fp) {
         entityIdIndex.put(entityId, fp);
     }
@@ -2723,7 +2708,12 @@ public class FakePlayerManager {
         navJumpHolding.put(botUuid, value);
     }
 
-    private final Set<UUID> actingBots = ConcurrentHashMap.newKeySet();
+    // Reference-counted rather than a plain Set: with multiple task systems now able to run
+    // concurrently on the same bot (mine + PVE + auto-eat + a manual attack, etc.), more than one can
+    // hold this lock at once — a boolean set would let whichever one unlocks first wipe it out from
+    // under everyone else still using it. A count only clears (and Head-AI resumes) once every holder
+    // has released it.
+    private final Map<UUID, Integer> actingBots = new ConcurrentHashMap<>();
 
     public void lockForAction(UUID botUuid, Location loc) {
         lockForAction(botUuid, loc, false);
@@ -2733,72 +2723,18 @@ public class FakePlayerManager {
         if (lockPosition) {
             actionLockedBots.put(botUuid, loc.clone());
         }
-        actingBots.add(botUuid);
+        actingBots.merge(botUuid, 1, Integer::sum);
         botHeadRotation.put(botUuid, new float[] {loc.getYaw(), loc.getPitch()});
         botSpawnRotation.put(botUuid, new float[] {loc.getYaw(), loc.getPitch()});
     }
 
     public void unlockAction(UUID botUuid) {
         actionLockedBots.remove(botUuid);
-        actingBots.remove(botUuid);
+        actingBots.computeIfPresent(botUuid, (k, count) -> count > 1 ? count - 1 : null);
     }
 
     public boolean isActionLocked(UUID botUuid) {
-        return actingBots.contains(botUuid);
-    }
-
-    /** The user-issued task types a bot can run. A bot runs at most one at a time. */
-    public enum BotAction {
-        MOVE,
-        FIND,
-        MINE,
-        USE,
-        ATTACK
-    }
-
-    /**
-     * Enforces single-action ("no multitasking"): stops every other user task for this bot before a
-     * new one commits. Call this as an action begins; the starting task sets up its own navigation
-     * afterwards, so cancelling the peers' navigation here is safe.
-     */
-    public void beginExclusiveAction(UUID uuid, BotAction keep) {
-        var find = plugin.getFindCommand();
-        var left = plugin.getLeftClickCommand();
-        var right = plugin.getRightClickCommand();
-        var attack = plugin.getAttackCommand();
-        var move = plugin.getMoveCommand();
-
-        if (keep != BotAction.FIND && find != null && find.isFinding(uuid)) find.cleanupBot(uuid);
-        if (keep != BotAction.MINE && left != null && left.isClicking(uuid)) left.stopClicking(uuid);
-        if (keep != BotAction.USE && right != null && right.isClicking(uuid)) right.stopClicking(uuid);
-        if (keep != BotAction.ATTACK && attack != null && attack.isAttacking(uuid)) attack.stopAttacking(uuid);
-        // Cancel a manual /fpp move (and any PVE chase) when a different task starts. find/mine/use
-        // re-establish their own navigation right after this call.
-        if (keep != BotAction.MOVE && move != null) move.cleanupBot(uuid);
-    }
-
-    /**
-     * True when a user-issued task is running for this bot. Background auto-behaviours (PVE) check
-     * this so they yield to manual control instead of multitasking.
-     */
-    public boolean hasActiveManualAction(UUID uuid) {
-        var find = plugin.getFindCommand();
-        var left = plugin.getLeftClickCommand();
-        var right = plugin.getRightClickCommand();
-        var attack = plugin.getAttackCommand();
-        if (find != null && find.isFinding(uuid)) return true;
-        if (left != null && left.isClicking(uuid)) return true;
-        if (right != null && right.isClicking(uuid)) return true;
-        if (attack != null && attack.isAttacking(uuid)) return true;
-        // Any user-owned navigation counts as busy too — this covers the walk-to-target phase of a
-        // move/mine/use/find command before its action commits. (ATTACK = PVE's own chase; SYSTEM =
-        // internal, neither counts as a manual task.)
-        var pathfinding = plugin.getPathfindingService();
-        if (pathfinding == null) return false;
-        return pathfinding.isNavigating(uuid, PathfindingService.Owner.MOVE)
-                || pathfinding.isNavigating(uuid, PathfindingService.Owner.MINE)
-                || pathfinding.isNavigating(uuid, PathfindingService.Owner.PLACE)
-                || pathfinding.isNavigating(uuid, PathfindingService.Owner.USE);
+        return actingBots.containsKey(botUuid);
     }
 
     public void updateActionLockRotation(UUID botUuid, float yaw, float pitch) {

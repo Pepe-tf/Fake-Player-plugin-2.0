@@ -1,5 +1,84 @@
 # Changelog
 
+## v2.0.4 (Beta)
+
+### Added — Multitasking (Reverses the v2.0.0 Single-Action System)
+
+Bots can now run multiple tasks at once instead of being limited to one. Starting a new task no
+longer cancels every other running task for that bot — `move`, `find`, `left-click`, `right-click`,
+`attack`, and PVE auto-combat are now independent systems that can all be active on the same bot
+simultaneously, the same way `auto-eat` already ran alongside a paused task.
+
+- **PVE always runs.** Auto-combat no longer stands down while a manual task is active; it only
+  ever *chases* a target when nothing else currently owns the bot's movement.
+- **Movement is arbitrated by priority, not cancellation.** Only one navigation can drive the bot
+  at a time: an explicit `/fpp move` always gets it, a manual hand-action's short walk-to-reach
+  (`left-click`/`right-click`/`find`) outranks background movement (PVE's chase), and background
+  movement never interrupts anything. A request that loses out declines gracefully instead of
+  hijacking the bot mid-walk.
+- **`/fpp find` no longer collides with `/fpp left-click`** — each now has its own navigation owner.
+- **Auto-eat is fully parallel when eating from the off-hand** — mining, moving, and combat all
+  continue untouched. Only the main-hand fallback still pauses briefly.
+- **Restart persistence now resumes both click tasks** if a bot had `left-click` and `right-click`
+  both active when the server stopped, instead of restoring only one.
+- **Every command's cleanup is now scoped to what it actually owns**, so stopping one task can no
+  longer silently cancel an unrelated concurrent task's navigation.
+
+**What this doesn't change:** a bot still has one head and one main hand — two hand-actions aimed
+at different targets will still visibly alternate the bot's aim between them each tick.
+
+### Added — Configurable Left/Right-Click Interval
+
+The pacing of held `/fpp left-click`/`/fpp right-click` automation (`--repeat`/`--hold`) is no
+longer a fixed constant — it's a server-wide default that every bot can individually override.
+
+- **New config options**: `left-click.interval-ticks` (default `4`, matches vanilla's own block
+  `destroyDelay`) and `right-click.interval-ticks` (default `4`, matches the vanilla client's own
+  `rightClickDelay`) in `config.yml`. Entity attacks are unaffected either way — those are still
+  paced solely by the held weapon's real attack-speed cooldown, exactly like a real player.
+- **Per-bot override**: each bot's `⚙ ɢᴇɴᴇʀᴀʟ` settings category now has **ʟᴇꜰᴛ-ᴄʟɪᴄᴋ ɪɴᴛᴇʀᴠᴀʟ** and
+  **ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ɪɴᴛᴇʀᴠᴀʟ** tiles (1–40 ticks); leaving a bot on the global default requires no
+  configuration. Overrides persist across restarts (YAML and database, schema bumped to v27).
+- No new permission node — gated by the existing `fpp.settings` bot-ownership model, same as
+  `chunk-load-radius` and the PVE range tile.
+
+### Fixed — Dead `fpp.mine.*` Permission Nodes
+
+Removed `fpp.mine`, `fpp.mine.start`, `fpp.mine.once`, `fpp.mine.stop`, `fpp.mine.area` — leftovers
+from the old `/fpp mine` command that was replaced by `/fpp left-click`/`/fpp right-click` several
+versions ago. They were still being silently granted through `fpp.op`'s children list without ever
+having their own permission declaration, and nothing in the codebase checked them. A full audit
+confirmed every other permission in `Perm.java` now has exactly one plugin.yml declaration with no
+dangling wildcard references.
+
+### Added — Bot Rental Economy
+
+Players can now pay real economy currency to rent a bot for a set number of hours; the bot
+auto-despawns the moment its paid time runs out. Off by default (`economy.enabled: false`).
+
+- **New `/fpp rent` command family**: `buy <hours>`, `extend <bot> <hours>`, `info [bot]`,
+  `give <player> <bot|--new> <hours>` (grant hours without charging — console-usable), `clear <bot>`.
+- **Provider-agnostic economy layer**: reflective, soft-dependency support for **Vault**,
+  **[Vault2.0](https://github.com/shalom25/Vault2.0)** (same `Economy` interface, transparently
+  covered by the Vault provider), and **ExcellentEconomy** (own API, configurable currency id),
+  with zero compile-time dependency on any of them.
+- **Shop-plugin friendly**: `/fpp rent give` never touches an economy plugin itself — any shop
+  plugin can run it as a purchase's console reward command with no FPP-side integration needed.
+- **Expiry sweep**: warns the owner before time runs out, then despawns safely at zero.
+  `fpp.rent.unlimited` exempts a player's bots from expiring.
+- **Settings GUI tile** (`⚙ ɢᴇɴᴇʀᴀʟ` → ʀᴇɴᴛᴀʟ ᴛɪᴍᴇ) and new placeholders `%fpp_rental_count%`,
+  `%fpp_rental_remaining%`. Persists across restarts (YAML + DB, schema bumped to v26).
+- **New permissions**: `fpp.rent`/`fpp.rent.info` (in `fpp.use`), `fpp.rent.give`,
+  `fpp.rent.unlimited` (both default `op`). New wiki page: [Economy](Economy).
+
+### Hardened — Vanilla Nametag Hiding Now Self-Heals Unconditionally
+
+The bot's real name is hidden via a packet-only scoreboard team, but anything that puts a bot on a
+*different* team (another plugin, an admin's `/scoreboard teams join`, …) silently evicts it,
+bringing the real name back. The re-assertion now fires on every nametag-refresh sweep (~10 ticks)
+for every active bot unconditionally, instead of only when the activity label changed — the hide
+no longer lapses for more than one sweep interval, regardless of cause.
+
 ## v2.0.3 (Beta)
 
 ### Fixed — Left-Click Mining Could Get a Bot Kicked ("Invalid Entity Attacked")

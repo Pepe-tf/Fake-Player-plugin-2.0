@@ -196,6 +196,10 @@ public final class Config {
         return isDebug() || debugBool("skin-pool", false);
     }
 
+    public static boolean debugRental() {
+        return isDebug() || debugBool("rental", false);
+    }
+
     public static boolean debugCommands() {
         return isDebug() || debugBool("commands", false);
     }
@@ -300,6 +304,57 @@ public final class Config {
 
     public static int userBotLimit() {
         return cfg.getInt("limits.user-bot-limit", 1);
+    }
+
+    // ── Economy / bot rental ────────────────────────────────────────────────────────────────────
+
+    public static boolean economyEnabled() {
+        return cfg.getBoolean("economy.enabled", false);
+    }
+
+    /** {@code auto} | {@code vault} | {@code excellenteconomy} | {@code none}. */
+    public static String economyProvider() {
+        return cfg.getString("economy.provider", "auto");
+    }
+
+    /** Currency id to charge in ExcellentEconomy (ignored for Vault, which is single-currency). */
+    public static String excellentEconomyCurrencyId() {
+        return cfg.getString("economy.excellent-economy-currency-id", "money");
+    }
+
+    public static double rentalPricePerHour() {
+        return Math.max(0.0, cfg.getDouble("economy.rental.price-per-hour", 100.0));
+    }
+
+    /** One-time charge for renting a brand-new bot slot, on top of the per-hour time cost. */
+    public static double rentalPricePerBotSlot() {
+        return Math.max(0.0, cfg.getDouble("economy.rental.price-per-bot-slot", 0.0));
+    }
+
+    public static int rentalMinHours() {
+        return Math.max(1, cfg.getInt("economy.rental.min-hours", 1));
+    }
+
+    public static int rentalMaxHours() {
+        return Math.max(rentalMinHours(), cfg.getInt("economy.rental.max-hours", 72));
+    }
+
+    /** Maximum hours a single rented bot may have banked at once, across all extensions. */
+    public static int rentalMaxBankedHours() {
+        return Math.max(rentalMaxHours(), cfg.getInt("economy.rental.max-banked-hours", 168));
+    }
+
+    public static int rentalWarnMinutesBeforeExpiry() {
+        return Math.max(0, cfg.getInt("economy.rental.warn-minutes-before-expiry", 10));
+    }
+
+    public static int rentalSweepIntervalSeconds() {
+        return Math.max(5, cfg.getInt("economy.rental.sweep-interval-seconds", 30));
+    }
+
+    /** How many rented (paid) bots one player may have active at once; unaffected by fpp.rent.unlimited. */
+    public static int rentalMaxBotsPerPlayer() {
+        return Math.max(1, cfg.getInt("economy.rental.max-bots-per-player", 3));
     }
 
     public static String adminBotNameFormat() {
@@ -792,6 +847,20 @@ public final class Config {
 
     public static void debugSkinPool(String message) {
         FppLogger.debug("SKIN-POOL", debugSkinPool(), message);
+    }
+
+    public static void debugRental(String message) {
+        FppLogger.debug("RENTAL", debugRental(), message);
+    }
+
+    /** Server-wide default ticks between block breaks for held left-click mining (REPEAT/HOLD). Per-bot overridable. */
+    public static int leftClickIntervalTicks() {
+        return Math.max(1, cfg.getInt("left-click.interval-ticks", 4));
+    }
+
+    /** Server-wide default ticks between held right-click pulses. Per-bot overridable. */
+    public static int rightClickIntervalTicks() {
+        return Math.max(1, cfg.getInt("right-click.interval-ticks", 4));
     }
 
     public static double attackMobDefaultRange() {

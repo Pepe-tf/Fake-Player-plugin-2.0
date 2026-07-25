@@ -487,6 +487,20 @@ public final class FakePlayerBody {
         if (td.isValid()) td.text(buildNametagComponent(fp));
     }
 
+    /**
+     * Re-asserts that this bot's vanilla over-head name is hidden, independent of the text_display
+     * refresh cycle. Minecraft only allows one scoreboard team per player at a time, so anything else
+     * that puts the bot on a <em>different</em> team (another plugin's own prefix/nametag-color
+     * system, an admin running {@code /scoreboard teams join}, …) silently evicts it from ours —
+     * bringing the real name back — without ever touching the text_display, so
+     * {@link #refreshNametag} alone wouldn't catch it for a bot whose activity label never changes.
+     * Callers should invoke this unconditionally on a steady cadence (not gated on label change) so
+     * the hide genuinely never lapses for more than one sweep interval, regardless of cause.
+     */
+    public static void reassertVanillaNameHidden(FakePlayer fp) {
+        hideVanillaName(fp);
+    }
+
     private static void hideVanillaName(FakePlayer fp) {
         // Building/sending packets touches no per-entity region state, but keep this on the global
         // region on Folia anyway for consistency with the rest of the visual-sync pipeline.

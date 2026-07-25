@@ -436,3 +436,44 @@ pathdebug-unreachable:  "{prefix}<red>[ᴘᴀᴛʜ] <#0079FF>{name}</#0079FF><re
 pathdebug-watchdog:      "{prefix}<red>[ᴘᴀᴛʜ] <#0079FF>{name}</#0079FF><red> ɴᴀᴠɪɢᴀᴛɪᴏɴ ᴡᴀᴛᴄʜᴅᴏɢ ꜰɪʀᴇᴅ — ᴀʙᴀɴᴅᴏɴɪɴɢ ᴛᴀʀɢᴇᴛ (ᴛᴏᴏᴋ ᴛᴏᴏ ʟᴏɴɢ)."
 # {name}
 pathdebug-mine-stall:    "{prefix}<gold>[ᴘᴀᴛʜ] <#0079FF>{name}</#0079FF><gold> ᴍɪɴɪɴɢ ꜱᴛᴀʟʟᴇᴅ (ɴᴏ ᴘʀᴏɢʀᴇꜱꜱ) — ᴀʙᴀɴᴅᴏɴɪɴɢ ʙʟᴏᴄᴋ. ᴄʜᴇᴄᴋ ᴛᴏᴏʟ/ʜᴀʀᴅɴᴇꜱꜱ."
+
+# ───────────────────────────────────────────────────────────────────────────────
+#  ECONOMY / RENTAL — /fpp rent buy|extend|info|give|clear
+# ───────────────────────────────────────────────────────────────────────────────
+rent-usage: "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp rent buy <hours> | extend <bot> <hours> | info [bot] | give <player> <bot|--new> <hours></#0079FF><gray>."
+# {value}
+rent-invalid-hours: "{prefix}<red>'{value}' ɪꜱ ɴᴏᴛ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ ᴏꜰ ʜᴏᴜʀꜱ."
+# {min}, {max}
+rent-hours-out-of-range: "{prefix}<red>ʜᴏᴜʀꜱ ᴍᴜꜱᴛ ʙᴇ ʙᴇᴛᴡᴇᴇɴ <white>{min}</white> ᴀɴᴅ <white>{max}</white><red>."
+# {limit}
+rent-limit-reached: "{prefix}<red>ʏᴏᴜ ᴀʟʀᴇᴀᴅʏ ʜᴀᴠᴇ ᴛʜᴇ ᴍᴀx ᴏꜰ <white>{limit}</white> ʀᴇɴᴛᴇᴅ ʙᴏᴛ(ꜱ)<red>."
+rent-economy-unavailable: "{prefix}<red>ɴᴏ ᴇᴄᴏɴᴏᴍʏ ᴘʟᴜɢɪɴ ɪꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ʀɪɢʜᴛ ɴᴏᴡ — ʀᴇɴᴛɪɴɢ ɪꜱ ᴅɪꜱᴀʙʟᴇᴅ."
+# {cost}, {balance}
+rent-insufficient-funds: "{prefix}<red>ʏᴏᴜ ɴᴇᴇᴅ <white>{cost}</white> ʙᴜᴛ ᴏɴʟʏ ʜᴀᴠᴇ <white>{balance}</white><red>."
+rent-transaction-failed: "{prefix}<red>ᴛʜᴇ ᴇᴄᴏɴᴏᴍʏ ᴛʀᴀɴꜱᴀᴄᴛɪᴏɴ ꜰᴀɪʟᴇᴅ. ɴᴏᴛʜɪɴɢ ᴡᴀꜱ ᴄʜᴀʀɢᴇᴅ."
+rent-spawn-failed: "{prefix}<red>ᴄᴏᴜʟᴅ ɴᴏᴛ ꜱᴘᴀᴡɴ ᴀ ʙᴏᴛ ʀɪɢʜᴛ ɴᴏᴡ (ꜱᴇʀᴠᴇʀ ᴍᴀʏ ʙᴇ ᴀᴛ ɪᴛꜱ ʙᴏᴛ ᴄᴀᴘ). ʏᴏᴜ ᴡᴇʀᴇɴ'ᴛ ᴄʜᴀʀɢᴇᴅ."
+# {name}, {hours}, {cost}
+rent-bought: "{prefix}<#0079FF>{name}</#0079FF> <gray>ʀᴇɴᴛᴇᴅ ꜰᴏʀ <white>{hours}ʜ</white> <gray>(<white>{cost}</white><gray>)."
+# {name}
+rent-bot-not-found: "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
+# {name}, {hours}, {cost}, {remaining}
+rent-extended: "{prefix}<#0079FF>{name}</#0079FF> <gray>ᴇxᴛᴇɴᴅᴇᴅ ʙʏ <white>{hours}ʜ</white> <gray>(<white>{cost}</white><gray>) — <white>{remaining}</white> <gray>ʀᴇᴍᴀɪɴɪɴɢ."
+rent-info-none: "{prefix}<gray>ʏᴏᴜ ʜᴀᴠᴇ ɴᴏ ʀᴇɴᴛᴇᴅ ʙᴏᴛꜱ."
+# {name}
+rent-info-permanent: "{prefix}<#0079FF>{name}</#0079FF> <gray>ɪꜱ ɴᴏᴛ ʀᴇɴᴛᴇᴅ — ɪᴛ ɴᴇᴠᴇʀ ᴇxᴘɪʀᴇꜱ."
+# {name}, {remaining}
+rent-info-line: "{prefix}<#0079FF>{name}</#0079FF> <gray>— <white>{remaining}</white> <gray>ʀᴇᴍᴀɪɴɪɴɢ."
+# {name}
+rent-player-not-found: "{prefix}<red>ɴᴏ ᴘʟᴀʏᴇʀ ꜰᴏᴜɴᴅ ɴᴀᴍᴇᴅ <white>{name}<red>."
+# {name}
+rent-give-needs-online: "{prefix}<red>{name} ᴍᴜꜱᴛ ʙᴇ ᴏɴʟɪɴᴇ ᴛᴏ ʀᴇᴄᴇɪᴠᴇ ᴀ ɴᴇᴡ ʀᴇɴᴛᴇᴅ ʙᴏᴛ."
+# {name}, {player}, {hours}
+rent-given: "{prefix}<gray>ɢᴀᴠᴇ <#0079FF>{player}</#0079FF> <white>{hours}ʜ</white> <gray>ᴏɴ <#0079FF>{name}</#0079FF><gray>."
+# {name}, {hours}, {remaining} — sent to the receiving player
+rent-received: "{prefix}<gray>ʏᴏᴜ ʀᴇᴄᴇɪᴠᴇᴅ <white>{hours}ʜ</white> <gray>ᴏɴ <#0079FF>{name}</#0079FF><gray> — <white>{remaining}</white> <gray>ʀᴇᴍᴀɪɴɪɴɢ."
+# {name}
+rent-cleared: "{prefix}<#0079FF>{name}</#0079FF> <gray>ɪꜱ ɴᴏ ʟᴏɴɢᴇʀ ʀᴇɴᴛᴇᴅ — ɪᴛ ᴡɪʟʟ ɴᴇᴠᴇʀ ᴇxᴘɪʀᴇ."
+# {name}, {minutes} — sent once, when a rented bot's time is running low
+rental-warning: "{prefix}<gold>[ʀᴇɴᴛᴀʟ] <#0079FF>{name}</#0079FF><gold> ʜᴀꜱ ᴏɴʟʏ <white>{minutes}m</white> <gold>ᴏꜰ ʀᴇɴᴛᴇᴅ ᴛɪᴍᴇ ʟᴇꜰᴛ. ᴜꜱᴇ <white>/fpp rent extend {name} <hours></white> <gold>ᴛᴏ ᴋᴇᴇᴘ ɪᴛ."
+# {name} — sent when a rented bot's time actually runs out and it despawns
+rental-expired: "{prefix}<red>[ʀᴇɴᴛᴀʟ] <#0079FF>{name}</#0079FF><red>'ꜱ ʀᴇɴᴛᴇᴅ ᴛɪᴍᴇ ʀᴀɴ ᴏᴜᴛ — ᴅᴇꜱᴘᴀᴡɴᴇᴅ."

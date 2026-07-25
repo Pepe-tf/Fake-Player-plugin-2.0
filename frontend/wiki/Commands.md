@@ -29,6 +29,7 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 | **check** | `[--deep\|--simulation\|--commands\|--listeners\|--nms\|--database\|--folia\|--world\|--config\|--extensions\|--memory\|--all]` | Run a system health check | `fpp.check` |
 | **reload** | `[all\|config\|lang]` | Reloads the plugin configuration (optionally target a subsystem) | `fpp.reload` |
 | **settings** | `[bot]` | Open the interactive settings GUI (global, per-bot, or **debug** category) | `fpp.settings` |
+| **rent** | `buy <hours> \| extend <bot> <hours> \| info [bot] \| give <player> <bot\|--new> <hours> \| clear <bot>` | Rent a bot with real economy currency, billed per hour — see [Economy](Economy) | `fpp.rent` (+ `fpp.rent.info` / `fpp.rent.give`) |
 | **help** | `[page]` | Shows the command help menu | `fpp.help` |
 
 ## Usage Examples
@@ -52,6 +53,10 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 /fpp inv bot1                         # open bot1 inventory
 /fpp check --all                      # run all health checks
 /fpp info bot1                        # show session history for bot1
+/fpp rent buy 4                       # spawn a new rented bot for 4 hours
+/fpp rent extend bot1 4               # add 4 more hours to bot1
+/fpp rent info                        # show remaining time on your rented bots
+/fpp rent give Steve --new 4          # (console/admin) grant Steve a new 4h bot, no charge
 ```
 
 ## Notes
@@ -66,6 +71,7 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 - `/fpp attack` is a basic swing/attack command. Rich PVE combat (mob targeting, range, priority, pathfinding-linked chasing) is configured per bot in its settings GUI under `🗡 ᴘᴠᴇ`.
 - `left-click` and `right-click` are the core click automation commands; older mine/use/place-style commands were removed.
 - **Precise aim & vantage:** click commands aim at the exact point you were looking at (not the block-face centre). If the target is out of reach, the bot walks to a spot it can reach it from — preferring your own standing location (a vantage the target is provably aim-able from) before searching around the target. `right-click` only activates a button/lever when the bot actually aims at the switch's hit box, not the block it's mounted on.
-- **One action at a time:** starting any task (`move`, `find`, `left-click`, `right-click`, `attack`) stops the bot's other tasks first — bots don't multitask. Background PVE yields while a manual task runs and re-engages afterward.
-- **Auto-eat interrupts:** when a bot gets hungry it pauses its current task, eats, then resumes exactly where it left off. Configure it per bot in the settings GUI under `🍖 ᴀᴜᴛᴏ-ᴇᴀᴛ` (toggle, hunger threshold, and an allowed-food picker).
+- **Configurable pacing:** the tick interval between actions during `--repeat`/`--hold` is set server-wide by `left-click.interval-ticks`/`right-click.interval-ticks` in `config.yml` (see [Configuration](Configuration)), and each bot can override its own value in the settings GUI (`⚙ ɢᴇɴᴇʀᴀʟ` → ʟᴇꜰᴛ/ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ɪɴᴛᴇʀᴠᴀʟ, 1–40 ticks). Entity attacks during `left-click` are unaffected — those are still paced solely by the held weapon's real attack-speed cooldown.
+- **Multitasking:** starting a new task no longer stops the bot's other running tasks — `move`, `find`, `left-click`, `right-click`, `attack`, and PVE auto-combat can all be active on the same bot at once. A bot still has only one body, so movement is arbitrated by priority (`move` > a hand-action's walk-to-reach > background movement like PVE's chase) rather than by cancellation; whichever loses out just declines gracefully instead of hijacking the bot mid-walk. Two hand-actions aimed at two different targets at once will still visibly alternate the bot's aim between them each tick — that's a real single-body limit, not a bug.
+- **Auto-eat runs in parallel:** eating from the off-hand (the default/preferred source) no longer pauses anything at all — mining, moving, and combat keep going untouched. Only the main-hand fallback (no off-hand food available) still briefly pauses hand-actions, since it borrows the main hand itself for the eat animation.
 - All core sub-commands use `--flag` style only (no bare-word duplicates like `list`/`enable`/`toggle` as an alternative spelling of a `--flag`).

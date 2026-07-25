@@ -90,18 +90,24 @@ on unreachable/unbreakable blocks instead of looping, and when inventory runs lo
 the bot's nearest registered storage (`/fpp storage`) before resuming.
 
 ### Q: Can a bot do two things at once (mine and fight, walk and use)?
-**A:** No — bots run **one task at a time** by design. Starting a new task (`move` / `find` /
-`left-click` / `right-click` / `attack`) stops whatever the bot was doing first. If a bot has PVE
-enabled, it fights only while it isn't running one of those manual tasks, and re-engages once the
-task finishes. Interrupts like auto-eat are the exception: they *pause* the current task and resume
-it afterward rather than replacing it.
+**A:** Yes. Starting a new task (`move` / `find` / `left-click` / `right-click` / `attack`) no longer
+stops the bot's other running tasks, and PVE auto-combat always fights back regardless of what else
+the bot is doing. The one real limit is movement: a bot has one body, so only one thing can actually be
+walking it around at a time. That's arbitrated by priority instead of by cancelling — an explicit
+`/fpp move` always wins, a manual task's own walk-to-reach outranks background movement (PVE's chase,
+an auto-deposit trip), and whichever loses out just waits its turn instead of hijacking the bot mid-walk.
+Two hand-actions aimed at two *different* targets at once will still visibly alternate the bot's aim
+between them each tick (one head, one main hand) — that's a real single-body limit, not a bug.
 
 ### Q: How do I make a bot eat automatically?
 **A:** Open its settings → `🍖 ᴀᴜᴛᴏ-ᴇᴀᴛ`. Toggle **ᴀᴜᴛᴏ-ᴇᴀᴛ** on, set the **ʜᴜɴɢᴇʀ ᴛʜʀᴇꜱʜᴏʟᴅ**
 (0-19; the bot eats at or below it), and open **ᴀʟʟᴏᴡᴇᴅ ꜰᴏᴏᴅꜱ** to pick which foods it may eat
 (none selected = any food). When hungry the bot prefers food in its off-hand, then hotbar, then
-inventory; it pauses its current task, eats, and switches back to what it was holding. The global
-default threshold is `automation.auto-eat-threshold` in `config.yml`.
+inventory. Eating from the off-hand — the default/preferred source — runs **fully in parallel**: it
+doesn't pause mining, moving, or combat at all, the same way a real player can snack on something in
+their off-hand mid-task. Only the main-hand fallback (no off-hand food available) still briefly pauses
+hand-actions, since it has to borrow the main hand itself for the eat animation. The global default
+threshold is `automation.auto-eat-threshold` in `config.yml`.
 
 ### Q: My bot flips levers / presses buttons just by looking at the wall they're on.
 **A:** Fixed — the bot now must aim at the button/lever's actual hit box to trigger it, exactly like
@@ -113,6 +119,33 @@ the switch.
 can reach the target from — preferring **your own standing location** (since you just aimed at the
 target from there, it's a provably reachable vantage) before falling back to searching around the
 target itself.
+
+## Economy / Rental
+
+### Q: How do I let players pay for bots?
+**A:** Set `economy.enabled: true` in `config.yml`, install Vault (or ExcellentEconomy), and set your
+prices under `economy.rental.*`. Players then use `/fpp rent buy <hours>` /
+`/fpp rent extend <bot> <hours>`. See [Economy](Economy) for full setup.
+
+### Q: Does it work with EssentialsX's/CMI's economy, not just "Vault" the plugin?
+**A:** Yes — FPP talks to Vault's `Economy` *service*, which any Vault-compatible plugin (EssentialsX,
+CMI, the "Vault2.0" reimplementation, ExcellentEconomy-with-Vault-present, …) registers into. You
+don't need the literal Vault.jar specifically as long as something provides that service.
+
+### Q: Can I use my own shop plugin (ShopGUIPlus, EconomyShopGUI, …) instead of FPP's built-in charging?
+**A:** Yes — that's exactly what `/fpp rent give <player> <bot|--new> <hours>` is for. It never
+touches an economy plugin itself; point your shop's reward/command action at it and your shop plugin
+handles the payment however it already does. `economy.enabled` doesn't even need to be `true` for
+this path.
+
+### Q: What happens when a rented bot's time runs out?
+**A:** It despawns through the same safe path as `/fpp despawn` (inventory/XP saved normally) and the
+owner is notified if online. They get a one-time warning `economy.rental.warn-minutes-before-expiry`
+minutes beforehand too.
+
+### Q: Can I make specific bots or players exempt from expiring?
+**A:** Grant `fpp.rent.unlimited` — that player's rented bots never expire from time running out,
+regardless of what `rentalExpiresAt` they were given.
 
 ## Database
 

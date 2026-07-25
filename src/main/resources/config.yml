@@ -28,6 +28,53 @@ limits:
 spawn-cooldown: 0
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# ECONOMY / BOT RENTAL
+# ═══════════════════════════════════════════════════════════════════════════════
+# Lets players pay real economy currency to rent a bot for a set number of hours
+# via /fpp rent buy <hours> - the bot auto-despawns when its time runs out.
+# Disabled by default (a bot rented this way still counts toward the normal
+# limits.max-bots / limits.user-bot-limit caps).
+#
+# provider: auto | vault | excellenteconomy | none
+#   auto             - Vault if present (this also transparently covers "Vault2.0"
+#                       and any Vault-bridged plugin, ExcellentEconomy included),
+#                       else native ExcellentEconomy, else unavailable.
+#   vault            - only ever use Vault's registered Economy service.
+#   excellenteconomy - only ever use ExcellentEconomy's native API directly.
+#   none             - economy features off; /fpp rent give (admin/console/shop-
+#                       plugin grants) still works since it never touches money.
+# excellent-economy-currency-id: which ExcellentEconomy currency to charge -
+#   only used when the provider ends up being ExcellentEconomy (ExcellentEconomy
+#   supports unlimited custom currencies, so there is no single fixed default;
+#   this must match a currency id you've actually created in ExcellentEconomy).
+#
+# rental.price-per-hour: cost per hour of rented bot time.
+# rental.price-per-bot-slot: one-time extra charge for a brand-new rented bot
+#   (on top of price-per-hour x hours), separate from the per-hour time cost.
+# rental.min-hours / max-hours: bounds enforced on a single /fpp rent buy/extend.
+# rental.max-banked-hours: hard cap on remaining time a bot can bank across
+#   repeated extensions, so a bot can't be pre-paid indefinitely far into the future.
+# rental.warn-minutes-before-expiry: owner gets a one-time warning this many
+#   minutes before a rented bot's time runs out (0 to disable).
+# rental.sweep-interval-seconds: how often the expiry check runs.
+# rental.max-bots-per-player: how many rented bots one player may have active at
+#   once (fpp.rent.unlimited bypasses this).
+# ═══════════════════════════════════════════════════════════════════════════════
+economy:
+  enabled: false
+  provider: auto
+  excellent-economy-currency-id: money
+  rental:
+    price-per-hour: 100.0
+    price-per-bot-slot: 0.0
+    min-hours: 1
+    max-hours: 72
+    max-banked-hours: 168
+    warn-minutes-before-expiry: 10
+    sweep-interval-seconds: 30
+    max-bots-per-player: 3
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # RESTART PERSISTENCE
 # ═══════════════════════════════════════════════════════════════════════════════
 # When enabled, active bots are saved and restored after server restart/reload.
@@ -304,6 +351,28 @@ performance:
 # ═══════════════════════════════════════════════════════════════════════════════
 update-checker:
   enabled: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLICK AUTOMATION
+# ═══════════════════════════════════════════════════════════════════════════════
+# Server-wide default pacing for held /fpp left-click and /fpp right-click
+# (--repeat/--hold). Each bot can override its own interval in the per-bot
+# settings GUI (⚙ ɢᴇɴᴇʀᴀʟ → ʟᴇꜰᴛ/ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ɪɴᴛᴇʀᴠᴀʟ); these are only the
+# fallback for bots that haven't been given their own value.
+#
+# left-click.interval-ticks: ticks between block breaks while REPEAT/HOLD
+#   mining (vanilla's own destroyDelay is ~5 ticks; default matches that).
+#   Entity attacks are unaffected — those are paced solely by the held
+#   weapon's real attack-speed cooldown, exactly like a real player.
+# right-click.interval-ticks: ticks between held right-click pulses
+#   (default 4 matches the vanilla client's own rightClickDelay).
+# Both accept 1-40 ticks (enforced per-bot too).
+# ═══════════════════════════════════════════════════════════════════════════════
+left-click:
+  interval-ticks: 4
+
+right-click:
+  interval-ticks: 4
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PVE DEFAULTS

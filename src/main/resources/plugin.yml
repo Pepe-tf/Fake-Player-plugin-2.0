@@ -1,12 +1,12 @@
 name: FakePlayerPlugin
-version: '2.0.3'
+version: '2.0.4'
 main: me.bill.fakePlayerPlugin.FakePlayerPlugin
 api-version: '1.21'
 folia-supported: true
 authors: [ F_PP ]
 description: "Advanced fake player / bot plugin for Paper and Folia 1.21+"
 website: "https://modrinth.com/plugin/fake-player-plugin-(fpp)"
-softdepend: [ PlaceholderAPI, WorldEdit, spark ]
+softdepend: [ PlaceholderAPI, WorldEdit, spark, Vault, ExcellentEconomy ]
 
 commands:
   fpp:
@@ -20,7 +20,7 @@ commands:
 # ══════════════════════════════════════════════════════════════════════════════
 #
 # STRUCTURE:  fpp.<command>[.<action>][.<scope>]
-#   <command>  main command  (spawn, move, mine …)
+#   <command>  main command  (spawn, move, left-click …)
 #   <action>   specific sub-behaviour  (set, start, once, stop …)
 #   <scope>    ownership tier  (own, others, bulk, all)
 #
@@ -104,11 +104,6 @@ permissions:
       fpp.right-click.repeat:   true
       fpp.right-click.hold:     true
       fpp.right-click.stop:     true
-      fpp.mine:                 true
-      fpp.mine.start:           true
-      fpp.mine.once:            true
-      fpp.mine.stop:            true
-      fpp.mine.area:            true
       fpp.perf:                 true
       fpp.storage:              true
       fpp.setowner:             true
@@ -123,6 +118,10 @@ permissions:
       fpp.stop:                 true
       fpp.notify:               true
       fpp.use:                  true
+      fpp.rent:                 true
+      fpp.rent.info:            true
+      fpp.rent.give:            true
+      fpp.rent.unlimited:       true
 
   fpp.use:
     description: >
@@ -141,6 +140,8 @@ permissions:
       fpp.left-click.stop:      true
       fpp.right-click.once:     true
       fpp.right-click.stop:     true
+      fpp.rent:                 true
+      fpp.rent.info:            true
 
   # ════════════════════════════════════════════════════════════════════════════
   #  VISIBILITY
@@ -389,7 +390,7 @@ permissions:
     default: false
 
   # ════════════════════════════════════════════════════════════════════════════
-  #  MINE  (granular sub-nodes)
+  #  LEFT-CLICK / RIGHT-CLICK  (granular sub-nodes)
   # ════════════════════════════════════════════════════════════════════════════
 
   fpp.left-click:
@@ -569,4 +570,30 @@ permissions:
     description: >
       Receive update notifications on join when a newer FPP version is available.
       Automatically granted via fpp.op. Grant to non-OP staff explicitly.
+    default: op
+
+  # ════════════════════════════════════════════════════════════════════════════
+  #  ECONOMY / RENTAL
+  # ════════════════════════════════════════════════════════════════════════════
+
+  fpp.rent:
+    description: >
+      Buy/extend a rented bot with real economy currency (/fpp rent buy,
+      /fpp rent extend). Included in fpp.use - everyone can attempt it,
+      gated by actually having the money and economy.enabled in config.yml.
+    default: true
+
+  fpp.rent.info:
+    description: Check remaining rental time with /fpp rent info. Included in fpp.use.
+    default: true
+
+  fpp.rent.give:
+    description: >
+      Grant rental time to a player without charging them (/fpp rent give,
+      /fpp rent clear) - the integration point for a custom shop plugin's own
+      command-reward system, and for admin overrides. Console-usable.
+    default: op
+
+  fpp.rent.unlimited:
+    description: This player's rented bots never expire from time running out.
     default: op
