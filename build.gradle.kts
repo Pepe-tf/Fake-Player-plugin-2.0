@@ -20,7 +20,7 @@ tasks.compileJava {
 }
 
 group = "me.bill.fpp"
-version = "2.0.4"
+version = "2.0.5"
 
 repositories {
     mavenCentral()
@@ -48,6 +48,15 @@ dependencies {
         exclude("it.unimi.dsi", "fastutil")
     }
     compileOnly("me.lucko:spark-api:0.1-SNAPSHOT")
+
+    // Compile-time only: nLogin (nickuc.com's closed-source auth plugin) ships a genuine public
+    // API - separate from its obfuscated internals - at com.nickuc.login.api.nLoginAPI, used by
+    // auth.BotAuthManager's nLogin-specific integration (see compat.nlogin.NLoginIntegration for
+    // why nLogin needs its own API path instead of the generic command-simulation path). Sourced
+    // from a local, un-redistributable jar - nLogin is a paid plugin) - resolves to inert/absent
+    // cleanly if libs/nLogin.jar isn't present, or nLogin isn't installed on the running server.
+    // Never bundled/shaded.
+    compileOnly(fileTree("libs") { include("nLogin*.jar") })
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

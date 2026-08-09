@@ -43,7 +43,6 @@ import me.bill.fakePlayerPlugin.util.BotAccess;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
@@ -54,12 +53,12 @@ public class InventoryCommand implements FppCommand, Listener {
     private static final Set<Integer> DECO = new HashSet<>();
     private static final Set<Integer> EQUIP_SLOTS = Set.of(45, 46, 47, 48, 50);
 
-    private static final TextColor ACCENT = TextColor.fromHexString("#0079FF");
-    private static final TextColor DARK_GRAY = NamedTextColor.DARK_GRAY;
-    private static final TextColor GRAY = NamedTextColor.GRAY;
-    private static final TextColor WHITE = NamedTextColor.WHITE;
-    private static final TextColor OFF_RED = NamedTextColor.RED;
-    private static final TextColor VAL_YELLOW = TextColor.fromHexString("#FFDD57");
+    private static final TextColor ACCENT = TextColor.fromHexString("#A78BFA");
+    private static final TextColor DARK_GRAY = TextColor.fromHexString("#5F5B73");
+    private static final TextColor GRAY = TextColor.fromHexString("#9691AB");
+    private static final TextColor WHITE = TextColor.fromHexString("#EEECF7");
+    private static final TextColor OFF_RED = TextColor.fromHexString("#FF6A5C");
+    private static final TextColor VAL_YELLOW = TextColor.fromHexString("#BAFF4F");
 
     private static final Material LABEL_MAT = Material.LIGHT_BLUE_STAINED_GLASS_PANE;
     private static final Material BLANK_MAT = Material.GRAY_STAINED_GLASS_PANE;

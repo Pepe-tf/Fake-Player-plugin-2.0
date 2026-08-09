@@ -85,6 +85,7 @@ server operators, and FPP will always respect it.
 - `fpp.reload` — hot-reload config, lang, and skin pools
 - `fpp.check` — run `/fpp check` system diagnostics
 - `fpp.perf` — performance dashboard, history, and benchmarks
+- `fpp.auth` — manage bot auto-register/login with `/fpp auth on|off|status|reset|setpassword`
 
 ### Bypass
 - `fpp.bypass.max` — bypass global bot cap

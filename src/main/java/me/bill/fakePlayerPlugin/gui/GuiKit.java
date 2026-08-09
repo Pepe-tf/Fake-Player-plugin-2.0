@@ -24,7 +24,6 @@ import me.bill.fakePlayerPlugin.util.FppScheduler;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -39,18 +38,19 @@ public final class GuiKit {
 
     private GuiKit() {}
 
-    public static final TextColor ACCENT = TextColor.fromHexString("#0079FF");
-    public static final TextColor ON_GREEN = TextColor.fromHexString("#66CC66");
-    public static final TextColor OFF_RED = NamedTextColor.RED;
-    public static final TextColor VALUE_YELLOW = TextColor.fromHexString("#FFDD57");
-    public static final TextColor YELLOW = NamedTextColor.YELLOW;
-    public static final TextColor GRAY = NamedTextColor.GRAY;
-    public static final TextColor DARK_GRAY = NamedTextColor.DARK_GRAY;
-    public static final TextColor WHITE = NamedTextColor.WHITE;
-    public static final TextColor DANGER_RED = TextColor.fromHexString("#FF4444");
-    public static final TextColor COMING_SOON_COLOR = TextColor.fromHexString("#FFA500");
-    public static final TextColor SELECTED_GREEN = TextColor.fromHexString("#55FF55");
-    public static final TextColor FROZEN = TextColor.fromHexString("#66CCFF");
+    // FPP 2.0 "Bot Console" palette — violet / lime, see language/en.yml header for the full reference.
+    public static final TextColor ACCENT = TextColor.fromHexString("#A78BFA");
+    public static final TextColor ON_GREEN = TextColor.fromHexString("#BAFF4F");
+    public static final TextColor OFF_RED = TextColor.fromHexString("#FF6A5C");
+    public static final TextColor VALUE_YELLOW = TextColor.fromHexString("#BAFF4F");
+    public static final TextColor YELLOW = TextColor.fromHexString("#BAFF4F");
+    public static final TextColor GRAY = TextColor.fromHexString("#9691AB");
+    public static final TextColor DARK_GRAY = TextColor.fromHexString("#5F5B73");
+    public static final TextColor WHITE = TextColor.fromHexString("#EEECF7");
+    public static final TextColor DANGER_RED = TextColor.fromHexString("#FF6A5C");
+    public static final TextColor COMING_SOON_COLOR = TextColor.fromHexString("#5F5B73");
+    public static final TextColor SELECTED_GREEN = TextColor.fromHexString("#BAFF4F");
+    public static final TextColor FROZEN = TextColor.fromHexString("#CABAFF");
 
     public static final int CAT_WINDOW = 5;
 

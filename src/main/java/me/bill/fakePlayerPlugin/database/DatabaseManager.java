@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.bukkit.Bukkit;
 import org.jetbrains.annotations.Nullable;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
@@ -276,6 +277,15 @@ public class DatabaseManager {
             + "  real_players  INT          DEFAULT 0,"
             + "  bot_count     INT          DEFAULT 0,"
             + "  last_seen     BIGINT       NOT NULL"
+            + ")";
+
+    // Password stored here is always the AES-GCM ciphertext (see auth.AuthCipher), keyed by a
+    // secret that lives only in auth.key on disk - never a plaintext column.
+    private static final String CREATE_BOT_AUTH = "CREATE TABLE IF NOT EXISTS fpp_bot_auth ("
+            + "  bot_name      VARCHAR(16)  NOT NULL PRIMARY KEY,"
+            + "  password_enc  TEXT         NOT NULL,"
+            + "  created_at    BIGINT       NOT NULL,"
+            + "  updated_at    BIGINT       NOT NULL"
             + ")";
 
     private static final String CREATE_NETWORK_TASKS_SQLITE = "CREATE TABLE IF NOT EXISTS fpp_network_tasks ("
@@ -617,6 +627,7 @@ public class DatabaseManager {
         exec(CREATE_META);
         exec(CREATE_NETWORK_BOTS);
         exec(CREATE_SERVER_HEARTBEAT);
+        exec(CREATE_BOT_AUTH);
         exec(isMysql ? CREATE_NETWORK_TASKS_MYSQL : CREATE_NETWORK_TASKS_SQLITE);
     }
 
@@ -2603,5 +2614,71 @@ public class DatabaseManager {
             if (hours > 0) return hours + "h " + mins + "m";
             return mins + "m";
         }
+    }
+
+    // ── Bot auth credentials (encrypted password, keyed by bot name) ───────────────────────────
+    // Written/read by auth.BotAuthManager - see that class's own doc for the full register/login
+    // flow. The password itself is AES-GCM encrypted (auth.AuthCipher) before it ever reaches this
+    // table, keyed by a secret that lives only in auth.key on disk, never in the database itself.
+
+    public record BotAuthRow(String passwordEncrypted, long createdAt, long updatedAt) {}
+
+    /** Blocking - callers off the main thread only (see BotAuthManager#handleBotJoin). {@code null} if nothing's on record for {@code name}. */
+    public BotAuthRow getBotAuth(String name) {
+        if (!isAlive()) return null;
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT password_enc, created_at, updated_at FROM fpp_bot_auth WHERE bot_name=?")) {
+            ps.setString(1, name);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new BotAuthRow(
+                            rs.getString("password_enc"), rs.getLong("created_at"), rs.getLong("updated_at"));
+                }
+            }
+        } catch (SQLException e) {
+            FppLogger.error("DB getBotAuth: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /** Fire-and-forget, like the other update* methods - {@code onComplete} (main-thread) fires once the write has actually landed, so a caller that needs to guarantee "persisted before used" (see BotAuthManager#registerNew) can wait for it instead of racing the write. */
+    public void upsertBotAuth(String name, String passwordEncrypted, @Nullable Runnable onComplete) {
+        if (!isAlive()) {
+            if (onComplete != null && plugin != null) Bukkit.getScheduler().runTask(plugin, onComplete);
+            return;
+        }
+        long now = System.currentTimeMillis();
+        enqueue(() -> {
+            if (isAlive()) {
+                try (PreparedStatement ps = connection.prepareStatement(isMysql
+                        ? "INSERT INTO fpp_bot_auth (bot_name, password_enc, created_at, updated_at) VALUES (?,?,?,?) "
+                                + "ON DUPLICATE KEY UPDATE password_enc=VALUES(password_enc), updated_at=VALUES(updated_at)"
+                        : "INSERT INTO fpp_bot_auth (bot_name, password_enc, created_at, updated_at) VALUES (?,?,?,?) "
+                                + "ON CONFLICT(bot_name) DO UPDATE SET password_enc=excluded.password_enc,"
+                                + " updated_at=excluded.updated_at")) {
+                    ps.setString(1, name);
+                    ps.setString(2, passwordEncrypted);
+                    ps.setLong(3, now);
+                    ps.setLong(4, now);
+                    ps.executeUpdate();
+                } catch (SQLException e) {
+                    FppLogger.error("DB upsertBotAuth: " + e.getMessage());
+                }
+            }
+            if (onComplete != null && plugin != null) Bukkit.getScheduler().runTask(plugin, onComplete);
+        });
+    }
+
+    public void deleteBotAuth(String name) {
+        if (!isAlive()) return;
+        enqueue(() -> {
+            if (!isAlive()) return;
+            try (PreparedStatement ps = connection.prepareStatement("DELETE FROM fpp_bot_auth WHERE bot_name=?")) {
+                ps.setString(1, name);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                FppLogger.error("DB deleteBotAuth: " + e.getMessage());
+            }
+        });
     }
 }

@@ -164,3 +164,11 @@ right-click: false
 right-click-head: false
 left-click: false
 left-click-head: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AUTH DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════
+# Bot register/login flow against an installed login plugin: password generation,
+# command dispatch, nLogin API calls, and every captured reply used to detect success/failure.
+# ═══════════════════════════════════════════════════════════════════════════════
+auth: false

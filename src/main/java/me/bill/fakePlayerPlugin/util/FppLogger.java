@@ -9,7 +9,7 @@ import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.permission.Perm;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public final class FppLogger {
@@ -17,23 +17,24 @@ public final class FppLogger {
     private static final String RESET = "\u001B[0m";
     private static final String BOLD = "\u001B[1m";
 
-    private static final String BLUE = "\u001B[38;2;0;121;255m";
+    // FPP 2.0 "Bot Console" palette — violet / lime, see language/en.yml header for the full reference.
+    private static final String BLUE = "\u001B[38;2;167;139;250m"; // violet #A78BFA
 
-    private static final String WHITE = "\u001B[97m";
+    private static final String WHITE = "\u001B[38;2;238;236;247m"; // ink #EEECF7
 
-    private static final String YELLOW = "\u001B[93m";
+    private static final String YELLOW = "\u001B[38;2;186;255;79m"; // lime #BAFF4F
 
-    private static final String GREEN = "\u001B[92m";
+    private static final String GREEN = "\u001B[38;2;186;255;79m"; // lime #BAFF4F
 
-    private static final String GOLD = "\u001B[33m";
+    private static final String GOLD = "\u001B[38;2;186;255;79m"; // lime #BAFF4F
 
-    private static final String RED = "\u001B[91m";
+    private static final String RED = "\u001B[38;2;255;106;92m"; // red #FF6A5C
 
-    private static final String GRAY = "\u001B[90m";
+    private static final String GRAY = "\u001B[38;2;150;145;171m"; // mute #9691AB
 
-    private static final String CYAN = "\u001B[96m";
+    private static final String CYAN = "\u001B[38;2;202;186;255m"; // violet-soft #CABAFF
 
-    private static final String DARK = "\u001B[38;5;240m";
+    private static final String DARK = "\u001B[38;2;95;91;115m"; // mute-2 #5F5B73
 
     private static final String TAG = BOLD + BLUE + "[ꜰᴘᴘ]" + RESET;
 
@@ -79,10 +80,10 @@ public final class FppLogger {
         if (Config.debugChatBroadcast()) {
             Component chatMsg = Component.empty()
                     .decoration(TextDecoration.ITALIC, false)
-                    .append(Component.text("[ꜰᴘᴘ DEBUG/").color(NamedTextColor.GRAY))
-                    .append(Component.text(label).color(NamedTextColor.AQUA))
-                    .append(Component.text("] ").color(NamedTextColor.GRAY))
-                    .append(Component.text(message).color(NamedTextColor.YELLOW));
+                    .append(Component.text("[ꜰᴘᴘ DEBUG/").color(TextColor.fromHexString("#9691AB")))
+                    .append(Component.text(label).color(TextColor.fromHexString("#CABAFF")))
+                    .append(Component.text("] ").color(TextColor.fromHexString("#9691AB")))
+                    .append(Component.text(message).color(TextColor.fromHexString("#BAFF4F")));
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (Perm.has(p, Perm.OP) || Perm.has(p, Perm.NOTIFY)) {
                     p.sendMessage(chatMsg);

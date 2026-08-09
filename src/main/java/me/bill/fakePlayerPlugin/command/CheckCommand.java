@@ -27,7 +27,6 @@ import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 
 /**
@@ -40,11 +39,11 @@ import net.kyori.adventure.text.format.TextColor;
  */
 public final class CheckCommand implements FppCommand {
 
-    private static final TextColor LABEL = NamedTextColor.GRAY;
-    private static final TextColor MUTED = NamedTextColor.DARK_GRAY;
-    private static final TextColor OK = NamedTextColor.GREEN;
-    private static final TextColor WARN = NamedTextColor.YELLOW;
-    private static final TextColor ERR = NamedTextColor.RED;
+    private static final TextColor LABEL = TextColor.fromHexString("#9691AB");
+    private static final TextColor MUTED = TextColor.fromHexString("#5F5B73");
+    private static final TextColor OK = TextColor.fromHexString("#BAFF4F");
+    private static final TextColor WARN = TextColor.fromHexString("#BAFF4F");
+    private static final TextColor ERR = TextColor.fromHexString("#FF6A5C");
 
     private final FakePlayerPlugin plugin;
     private final FakePlayerManager manager;

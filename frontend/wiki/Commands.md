@@ -30,6 +30,8 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 | **reload** | `[all\|config\|lang]` | Reloads the plugin configuration (optionally target a subsystem) | `fpp.reload` |
 | **settings** | `[bot]` | Open the interactive settings GUI (global, per-bot, or **debug** category) | `fpp.settings` |
 | **rent** | `buy <hours> \| extend <bot> <hours> \| info [bot] \| give <player> <bot\|--new> <hours> \| clear <bot>` | Rent a bot with real economy currency, billed per hour — see [Economy](Economy) | `fpp.rent` (+ `fpp.rent.info` / `fpp.rent.give`) |
+| **auth** | `on\|off\|status [bot]\|reset <bot>\|setpassword <bot> <password>` | Manage bot auto-register/login against an installed login plugin — see [Configuration](Configuration) | `fpp.auth` |
+| **perf** | `check\|top\|report\|report stop\|history\|spark` | Performance dashboard, history, benchmark reports, and Spark CPU profiler | `fpp.perf` |
 | **help** | `[page]` | Shows the command help menu | `fpp.help` |
 
 ## Usage Examples
@@ -57,6 +59,9 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 /fpp rent extend bot1 4               # add 4 more hours to bot1
 /fpp rent info                        # show remaining time on your rented bots
 /fpp rent give Steve --new 4          # (console/admin) grant Steve a new 4h bot, no charge
+/fpp auth on                          # enable bot auto-register/login
+/fpp auth status bot1                 # check whether bot1 has a remembered password
+/fpp auth reset bot1                  # forget bot1's password — it registers fresh next join
 ```
 
 ## Notes
@@ -75,3 +80,4 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 - **Multitasking:** starting a new task no longer stops the bot's other running tasks — `move`, `find`, `left-click`, `right-click`, `attack`, and PVE auto-combat can all be active on the same bot at once. A bot still has only one body, so movement is arbitrated by priority (`move` > a hand-action's walk-to-reach > background movement like PVE's chase) rather than by cancellation; whichever loses out just declines gracefully instead of hijacking the bot mid-walk. Two hand-actions aimed at two different targets at once will still visibly alternate the bot's aim between them each tick — that's a real single-body limit, not a bug.
 - **Auto-eat runs in parallel:** eating from the off-hand (the default/preferred source) no longer pauses anything at all — mining, moving, and combat keep going untouched. Only the main-hand fallback (no off-hand food available) still briefly pauses hand-actions, since it borrows the main hand itself for the eat animation.
 - All core sub-commands use `--flag` style only (no bare-word duplicates like `list`/`enable`/`toggle` as an alternative spelling of a `--flag`).
+- **Auth**: off by default (`auth.enabled: false` in `config.yml`, or `/fpp auth on`). A bot stands still and doesn't turn its head from join until its register/login outcome is known, exactly like a real not-yet-authenticated player. See [Configuration](Configuration) for the full config reference.

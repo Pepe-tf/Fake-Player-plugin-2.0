@@ -34,7 +34,6 @@ import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 /**
@@ -431,7 +430,7 @@ public final class BotListGui implements Listener {
     private ItemStack closeItem() {
         ItemStack it = new ItemStack(Material.BARRIER);
         ItemMeta meta = it.getItemMeta();
-        meta.displayName(Component.text("ᴄʟᴏꜱᴇ", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.text("ᴄʟᴏꜱᴇ", GuiKit.OFF_RED).decoration(TextDecoration.ITALIC, false));
         it.setItemMeta(meta);
         return it;
     }

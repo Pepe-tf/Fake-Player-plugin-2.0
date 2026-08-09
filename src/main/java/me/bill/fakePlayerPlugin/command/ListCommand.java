@@ -22,7 +22,6 @@ import me.bill.fakePlayerPlugin.util.TextUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 
 @SuppressWarnings("unused")
@@ -30,11 +29,11 @@ public class ListCommand implements FppCommand {
 
     private static final int PAGE_SIZE = 10;
 
-    private static final TextColor ACCENT = TextColor.fromHexString("#0079FF");
-    private static final TextColor MUTED = NamedTextColor.DARK_GRAY;
-    private static final TextColor LABEL = NamedTextColor.GRAY;
-    private static final TextColor VALUE = NamedTextColor.WHITE;
-    private static final TextColor SERVER = TextColor.fromHexString("#FFD700");
+    private static final TextColor ACCENT = TextColor.fromHexString("#A78BFA");
+    private static final TextColor MUTED = TextColor.fromHexString("#5F5B73");
+    private static final TextColor LABEL = TextColor.fromHexString("#9691AB");
+    private static final TextColor VALUE = TextColor.fromHexString("#EEECF7");
+    private static final TextColor SERVER = TextColor.fromHexString("#BAFF4F");
 
     private final FakePlayerPlugin plugin;
     private final FakePlayerManager manager;
@@ -95,7 +94,7 @@ public class ListCommand implements FppCommand {
         String headerCount = Config.isNetworkMode()
                 ? localBots.size() + " local, " + remoteBots.size() + " remote"
                 : String.valueOf(localBots.size());
-        sender.sendMessage(TextUtil.colorize("<dark_gray><st>━━━━━━━━</st> <#0079FF>ᴀᴄᴛɪᴠᴇ ʙᴏᴛꜱ</#0079FF> "
+        sender.sendMessage(TextUtil.colorize("<dark_gray><st>━━━━━━━━</st> <#A78BFA>ᴀᴄᴛɪᴠᴇ ʙᴏᴛꜱ</#A78BFA> "
                 + "<dark_gray>(<white>"
                 + headerCount
                 + "<dark_gray>) <st>━━━━━━━━</st>"));
@@ -154,13 +153,13 @@ public class ListCommand implements FppCommand {
         String spawner = fp.getSpawnedBy();
 
         boolean isFrozen = fp.isFrozen();
-        String frozenTag = isFrozen ? " <#66CCFF>❄</#66CCFF>" : "";
+        String frozenTag = isFrozen ? " <#CABAFF>❄</#CABAFF>" : "";
 
-        String serverTag = Config.isNetworkMode() ? " <#FFD700>[" + Config.serverId() + "]</#FFD700>" : "";
+        String serverTag = Config.isNetworkMode() ? " <#BAFF4F>[" + Config.serverId() + "]</#BAFF4F>" : "";
 
         Component line1 = Component.empty()
                 .append(Component.text("  "))
-                .append(TextUtil.colorize("<#0079FF>" + fp.getDisplayName() + "</#0079FF>" + frozenTag + serverTag))
+                .append(TextUtil.colorize("<#A78BFA>" + fp.getDisplayName() + "</#A78BFA>" + frozenTag + serverTag))
                 .append(Component.text("  ").color(MUTED))
                 .append(Component.text("⏱ ").color(LABEL))
                 .append(Component.text(uptime).color(VALUE));
@@ -180,7 +179,7 @@ public class ListCommand implements FppCommand {
 
         Component line1 = Component.empty()
                 .append(Component.text("  "))
-                .append(TextUtil.colorize("<#AAAAFF>" + rbe.displayName() + "</#AAAAFF>"))
+                .append(TextUtil.colorize("<#CABAFF>" + rbe.displayName() + "</#CABAFF>"))
                 .append(Component.text("  ").color(MUTED))
                 .append(Component.text("[" + rbe.serverId() + "]").color(SERVER));
 

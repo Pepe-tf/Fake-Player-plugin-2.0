@@ -4,6 +4,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -22,13 +26,76 @@ import net.minecraft.network.Connection;
 import net.minecraft.network.DisconnectionDetails;
 import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 
+/**
+ * Replaces the vanilla packet listener on a fake player's {@code ServerPlayer.connection} field -
+ * see {@link #applyKnockback} for the knockback interception, and {@link #listen} below for the
+ * one other thing this class does: {@code send} below completely replaces the vanilla method (no
+ * {@code super.send(...)} call at all), so literally everything except a knockback packet is
+ * otherwise silently dropped with zero trace, including any message a plugin sends the bot - e.g.
+ * an installed login plugin's response to a bot's register/login attempt ("wrong password",
+ * "welcome back", ...), which {@code auth.BotAuthManager} would otherwise have no way to see.
+ * Captured from whichever of the several ways a plugin might actually display that: a plain chat
+ * line ({@code ClientboundSystemChatPacket}, from {@code Player#sendMessage}), or a
+ * title/subtitle/action-bar ({@code ClientboundSetTitleTextPacket}/{@code
+ * ClientboundSetSubtitleTextPacket}/{@code ClientboundSetActionBarTextPacket}) - OpeNLogin
+ * specifically uses the title/subtitle UI for its login prompts and responses, not chat. {@link
+ * #listen} taps all four before they're dropped, for whoever - currently only {@code
+ * BotAuthManager} - registers for a given UUID.
+ */
 public final class FakeServerGamePacketListenerImpl extends ServerGamePacketListenerImpl {
+
+    // UUID -> callback, populated/cleared entirely by the registrant (BotAuthManager) - see
+    // #listen/#stopListening. A plain Consumer<String> rather than anything Bukkit-typed, so this
+    // NMS-facing class stays free of any dependency on the rest of the plugin.
+    private static final Map<UUID, Consumer<String>> MESSAGE_LISTENERS = new ConcurrentHashMap<>();
+
+    /**
+     * Delivers a plain-text copy of every {@code ClientboundSystemChatPacket} (or title/subtitle/
+     * action-bar packet - see class doc) this connection would otherwise silently drop for {@code
+     * uuid} to {@code onMessage}, until {@link #stopListening} is called for the same UUID.
+     * There's deliberately no automatic expiry here - timing/timeout policy belongs entirely to
+     * the caller.
+     */
+    public static void listen(UUID uuid, Consumer<String> onMessage) {
+        if (uuid != null && onMessage != null) MESSAGE_LISTENERS.put(uuid, onMessage);
+    }
+
+    public static void stopListening(UUID uuid) {
+        if (uuid != null) MESSAGE_LISTENERS.remove(uuid);
+    }
+
+    private void notifyListener(Packet<?> packet) {
+        if (MESSAGE_LISTENERS.isEmpty()) return; // the overwhelmingly common case - skip the map lookup entirely
+        try {
+            UUID uuid = this.player.getUUID();
+            Consumer<String> listener = MESSAGE_LISTENERS.get(uuid);
+            if (listener == null) return;
+            String text = extractText(packet);
+            if (text != null && !text.isBlank()) listener.accept(text);
+        } catch (Throwable ignored) {
+            // A packet-internals mismatch on some server version must never affect this
+            // connection's actual job (dropping the packet) - see class doc.
+        }
+    }
+
+    /** Plain text out of whichever of chat/title/subtitle/action-bar {@code packet} is, or {@code null} for anything else - see class doc for why all four are read, not just chat. */
+    private static String extractText(Packet<?> packet) {
+        if (packet instanceof ClientboundSystemChatPacket p) return p.content().getString();
+        if (packet instanceof ClientboundSetTitleTextPacket p) return p.text().getString();
+        if (packet instanceof ClientboundSetSubtitleTextPacket p) return p.text().getString();
+        if (packet instanceof ClientboundSetActionBarTextPacket p) return p.text().getString();
+        return null;
+    }
 
     private static volatile boolean entityIdFallbackResolved = false;
 
@@ -126,6 +193,7 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
         if (packet instanceof ClientboundSetEntityMotionPacket motionPacket) {
             applyKnockback(motionPacket);
         }
+        notifyListener(packet);
     }
 
     @SuppressWarnings("unused")
@@ -133,6 +201,7 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
         if (packet instanceof ClientboundSetEntityMotionPacket motionPacket) {
             applyKnockback(motionPacket);
         }
+        notifyListener(packet);
     }
 
     private void applyKnockback(ClientboundSetEntityMotionPacket packet) {

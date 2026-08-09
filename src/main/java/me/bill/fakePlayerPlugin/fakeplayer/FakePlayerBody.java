@@ -30,7 +30,6 @@ import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.TextUtil;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.minecraft.server.MinecraftServer;
@@ -586,8 +585,8 @@ public final class FakePlayerBody {
         // Rows below inherit color from whatever they're appended onto, so give each an explicit
         // color instead of relying on defaults — otherwise a colorless row picks up its parent's.
         Component nameRow = TextUtil.colorize(rawName != null && !rawName.isBlank() ? rawName : fp.getName());
-        if (nameRow.color() == null) nameRow = nameRow.color(NamedTextColor.WHITE);
-        TextColor indicatorColor = indicatorRow.color() != null ? indicatorRow.color() : NamedTextColor.GRAY;
+        if (nameRow.color() == null) nameRow = nameRow.color(TextColor.fromHexString("#EEECF7"));
+        TextColor indicatorColor = indicatorRow.color() != null ? indicatorRow.color() : TextColor.fromHexString("#9691AB");
         Component actionRow = Component.text(BotActivity.currentLabel(fp))
                 .color(indicatorColor)
                 .decoration(TextDecoration.ITALIC, true);

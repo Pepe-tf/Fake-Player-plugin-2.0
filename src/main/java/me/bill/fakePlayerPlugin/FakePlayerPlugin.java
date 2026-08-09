@@ -8,7 +8,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import me.bill.fakePlayerPlugin.api.FppApi;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
+import me.bill.fakePlayerPlugin.auth.BotAuthManager;
 import me.bill.fakePlayerPlugin.command.AttackCommand;
+import me.bill.fakePlayerPlugin.command.AuthCommand;
 import me.bill.fakePlayerPlugin.command.CheckCommand;
 import me.bill.fakePlayerPlugin.command.CommandManager;
 import me.bill.fakePlayerPlugin.command.DeleteCommand;
@@ -99,6 +101,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
     private FakePlayerManager fakePlayerManager;
     private ChunkLoader chunkLoader;
     private DatabaseManager databaseManager;
+    private BotAuthManager botAuthManager;
     private BotPersistence botPersistence;
     private FppMetrics fppMetrics;
     private VelocityChannel velocityChannel;
@@ -270,6 +273,9 @@ public final class FakePlayerPlugin extends JavaPlugin {
         fakePlayerManager = new FakePlayerManager(this);
         if (databaseManager != null) fakePlayerManager.setDatabaseManager(databaseManager);
 
+        botAuthManager = new BotAuthManager(this, databaseManager);
+        fakePlayerManager.setBotAuthManager(botAuthManager);
+
         fakePlayerManager.refreshCleanNamePool();
 
         fppApi = new FppApiImpl(this, fakePlayerManager);
@@ -315,6 +321,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
         commandManager.register(new ReloadCommand(this));
         commandManager.register(new InfoCommand(databaseManager, fakePlayerManager));
         commandManager.register(new CheckCommand(this, fakePlayerManager));
+        commandManager.register(new AuthCommand(fakePlayerManager, botAuthManager));
         commandManager.register(new FreezeCommand(fakePlayerManager));
         commandManager.register(new SneakCommand(fakePlayerManager));
         commandManager.register(new RenameCommand(fakePlayerManager));
@@ -586,6 +593,10 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     public DatabaseManager getDatabaseManager() {
         return databaseManager;
+    }
+
+    public BotAuthManager getBotAuthManager() {
+        return botAuthManager;
     }
 
     public VelocityChannel getVelocityChannel() {

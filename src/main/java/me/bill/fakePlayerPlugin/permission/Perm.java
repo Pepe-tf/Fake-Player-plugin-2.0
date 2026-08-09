@@ -110,6 +110,9 @@ public final class Perm {
 
     public static final String CHECK = "fpp.check";
 
+    /** Manage bot auto-register/login against an installed login plugin: /fpp auth on|off|status|reset|setpassword. */
+    public static final String AUTH = "fpp.auth";
+
     public static final String BYPASS_MAX = "fpp.bypass.max";
 
     public static final String BYPASS_COOLDOWN = "fpp.bypass.cooldown";

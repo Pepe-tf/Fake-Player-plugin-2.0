@@ -131,7 +131,7 @@ public final class PveController {
             stopCombat(uuid);
             return;
         }
-        if (fp.isFrozen() || fp.isInventoryOpen() || fp.isActionsPaused()) return;
+        if (fp.isFrozen() || fp.isAuthPending() || fp.isInventoryOpen() || fp.isActionsPaused()) return;
 
         int cooldown = cooldownTicks.getOrDefault(uuid, 0);
         if (cooldown > 0) cooldownTicks.put(uuid, cooldown - 1);

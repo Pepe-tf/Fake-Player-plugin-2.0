@@ -113,7 +113,7 @@ bot-name:
 # ═══════════════════════════════════════════════════════════════════════════════
 nametag:
   second-line:
-    format: '<gray>ʙᴏᴛ ʙʏ {owner}</gray>'
+    format: '<#9691AB>ʙᴏᴛ ʙʏ {owner}</#9691AB>'
     y-offset: 1.9
     interpolation-ticks: 3
 
@@ -319,6 +319,45 @@ database:
 # ═══════════════════════════════════════════════════════════════════════════════
 config-sync:
   mode: "DISABLED"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AUTH  (register/login against an installed login plugin, e.g. nLogin, AuthMe, LoginSecurity)
+# ═══════════════════════════════════════════════════════════════════════════════
+# When enabled, every bot plays along with a login-wall plugin instead of sitting there
+# unauthenticated: it generates a password, registers on its first join, and remembers that
+# password (encrypted, see auth.key in the plugin data folder) so every later join sends /login
+# with that same remembered password instead of registering again. Needs database.enabled: true.
+auth:
+  enabled: false
+  # Sent as the bot itself, exactly as if it were typed in chat (no leading slash needed).
+  # %password% is replaced with the bot's own generated/remembered password. The defaults below
+  # already match nLogin, AuthMe, LoginSecurity, CrazyLogin, and xAuth - only change these if your
+  # login plugin uses different command syntax.
+  register-command: "register %password% %password%"
+  login-command: "login %password%"
+  # Random delay before the command is sent, so it doesn't fire the instant a bot's connection
+  # opens - mimics the time a real player takes to see the prompt and type their password.
+  delay-min-ticks: 20 # 1s
+  delay-max-ticks: 60 # 3s
+  # A bot stands still and doesn't turn its head from the moment it joins until its register/login
+  # outcome is known - the same restriction a real not-yet-authenticated player is usually under.
+  # Cleared the instant its response looks like a success ("logged in", "registered", ...) or a
+  # clear failure is logged, but this is always the hard fallback: if neither can be read/matched
+  # (a differently-worded or non-English response), the bot is released anyway once this many
+  # ticks pass so it never gets stuck frozen forever over a message this plugin failed to parse.
+  pending-timeout-ticks: 100 # 5s
+  # A generated password that's too LONG silently fails on plugins with a max-length policy
+  # (OpeNLogin defaults to a 15-character cap, for example) - and since that rejection is often
+  # shown through a title/UI element this plugin can't always read (see the note on
+  # pending-timeout-ticks above), it can look like nothing happened at all rather than an obvious
+  # error. 12 stays comfortably under every common auth plugin's default max; raise it only after
+  # checking your specific login plugin's own password-length limit.
+  password:
+    length: 12
+    uppercase: true
+    lowercase: true
+    digits: true
+    symbols: true
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PERFORMANCE

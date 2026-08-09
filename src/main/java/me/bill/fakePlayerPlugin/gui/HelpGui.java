@@ -31,7 +31,6 @@ import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.command.CommandManager;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
@@ -45,15 +44,17 @@ public final class HelpGui implements Listener {
     private static final TextColor WHITE = GuiKit.WHITE;
     private static final TextColor YELLOW = GuiKit.YELLOW;
 
-    private static final TextColor ARG_REQUIRED = TextColor.fromHexString("#FF8C00");
-    private static final TextColor ARG_OPTIONAL = TextColor.fromHexString("#AAAAAA");
-    private static final TextColor ARG_FLAG = TextColor.fromHexString("#00CFFF");
-    private static final TextColor ARG_CHOICE = TextColor.fromHexString("#FFDD57");
+    private static final TextColor ARG_REQUIRED = TextColor.fromHexString("#BAFF4F");
+    private static final TextColor ARG_OPTIONAL = TextColor.fromHexString("#9691AB");
+    private static final TextColor ARG_FLAG = TextColor.fromHexString("#CABAFF");
+    private static final TextColor ARG_CHOICE = TextColor.fromHexString("#BAFF4F");
 
-    private static final TextColor CAT_ALL = TextColor.fromHexString("#FFFFFF");
-    private static final TextColor CAT_CORE = TextColor.fromHexString("#5B9BD5");
-    private static final TextColor CAT_BOT = TextColor.fromHexString("#70AD47");
-    private static final TextColor CAT_ACTION = TextColor.fromHexString("#ED7D31");
+    private static final TextColor CAT_ALL = TextColor.fromHexString("#EEECF7");
+    private static final TextColor CAT_CORE = TextColor.fromHexString("#A78BFA");
+    private static final TextColor CAT_BOT = TextColor.fromHexString("#BAFF4F");
+    private static final TextColor CAT_ACTION = TextColor.fromHexString("#FF6A5C");
+    private static final TextColor CAT_AUTH = TextColor.fromHexString("#CABAFF");
+    private static final TextColor CAT_PERF = TextColor.fromHexString("#9691AB");
 
     private enum Category {
         ALL("ᴀʟʟ", CAT_ALL, Material.COMPASS, Material.COMPASS, "ꜱʜᴏᴡꜱ ᴇᴠᴇʀʏ ᴀᴠᴀɪʟᴀʙʟᴇ ᴄᴏᴍᴍᴀɴᴅ."),
@@ -64,7 +65,19 @@ public final class HelpGui implements Listener {
                 CAT_ACTION,
                 Material.DIAMOND_PICKAXE,
                 Material.IRON_PICKAXE,
-                "ɴᴀᴠ, ᴍɪɴɪɴɢ, ꜰɪɴᴅ, ᴄᴏᴍʙᴀᴛ, ꜱᴛᴏʀᴀɢᴇ & ᴍᴏʀᴇ.");
+                "ɴᴀᴠ, ᴍɪɴɪɴɢ, ꜰɪɴᴅ, ᴄᴏᴍʙᴀᴛ, ꜱᴛᴏʀᴀɢᴇ & ᴍᴏʀᴇ."),
+        AUTH(
+                "ᴀᴜᴛʜ",
+                CAT_AUTH,
+                Material.TRIPWIRE_HOOK,
+                Material.STRING,
+                "ʙᴏᴛ ᴀᴜᴛᴏ-ʀᴇɢɪꜱᴛᴇʀ/ʟᴏɢɪɴ ᴀɢᴀɪɴꜱᴛ ᴀɴ ɪɴꜱᴛᴀʟʟᴇᴅ ʟᴏɢɪɴ ᴘʟᴜɢɪɴ."),
+        PERF(
+                "ᴘᴇʀꜰ",
+                CAT_PERF,
+                Material.SPYGLASS,
+                Material.CLOCK,
+                "ᴛᴘꜱ/ᴍꜱᴘᴛ ᴍᴏɴɪᴛᴏʀɪɴɢ, ʙᴇɴᴄʜᴍᴀʀᴋꜱ & ᴛʜᴇ ꜱᴘᴀʀᴋ ᴘʀᴏꜰɪʟᴇʀ.");
 
         final String label;
         final TextColor color;
@@ -84,10 +97,14 @@ public final class HelpGui implements Listener {
     private static final Category[] CATEGORIES = Category.values();
 
     private static final int SIZE = 54;
-    private static final int CMDS_PER_PAGE = 45;
+    // One slot shy of a full 45-slot grid, deliberately - the freed slot 44 holds the info head
+    // below, since row 6 (45-53) is entirely spoken for by nav + a tab per Category.values() (see
+    // CAT_SLOT_START) and has no room left for it.
+    private static final int CMDS_PER_PAGE = 44;
+    private static final int SLOT_INFO_HEAD = 44;
 
-    private static final int SLOT_PAGE_PREV = 46;
-    private static final int CAT_SLOT_START = 47;
+    private static final int SLOT_PAGE_PREV = 45;
+    private static final int CAT_SLOT_START = 46;
     private static final int SLOT_PAGE_NEXT = 52;
     private static final int SLOT_CLOSE = 53;
 
@@ -212,9 +229,9 @@ public final class HelpGui implements Listener {
         }
 
         ItemStack filler = glassFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int s = 45; s <= 53; s++) inv.setItem(s, filler);
+        for (int s = SLOT_INFO_HEAD; s <= 53; s++) inv.setItem(s, filler);
 
-        inv.setItem(45, buildInfoHead(plugin));
+        inv.setItem(SLOT_INFO_HEAD, buildInfoHead(plugin));
 
         inv.setItem(SLOT_PAGE_PREV, page > 0 ? buildNavArrow(false, page) : filler);
 
@@ -395,13 +412,14 @@ public final class HelpGui implements Listener {
                     "list",
                     "info",
                     "check",
-                    "perf",
                     "help",
                     "reload",
                     "settings",
                     "save" -> Category.CORE;
             case "tp", "tph", "freeze", "inventory", "inv", "xp", "setowner", "rename" -> Category.BOTS;
             case "move", "storage", "attack", "find", "sneak", "stop", "left-click", "right-click" -> Category.ACTIONS;
+            case "auth" -> Category.AUTH;
+            case "perf" -> Category.PERF;
             default -> Category.CORE;
         };
     }
@@ -442,6 +460,8 @@ public final class HelpGui implements Listener {
             case "bots", "mybots", "botmenu" -> Material.PLAYER_HEAD;
             case "setowner" -> Material.NAME_TAG;
             case "rename" -> Material.OAK_SIGN;
+            case "auth" -> Material.TRIPWIRE_HOOK;
+            case "perf" -> Material.SPYGLASS;
             default -> Material.COMMAND_BLOCK;
         };
     }
@@ -502,7 +522,7 @@ public final class HelpGui implements Listener {
                 lore.add(Component.empty()
                         .decoration(TextDecoration.ITALIC, false)
                         .append(Component.text("⚗ ʙᴇᴛᴀ ʙᴜɪʟᴅ  ")
-                                .color(TextColor.fromHexString("#AA55FF"))
+                                .color(TextColor.fromHexString("#A78BFA"))
                                 .decoration(TextDecoration.BOLD, true))
                         .append(Component.text("ʟᴀᴛᴇꜱᴛ ꜱᴛᴀʙʟᴇ: ").color(DARK_GRAY))
                         .append(Component.text(latest).color(GRAY)));
@@ -511,7 +531,7 @@ public final class HelpGui implements Listener {
                 lore.add(Component.empty()
                         .decoration(TextDecoration.ITALIC, false)
                         .append(Component.text("⚠ ɴᴇᴡ ᴠᴇʀꜱɪᴏɴ  ")
-                                .color(TextColor.fromHexString("#FFD700"))
+                                .color(TextColor.fromHexString("#BAFF4F"))
                                 .decoration(TextDecoration.BOLD, true))
                         .append(Component.text(latest).color(ON_GREEN).decoration(TextDecoration.BOLD, true)));
             }
@@ -563,7 +583,7 @@ public final class HelpGui implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.empty()
                 .decoration(TextDecoration.ITALIC, false)
-                .append(Component.text("✕  ᴄʟᴏꜱᴇ").color(NamedTextColor.RED).decoration(TextDecoration.BOLD, true)));
+                .append(Component.text("✕  ᴄʟᴏꜱᴇ").color(GuiKit.OFF_RED).decoration(TextDecoration.BOLD, true)));
         meta.lore(List.of(Component.empty()
                 .decoration(TextDecoration.ITALIC, false)
                 .append(Component.text("ᴄʟᴏꜱᴇ ᴛʜɪꜱ ᴍᴇɴᴜ.").color(DARK_GRAY))));
@@ -578,7 +598,7 @@ public final class HelpGui implements Listener {
     private static Component divider() {
         return Component.empty()
                 .decoration(TextDecoration.ITALIC, false)
-                .append(Component.text("  ─────────────────────").color(TextColor.fromHexString("#2A2A2A")));
+                .append(Component.text("  ─────────────────────").color(TextColor.fromHexString("#2A2735")));
     }
 
     private static Component hint(String icon, String text) {

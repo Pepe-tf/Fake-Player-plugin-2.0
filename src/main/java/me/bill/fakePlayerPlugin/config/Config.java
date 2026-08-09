@@ -200,6 +200,10 @@ public final class Config {
         return isDebug() || debugBool("rental", false);
     }
 
+    public static boolean debugAuth() {
+        return isDebug() || debugBool("auth", false);
+    }
+
     public static boolean debugCommands() {
         return isDebug() || debugBool("commands", false);
     }
@@ -921,5 +925,61 @@ public final class Config {
 
     public static boolean performanceSelfProfilerExportOnWarning() {
         return cfg.getBoolean("performance.self-profiler.export-on-warning", true);
+    }
+
+    // ── auth (register/login against an installed login plugin) ────────────────────────────────
+
+    public static boolean authEnabled() {
+        return cfg.getBoolean("auth.enabled", false);
+    }
+
+    public static String authRegisterCommand() {
+        return cfg.getString("auth.register-command", "register %password% %password%");
+    }
+
+    public static String authLoginCommand() {
+        return cfg.getString("auth.login-command", "login %password%");
+    }
+
+    public static int authDelayMinTicks() {
+        return Math.max(0, cfg.getInt("auth.delay-min-ticks", 20));
+    }
+
+    public static int authDelayMaxTicks() {
+        return Math.max(authDelayMinTicks(), cfg.getInt("auth.delay-max-ticks", 60));
+    }
+
+    /** Hard cap on how long a bot stays "frozen" (see FakePlayer#isAuthPending) waiting to detect its own register/login outcome, after which it's released regardless - a safety net for when the login plugin's response can't be read/matched at all. */
+    public static int authPendingTimeoutTicks() {
+        return Math.max(0, cfg.getInt("auth.pending-timeout-ticks", 100));
+    }
+
+    public static int authPasswordLength() {
+        return Math.max(8, cfg.getInt("auth.password.length", 12));
+    }
+
+    public static boolean authPasswordUppercase() {
+        return cfg.getBoolean("auth.password.uppercase", true);
+    }
+
+    public static boolean authPasswordLowercase() {
+        return cfg.getBoolean("auth.password.lowercase", true);
+    }
+
+    public static boolean authPasswordDigits() {
+        return cfg.getBoolean("auth.password.digits", true);
+    }
+
+    public static boolean authPasswordSymbols() {
+        return cfg.getBoolean("auth.password.symbols", true);
+    }
+
+    /** Live-writes {@code path} into config.yml's in-memory copy - call {@link #save()} to persist it to disk. Used by {@code /fpp auth on|off} to flip auth.enabled without a full config reload. */
+    public static void set(String path, Object value) {
+        cfg.set(path, value);
+    }
+
+    public static void save() {
+        if (plugin != null) plugin.saveConfig();
     }
 }

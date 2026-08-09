@@ -46,9 +46,14 @@ always wear a mandatory "ʙᴏᴛ ʙʏ {owner}" nametag, and can never take a re
 
 ---
 
-## Latest Version: v2.0.4
+## Latest Version: v2.0.5
 
 **Highlights:**
+- 🔑 **Bot Auth System** — bots auto-register/login against an installed login plugin (nLogin, AuthMe,
+  LoginSecurity, and friends), remembering an encrypted per-bot password so only the first join ever
+  registers; manage it via `/fpp auth` or the settings GUI's new **🔐 ᴀᴜᴛʜ** category
+- 🎨 **"Bot Console" Color Theme** — every message, GUI, and console log now uses one consistent
+  violet/lime palette instead of scattered ad-hoc colors
 - 💰 **Bot Rental Economy** — pay real currency (Vault, "Vault2.0", or ExcellentEconomy) for a bot and
   hours of runtime via `/fpp rent buy`/`extend`; `/fpp rent give` is a zero-economy-required entry
   point for wiring up your own shop plugin instead — see [Economy](Economy)

@@ -14,14 +14,13 @@ import me.bill.fakePlayerPlugin.util.TextUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public class HelpCommand implements FppCommand {
 
     private static final int PAGE_SIZE = 6;
-    private static final TextColor ACCENT = TextColor.fromHexString("#0079FF");
+    private static final TextColor ACCENT = TextColor.fromHexString("#A78BFA");
 
     private final CommandManager manager;
 
@@ -110,13 +109,13 @@ public class HelpCommand implements FppCommand {
                     .decoration(TextDecoration.BOLD, true)
                     .clickEvent(ClickEvent.runCommand("/fpp help " + (page - 1)))
                     .hoverEvent(HoverEvent.showText(
-                            Component.text("Go to page " + (page - 1)).color(NamedTextColor.GRAY)));
+                            Component.text("Go to page " + (page - 1)).color(TextColor.fromHexString("#9691AB"))));
         } else {
-            prev = Component.text("« ᴘʀᴇᴠ").color(NamedTextColor.DARK_GRAY).decoration(TextDecoration.BOLD, true);
+            prev = Component.text("« ᴘʀᴇᴠ").color(TextColor.fromHexString("#5F5B73")).decoration(TextDecoration.BOLD, true);
         }
 
         Component pageInfo =
-                Component.text("  " + page + " / " + totalPages + "  ").color(NamedTextColor.WHITE);
+                Component.text("  " + page + " / " + totalPages + "  ").color(TextColor.fromHexString("#EEECF7"));
 
         Component next;
         if (page < totalPages) {
@@ -125,9 +124,9 @@ public class HelpCommand implements FppCommand {
                     .decoration(TextDecoration.BOLD, true)
                     .clickEvent(ClickEvent.runCommand("/fpp help " + (page + 1)))
                     .hoverEvent(HoverEvent.showText(
-                            Component.text("Go to page " + (page + 1)).color(NamedTextColor.GRAY)));
+                            Component.text("Go to page " + (page + 1)).color(TextColor.fromHexString("#9691AB"))));
         } else {
-            next = Component.text("ɴᴇxᴛ »").color(NamedTextColor.DARK_GRAY).decoration(TextDecoration.BOLD, true);
+            next = Component.text("ɴᴇxᴛ »").color(TextColor.fromHexString("#5F5B73")).decoration(TextDecoration.BOLD, true);
         }
 
         return Component.text(" ").append(prev).append(pageInfo).append(next);

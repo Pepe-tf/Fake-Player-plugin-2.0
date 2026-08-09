@@ -56,10 +56,10 @@ public final class Lang {
     }
 
     public static String raw(String key, String... args) {
-        if (cfg == null) return "&c[FPP] Lang not loaded: " + key;
-        String value = cfg.getString(key, "&c[FPP] Missing lang key: " + key);
+        if (cfg == null) return "<#FF6A5C>[FPP] Lang not loaded: " + key;
+        String value = cfg.getString(key, "<#FF6A5C>[FPP] Missing lang key: " + key);
 
-        String prefix = cfg.getString("prefix", "&f[FPP] ");
+        String prefix = cfg.getString("prefix", "<#A78BFA>[FPP] ");
         value = value.replace("{prefix}", prefix);
 
         if (args.length > 0) {

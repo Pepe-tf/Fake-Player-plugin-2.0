@@ -12,14 +12,13 @@ import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 
 @SuppressWarnings("unused")
 public class TphCommand implements FppCommand {
 
-    private static final TextColor ACCENT = TextColor.fromHexString("#0079FF");
-    private static final TextColor MUTED = NamedTextColor.GRAY;
+    private static final TextColor ACCENT = TextColor.fromHexString("#A78BFA");
+    private static final TextColor MUTED = TextColor.fromHexString("#9691AB");
 
     private final FakePlayerManager manager;
 

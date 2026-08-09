@@ -25,7 +25,7 @@ import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 
 public final class StorageCommand implements FppCommand {
 
@@ -110,14 +110,14 @@ public final class StorageCommand implements FppCommand {
                 case "--enable", "--disable" -> {
                     if (args.length < 3) {
                         sender.sendMessage(Component.text(
-                                "Usage: /fpp storage " + fp.getName() + " " + sub + " <name>", NamedTextColor.RED));
+                                "Usage: /fpp storage " + fp.getName() + " " + sub + " <name>", TextColor.fromHexString("#FF6A5C")));
                         return true;
                     }
                     boolean enabled = sub.equals("--enable");
                     boolean ok = storageStore.setEnabled(fp.getName(), args[2], enabled);
                     sender.sendMessage(Component.text(
                             ok ? "Storage updated." : "Storage not found.",
-                            ok ? NamedTextColor.YELLOW : NamedTextColor.RED));
+                            ok ? TextColor.fromHexString("#BAFF4F") : TextColor.fromHexString("#FF6A5C")));
                     return true;
                 }
                 case "--deposit" -> {

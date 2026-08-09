@@ -21,7 +21,9 @@ public final class BotActivity {
         java.util.UUID uuid = fp.getUuid();
         List<String> labels = new ArrayList<>();
 
-        if (fp.isFrozen()) {
+        if (fp.isAuthPending()) {
+            labels.add("ᴀᴜᴛʜᴇɴᴛɪᴄᴀᴛɪɴɢ");
+        } else if (fp.isFrozen()) {
             labels.add("ꜰʀᴏᴢᴇɴ");
         }
 

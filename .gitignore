@@ -1,5 +1,6 @@
 # Project exclude paths
 /target/
+/libs/
 
 # Build / output
 /build/

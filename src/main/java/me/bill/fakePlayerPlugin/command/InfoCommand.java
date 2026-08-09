@@ -23,7 +23,6 @@ import me.bill.fakePlayerPlugin.util.BotAccess;
 import me.bill.fakePlayerPlugin.util.TextUtil;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 
 public class InfoCommand implements FppCommand {
@@ -31,12 +30,12 @@ public class InfoCommand implements FppCommand {
     private static final DateTimeFormatter FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
 
-    private static final TextColor ACCENT = TextColor.fromHexString("#0079FF");
-    private static final TextColor LABEL = NamedTextColor.GRAY;
-    private static final TextColor VALUE = NamedTextColor.WHITE;
-    private static final TextColor MUTED = NamedTextColor.DARK_GRAY;
-    private static final TextColor OK = NamedTextColor.GREEN;
-    private static final TextColor ERR = NamedTextColor.RED;
+    private static final TextColor ACCENT = TextColor.fromHexString("#A78BFA");
+    private static final TextColor LABEL = TextColor.fromHexString("#9691AB");
+    private static final TextColor VALUE = TextColor.fromHexString("#EEECF7");
+    private static final TextColor MUTED = TextColor.fromHexString("#5F5B73");
+    private static final TextColor OK = TextColor.fromHexString("#BAFF4F");
+    private static final TextColor ERR = TextColor.fromHexString("#FF6A5C");
 
     private final DatabaseManager db;
     private final FakePlayerManager manager;
@@ -289,7 +288,7 @@ public class InfoCommand implements FppCommand {
     }
 
     private Component header(String title) {
-        return TextUtil.colorize("<dark_gray><st>━━━</st> <#0079FF>" + title + "</#0079FF> <dark_gray><st>━━━</st>");
+        return TextUtil.colorize("<dark_gray><st>━━━</st> <#A78BFA>" + title + "</#A78BFA> <dark_gray><st>━━━</st>");
     }
 
     private Component divider() {

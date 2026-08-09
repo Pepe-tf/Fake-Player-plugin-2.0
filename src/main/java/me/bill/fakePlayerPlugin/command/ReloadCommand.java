@@ -19,16 +19,15 @@ import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.UpdateChecker;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 
 public class ReloadCommand implements FppCommand {
 
-    private static final TextColor ACCENT = TextColor.fromHexString("#0079FF");
-    private static final TextColor GRAY = NamedTextColor.GRAY;
-    private static final TextColor GREEN = NamedTextColor.GREEN;
-    private static final TextColor YELLOW = NamedTextColor.YELLOW;
-    private static final TextColor RED = NamedTextColor.RED;
+    private static final TextColor ACCENT = TextColor.fromHexString("#A78BFA");
+    private static final TextColor GRAY = TextColor.fromHexString("#9691AB");
+    private static final TextColor GREEN = TextColor.fromHexString("#BAFF4F");
+    private static final TextColor YELLOW = TextColor.fromHexString("#BAFF4F");
+    private static final TextColor RED = TextColor.fromHexString("#FF6A5C");
 
     private static final List<String> TARGETS = List.of("all", "config", "lang");
 

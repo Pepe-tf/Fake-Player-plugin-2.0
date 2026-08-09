@@ -53,6 +53,7 @@ import me.bill.fakePlayerPlugin.api.event.FppBotDespawnEvent;
 import me.bill.fakePlayerPlugin.api.event.FppBotSpawnEvent;
 import me.bill.fakePlayerPlugin.api.event.FppBotTeleportEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
+import me.bill.fakePlayerPlugin.auth.BotAuthManager;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.BotRecord;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
@@ -161,6 +162,7 @@ public class FakePlayerManager {
     private ChunkLoader chunkLoader;
     private DatabaseManager db;
     private BotPersistence persistence;
+    private BotAuthManager authManager;
     private final AtomicBoolean dbLocationFlushRunning = new AtomicBoolean(false);
 
     public void setChunkLoader(ChunkLoader cl) {
@@ -173,6 +175,10 @@ public class FakePlayerManager {
 
     public void setBotPersistence(BotPersistence p) {
         this.persistence = p;
+    }
+
+    public void setBotAuthManager(BotAuthManager authManager) {
+        this.authManager = authManager;
     }
 
     public void refreshCleanNamePool() {
@@ -342,7 +348,7 @@ public class FakePlayerManager {
                         Runnable botTick = () -> {
                             if (!activePlayers.containsKey(fp.getUuid())) return;
                             if (!bot.isValid() || bot.isDead()) return;
-                            if (fp.isFrozen()) return;
+                            if (fp.isFrozen() || fp.isAuthPending()) return;
                             UUID uuid = fp.getUuid();
                             boolean isNavigating = plugin.getPathfindingService() != null
                                     && plugin.getPathfindingService().isNavigating(uuid);
@@ -898,6 +904,7 @@ public class FakePlayerManager {
             activePlayers.put(uuid, fp);
             nameIndex.put(name.toLowerCase(), fp);
             batch.add(fp);
+            if (authManager != null) authManager.handleBotJoin(fp);
 
             if (db != null) {
                 BotRecord record = new BotRecord(
@@ -1025,6 +1032,7 @@ public class FakePlayerManager {
             activePlayers.put(uuid, fp);
             nameIndex.put(name.toLowerCase(), fp);
             batch.add(fp);
+            if (authManager != null) authManager.handleBotJoin(fp);
 
             if (db != null) {
                 BotRecord record = new BotRecord(
@@ -1529,6 +1537,7 @@ public class FakePlayerManager {
         fp.setSpawnTick(System.currentTimeMillis());
         activePlayers.put(restoredUuid, fp);
         nameIndex.put(name.toLowerCase(), fp);
+        if (authManager != null) authManager.handleBotJoin(fp);
 
         if (db != null) {
             BotRecord record = new BotRecord(

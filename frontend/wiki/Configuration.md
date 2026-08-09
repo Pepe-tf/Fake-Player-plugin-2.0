@@ -276,6 +276,29 @@ plugin integration, notifications). Quick reference:
 
 ---
 
+## 11. Auth
+
+### `auth`
+Off by default. Makes bots auto-register/login against an installed login plugin instead of sitting
+there unauthenticated — see the [Permissions](Permissions) page for `fpp.auth` and `/fpp auth` on
+the [Commands](Commands) page. Needs `database.enabled: true` to remember passwords across joins.
+- `enabled: false` — master switch.
+- `register-command: "register %password% %password%"` / `login-command: "login %password%"` — sent
+  as the bot itself, no leading slash needed. `%password%` is replaced with its generated/remembered
+  password. Defaults already match nLogin, AuthMe, LoginSecurity, CrazyLogin, and xAuth.
+- `delay-min-ticks: 20` / `delay-max-ticks: 60` — random delay before the command fires, so it
+  doesn't fire the instant a bot's connection opens.
+- `pending-timeout-ticks: 100` — hard cap on how long a bot stays frozen waiting to detect its own
+  register/login outcome; it's released regardless once this elapses.
+- `password.length: 12` — generated password length. Stay under your login plugin's max-length
+  policy if it has one (some cap around 15).
+- `password.uppercase` / `.lowercase` / `.digits` / `.symbols: true` — character classes included in
+  a generated password.
+
+All of the above are also editable live from `/fpp settings` → **🔐 ᴀᴜᴛʜ**.
+
+---
+
 The plugin includes a built-in **ConfigMigrator** that:
 1. Creates a timestamped backup before any change
 2. Automatically upgrades configs when `config-version` is outdated

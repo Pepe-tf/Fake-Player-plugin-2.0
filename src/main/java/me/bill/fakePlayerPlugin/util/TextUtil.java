@@ -4,7 +4,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
@@ -13,6 +13,9 @@ public final class TextUtil {
     private TextUtil() {}
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
+
+    /** FPP 2.0 "Bot Console" theme — secondary accent (lime), used as the fallback color for untagged text. */
+    private static final TextColor LIME = TextColor.fromHexString("#BAFF4F");
 
     private static final String NORMAL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final String SMALL_CAPS = "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ" // a–z (26)
@@ -53,7 +56,7 @@ public final class TextUtil {
         if (raw == null || raw.isEmpty()) return Component.empty();
 
         if (!raw.contains("<") && !raw.contains("§") && !raw.contains("&") && !raw.contains("{#")) {
-            return Component.text(raw).color(NamedTextColor.YELLOW);
+            return Component.text(raw).color(LIME);
         }
         return colorize(raw);
     }

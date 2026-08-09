@@ -1,5 +1,5 @@
 name: FakePlayerPlugin
-version: '2.0.4'
+version: '2.0.5'
 main: me.bill.fakePlayerPlugin.FakePlayerPlugin
 api-version: '1.21'
 folia-supported: true
@@ -122,6 +122,7 @@ permissions:
       fpp.rent.info:            true
       fpp.rent.give:            true
       fpp.rent.unlimited:       true
+      fpp.auth:                 true
 
   fpp.use:
     description: >
@@ -552,6 +553,12 @@ permissions:
 
   fpp.check:
     description: Run system health check with /fpp check.
+    default: op
+
+  fpp.auth:
+    description: >
+      Manage bot auto-register/login against an installed login plugin with
+      /fpp auth on|off|status|reset|setpassword. Default: op.
     default: op
 
   # ════════════════════════════════════════════════════════════════════════════

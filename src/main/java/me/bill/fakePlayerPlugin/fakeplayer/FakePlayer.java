@@ -79,6 +79,11 @@ public final class FakePlayer {
 
     private boolean frozen = false;
 
+    // Set by BotAuthManager the instant a join needs a register/login attempt, cleared once that
+    // resolves (success detected, a failure was logged, or auth.pending-timeout-ticks elapses) -
+    // see BotAuthManager's own class doc for the full flow.
+    private volatile boolean authPending = false;
+
     private String lastKnownWorld = null;
 
     private boolean bodyless = false;
@@ -315,6 +320,15 @@ public final class FakePlayer {
 
     public void setFrozen(boolean frozen) {
         this.frozen = frozen;
+    }
+
+    /** True while this bot is mid register/login against an installed auth plugin - see {@code BotAuthManager}. Also gates the tick loop's freeze check (alongside {@link #isFrozen}), so a bot stands still and doesn't turn its head until this clears, exactly like a real not-yet-logged-in player. */
+    public boolean isAuthPending() {
+        return authPending;
+    }
+
+    public void setAuthPending(boolean authPending) {
+        this.authPending = authPending;
     }
 
     public Object getCachedNmsDisplayComponent() {

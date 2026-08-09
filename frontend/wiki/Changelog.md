@@ -1,5 +1,53 @@
 # Changelog
 
+## v2.0.5 (Beta)
+
+### Added — Bot Auth System
+
+Bots can now play along with a login-wall plugin instead of sitting there unauthenticated. Off by
+default (`auth.enabled: false`); needs `database.enabled: true` to remember passwords across joins.
+
+- **Auto-register / auto-login**: on a bot's first join it generates a strong random password,
+  encrypts and stores it (AES-256/GCM, key in `auth.key` in the plugin data folder, never in
+  config.yml or logs), then sends `auth.register-command` as the bot after a randomized human-like
+  delay. Every later join sends `auth.login-command` with the same remembered password instead.
+- **Works against any login plugin** built around a `/register <password> <password>` /
+  `/login <password>` command shape — the defaults already match nLogin, AuthMe, LoginSecurity,
+  CrazyLogin, and xAuth. Commands are replayed exactly like a real client's typed chat command
+  (through `PlayerCommandPreprocessEvent`), not a bare command dispatch, so plugins that hook that
+  event directly (most login plugins, including nLogin) still see the attempt.
+- **Dedicated nLogin integration**: nLogin's command path throws for a bot's connection no matter
+  what, so it's authenticated through nLogin's own public API instead — fully optional, inert if
+  nLogin isn't installed.
+- **A bot stands still and doesn't turn its head** from the moment it joins until its register/login
+  outcome is known (read from the login plugin's own reply — chat, title, subtitle, or action bar),
+  exactly like a real not-yet-authenticated player; `auth.pending-timeout-ticks` is the hard fallback
+  so an unrecognized response never leaves a bot stuck frozen.
+- **New `/fpp auth` command**: `on`/`off`, `status [bot]`, `reset <bot>`, `setpassword <bot> <password>`.
+  New permission `fpp.auth` (default `op`, included in `fpp.op`).
+- **New settings GUI category** (`🔐 ᴀᴜᴛʜ`): toggle, register/login command templates, delay/timeout
+  ticks, and password length/complexity — see [Configuration](Configuration).
+
+### Added — "Bot Console" Color Theme
+
+Every chat message, GUI, and console log now pulls from one consistent violet/lime palette instead
+of the scattered ad-hoc colors (blue accents, plain named colors, mismatched grays) used previously.
+Purely visual — no config or permission changes.
+
+- Chat/GUI text: violet (`#A78BFA`) primary accent, lime (`#BAFF4F`) success/highlight, red
+  (`#FF6A5C`) errors, plus a consistent ink/mute/mute-2/line neutral scale for body text, captions,
+  and dividers.
+- Console output (`FppLogger`, the startup/shutdown banners) recolored to match with true-color ANSI.
+- `language/en.yml`'s header now documents the full palette for anyone customizing messages by hand.
+
+### Added — Auth & Perf Settings/Help Categories
+
+- The settings GUI (`/fpp settings`) gained a **🔐 ᴀᴜᴛʜ** and a **📈 ᴘᴇʀꜰ** category (general, body,
+  auth, perf, debug) — the perf category exposes every `performance.*` config option, including the
+  self-profiler, with changes restarting the monitor live instead of requiring `/fpp reload`.
+- The help GUI (`/fpp help`) split `auth` and `perf` out of the catch-all **ᴄᴏʀᴇ** category into their
+  own tabs, each with a distinct accent color.
+
 ## v2.0.4 (Beta)
 
 ### Added — Multitasking (Reverses the v2.0.0 Single-Action System)
