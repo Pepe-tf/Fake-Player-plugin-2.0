@@ -224,7 +224,7 @@ public final class AttackCommand implements FppCommand {
         if (once) stopAttacking(uuid);
     }
 
-    /** Swing cooldown in ticks for a weapon material — shared with the PVE controller. */
+    /** Swing cooldown in ticks for a weapon material - shared with the PVE controller. */
     public static int getWeaponCooldown(@Nullable Material weapon) {
         if (weapon == null) return DEFAULT_COOLDOWN;
         return WEAPON_COOLDOWN.getOrDefault(weapon, DEFAULT_COOLDOWN);

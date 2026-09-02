@@ -31,14 +31,14 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 /**
  * Shared building blocks for the plugin's inventory GUIs (colors, glass fillers, text wrapping, click
  * sounds, page-nav arrows, a generic {@link InventoryHolder} marker, and a centralized chat-capture
- * mechanism for search prompts) — extracted from near-identical copies that used to live in every GUI
+ * mechanism for search prompts) - extracted from near-identical copies that used to live in every GUI
  * class separately.
  */
 public final class GuiKit {
 
     private GuiKit() {}
 
-    // FPP 2.0 "Bot Console" palette — violet / lime, see language/en.yml header for the full reference.
+    // FPP 2.0 "Bot Console" palette - violet / lime, see language/en.yml header for the full reference.
     public static final TextColor ACCENT = TextColor.fromHexString("#A78BFA");
     public static final TextColor ON_GREEN = TextColor.fromHexString("#BAFF4F");
     public static final TextColor OFF_RED = TextColor.fromHexString("#FF6A5C");
@@ -204,7 +204,7 @@ public final class GuiKit {
         }
 
         // AsyncPlayerChatEvent is deprecated in favor of AsyncChatEvent, but some server/plugin setups
-        // still only fire the legacy event — kept as a fallback alongside onModernChat above.
+        // still only fire the legacy event - kept as a fallback alongside onModernChat above.
         @SuppressWarnings("deprecation")
         @EventHandler
         public void onLegacyChat(AsyncPlayerChatEvent event) {

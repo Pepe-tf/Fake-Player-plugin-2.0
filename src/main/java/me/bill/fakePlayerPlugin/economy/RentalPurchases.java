@@ -10,8 +10,8 @@ import me.bill.fakePlayerPlugin.lang.Lang;
 import net.kyori.adventure.text.Component;
 
 /**
- * Shared "charge the player and extend a bot's rental" logic, so the two places that offer it —
- * {@code /fpp rent extend} and the per-bot settings GUI's rental tile — can never drift out of sync
+ * Shared "charge the player and extend a bot's rental" logic, so the two places that offer it -
+ * {@code /fpp rent extend} and the per-bot settings GUI's rental tile - can never drift out of sync
  * on how the charge/refund/expiry-cap math actually works. Money-handling logic like this belongs in
  * exactly one place.
  */

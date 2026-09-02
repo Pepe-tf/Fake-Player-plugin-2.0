@@ -64,7 +64,7 @@ public class FakePlayerEntityListener implements Listener {
         this.chunkLoader = chunkLoader;
     }
 
-    /** Bots never show a death/kill message in chat — matches the rest of the chat-suppression design. */
+    /** Bots never show a death/kill message in chat - matches the rest of the chat-suppression design. */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onBotDeathMessage(PlayerDeathEvent event) {
         if (!isFakeBotBody(event.getEntity())) return;

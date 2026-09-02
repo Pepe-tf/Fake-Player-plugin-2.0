@@ -15,7 +15,7 @@ public final class ConfigValidator {
         if (Config.chunkLoadingEnabled()) {
             int radius = Config.chunkLoadingRadius();
             if (radius == 0) {
-                FppLogger.info("[Config] chunk-loading.radius is 0 — bots will not load any chunks.");
+                FppLogger.info("[Config] chunk-loading.radius is 0 - bots will not load any chunks.");
             } else {
                 int viewDist = Bukkit.getSimulationDistance();
                 if (radius > viewDist) {

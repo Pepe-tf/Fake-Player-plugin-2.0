@@ -130,7 +130,7 @@ Nothing in this License overrides rights granted under applicable third-party li
 
 When using the Plugin in any permitted form, the following attribution must be retained:
 
-  "Fake Player Plugin by Bill_Hub — https://github.com/Pepe-tf/Fake-Player-plugin-2.0"
+  "Fake Player Plugin by Bill_Hub - https://github.com/Pepe-tf/Fake-Player-plugin-2.0"
 
 8. INTELLECTUAL PROPERTY
 
@@ -246,7 +246,7 @@ You may NOT:
 
 When using the Plugin in any permitted form, please retain attribution:
 
-> Fake Player Plugin by Bill_Hub — https://github.com/Pepe-tf/Fake-Player-plugin-2.0
+> Fake Player Plugin by Bill_Hub - https://github.com/Pepe-tf/Fake-Player-plugin-2.0
 
 ---
 

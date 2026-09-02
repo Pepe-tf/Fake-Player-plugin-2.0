@@ -96,7 +96,7 @@ public final class BotListGui implements Listener {
         return Perm.hasAny(player, Perm.OP, Perm.ADMIN);
     }
 
-    /** Bots this viewer may see: all bots for admins, only their own otherwise — filtered and sorted. */
+    /** Bots this viewer may see: all bots for admins, only their own otherwise - filtered and sorted. */
     private List<FakePlayer> visibleBots(Player player) {
         UUID uuid = player.getUniqueId();
         List<FakePlayer> bots = isAdmin(player)
@@ -318,7 +318,7 @@ public final class BotListGui implements Listener {
                 if (item != null && item.getType() == Material.PLAYER_HEAD) currentCount++;
             }
             if (currentCount != expectedCount) {
-                // Bot roster shifted since the page was last built — full rebuild self-heals.
+                // Bot roster shifted since the page was last built - full rebuild self-heals.
                 build(player);
                 continue;
             }

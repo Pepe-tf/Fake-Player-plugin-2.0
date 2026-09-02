@@ -43,7 +43,7 @@ public final class FppApiImpl implements FppApi {
     private final FakePlayerManager manager;
 
     /**
-     * Registered bot tick handlers — thread-safe iterate, rare write.
+     * Registered bot tick handlers - thread-safe iterate, rare write.
      */
     private final CopyOnWriteArrayList<FppBotTickHandler> tickHandlers = new CopyOnWriteArrayList<>();
 
@@ -348,7 +348,7 @@ public final class FppApiImpl implements FppApi {
         FakePlayer fp = manager.getByUuid(bot.getUuid());
         return fp != null
                 && plugin.getLeftClickCommand() != null
-                && plugin.getLeftClickCommand().click(fp, toLeftClickMode(mode));
+                && plugin.getLeftClickCommand().click(fp, mode);
     }
 
     @Override
@@ -361,25 +361,7 @@ public final class FppApiImpl implements FppApi {
         FakePlayer fp = manager.getByUuid(bot.getUuid());
         return fp != null
                 && plugin.getRightClickCommand() != null
-                && plugin.getRightClickCommand().click(fp, toRightClickMode(mode));
-    }
-
-    private static me.bill.fakePlayerPlugin.command.LeftClickCommand.ClickMode toLeftClickMode(FppClickMode mode) {
-        return switch (mode) {
-            case ONCE -> me.bill.fakePlayerPlugin.command.LeftClickCommand.ClickMode.ONCE;
-            case REPEAT -> me.bill.fakePlayerPlugin.command.LeftClickCommand.ClickMode.REPEAT;
-            case HOLD -> me.bill.fakePlayerPlugin.command.LeftClickCommand.ClickMode.HOLD;
-            case STOP -> me.bill.fakePlayerPlugin.command.LeftClickCommand.ClickMode.STOP;
-        };
-    }
-
-    private static me.bill.fakePlayerPlugin.command.RightClickCommand.ClickMode toRightClickMode(FppClickMode mode) {
-        return switch (mode) {
-            case ONCE -> me.bill.fakePlayerPlugin.command.RightClickCommand.ClickMode.ONCE;
-            case REPEAT -> me.bill.fakePlayerPlugin.command.RightClickCommand.ClickMode.REPEAT;
-            case HOLD -> me.bill.fakePlayerPlugin.command.RightClickCommand.ClickMode.HOLD;
-            case STOP -> me.bill.fakePlayerPlugin.command.RightClickCommand.ClickMode.STOP;
-        };
+                && plugin.getRightClickCommand().click(fp, mode);
     }
 
     @Override

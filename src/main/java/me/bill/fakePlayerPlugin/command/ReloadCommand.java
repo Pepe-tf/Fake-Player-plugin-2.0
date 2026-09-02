@@ -70,7 +70,7 @@ public class ReloadCommand implements FppCommand {
         String version = plugin.getPluginMeta().getVersion();
 
         String label = target.equals("all") ? "full reload" : "reload:" + target;
-        sender.sendMessage(Component.text("┌ FakePlayerPlugin v" + version + " — " + label + "…")
+        sender.sendMessage(Component.text("┌ FakePlayerPlugin v" + version + " - " + label + "…")
                 .color(ACCENT));
 
         switch (target) {
@@ -113,7 +113,7 @@ public class ReloadCommand implements FppCommand {
         if (plugin.getSkinManager() != null) plugin.getSkinManager().reload();
 
         if (Config.isBadwordFilterEnabled() && BadwordFilter.getBadwordCount() == 0) {
-            sender.sendMessage(Component.text("│  ⚠ Badword filter is ON but no sources are active — enable"
+            sender.sendMessage(Component.text("│  ⚠ Badword filter is ON but no sources are active - enable"
                             + " 'badword-filter.use-global-list' or add words to"
                             + " config.yml / bad-words.yml!")
                     .color(YELLOW));
@@ -149,7 +149,7 @@ public class ReloadCommand implements FppCommand {
         if (plugin.getSkinManager() != null) plugin.getSkinManager().reload();
 
         if (Config.isBadwordFilterEnabled() && BadwordFilter.getBadwordCount() == 0) {
-            sender.sendMessage(Component.text("│  ⚠ Badword filter is ON but no sources are active — enable"
+            sender.sendMessage(Component.text("│  ⚠ Badword filter is ON but no sources are active - enable"
                             + " 'badword-filter.use-global-list' or add words to"
                             + " config.yml / bad-words.yml!")
                     .color(YELLOW));
@@ -185,17 +185,17 @@ public class ReloadCommand implements FppCommand {
                                 + ")");
         }
 
-        sendStep(sender, "LuckPerms — auto-updates via UserDataRecalculateEvent");
+        sendStep(sender, "LuckPerms - auto-updates via UserDataRecalculateEvent");
 
         boolean taskPersistActive = Config.persistOnRestart() && plugin.getDatabaseManager() != null;
         String taskPersistDetail = taskPersistActive
                 ? "db + yaml  (schema v" + DatabaseManager.getCurrentSchemaVersion() + ")"
                 : Config.persistOnRestart() ? "yaml only  (DB disabled)" : "disabled";
-        sendStep(sender, "Task persistence — " + taskPersistDetail);
+        sendStep(sender, "Task persistence - " + taskPersistDetail);
 
         int issues = ConfigValidator.validate();
         if (issues > 0) {
-            sender.sendMessage(Component.text("│  ⚠ " + issues + " config issue(s) detected — check console")
+            sender.sendMessage(Component.text("│  ⚠ " + issues + " config issue(s) detected - check console")
                     .color(YELLOW));
         } else {
             sendStep(sender, "Config validation passed  (0 issues)");

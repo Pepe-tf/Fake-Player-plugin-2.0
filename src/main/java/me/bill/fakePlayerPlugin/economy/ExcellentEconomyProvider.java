@@ -11,7 +11,7 @@ import me.bill.fakePlayerPlugin.config.Config;
 
 /**
  * Native integration with ExcellentEconomy (nightexpressdev.com/excellenteconomy,
- * github.com/nulli0n/ExcellentEconomy) for servers that run it <em>without</em> Vault — when Vault
+ * github.com/nulli0n/ExcellentEconomy) for servers that run it <em>without</em> Vault - when Vault
  * is present, {@link VaultEconomyProvider} already covers ExcellentEconomy transparently (its own
  * docs confirm it hooks into Vault automatically), so this class only matters as the standalone path.
  *
@@ -21,7 +21,7 @@ import me.bill.fakePlayerPlugin.config.Config;
  * currency the server admin has actually created.
  *
  * <p>Its convenience API ({@code ExcellentEconomyAPI#getBalance/deposit/withdraw(Player, String,
- * double)}) only accepts an <em>online</em> {@link Player} — fine for FPP's use, since rentals are
+ * double)}) only accepts an <em>online</em> {@link Player} - fine for FPP's use, since rentals are
  * only ever bought/extended while the paying player is online running a command. An offline target
  * simply reports unavailable rather than silently no-op'ing incorrectly.
  *

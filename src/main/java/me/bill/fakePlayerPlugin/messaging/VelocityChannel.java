@@ -601,7 +601,7 @@ public final class VelocityChannel implements PluginMessageListener {
         trackIncoming(msgId);
 
         Config.debugNetwork(
-                "[VelocityChannel] RESYNC requested by '" + originServer + "' — re-broadcasting local bots.");
+                "[VelocityChannel] RESYNC requested by '" + originServer + "' - re-broadcasting local bots.");
 
         FppScheduler.runSync(plugin, () -> {
             for (FakePlayer fp : manager.getActivePlayers()) {
@@ -620,7 +620,7 @@ public final class VelocityChannel implements PluginMessageListener {
         }
         trackIncoming(msgId);
 
-        Config.debugNetwork("[VelocityChannel] SERVER_OFFLINE from '" + originServer + "' — purging remote bots.");
+        Config.debugNetwork("[VelocityChannel] SERVER_OFFLINE from '" + originServer + "' - purging remote bots.");
 
         RemoteBotCache cache = plugin.getRemoteBotCache();
         if (cache == null) return;
@@ -673,7 +673,7 @@ public final class VelocityChannel implements PluginMessageListener {
         }
 
         Config.debugNetwork(
-                "[VelocityChannel] SERVER_STATS from '" + originServer + "' — real players: " + realPlayers + ".");
+                "[VelocityChannel] SERVER_STATS from '" + originServer + "' - real players: " + realPlayers + ".");
     }
 
     private void handleNetworkStats(DataInputStream in) throws IOException {
@@ -686,7 +686,7 @@ public final class VelocityChannel implements PluginMessageListener {
             cache.setNetworkTotalBots(totalBots);
         }
 
-        Config.debugNetwork("[VelocityChannel] NETWORK_STATS — total players: "
+        Config.debugNetwork("[VelocityChannel] NETWORK_STATS - total players: "
                 + totalPlayers
                 + ", total bots: "
                 + totalBots

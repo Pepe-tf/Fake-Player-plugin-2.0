@@ -12,7 +12,7 @@
 **A:** JDK 21+ for both the server and for building from source.
 
 ### Q: Can I use this on a server with ViaVersion?
-**A:** Yes, but the server itself must be Paper 1.21+ — ViaVersion only affects the *client* versions
+**A:** Yes, but the server itself must be Paper 1.21+ - ViaVersion only affects the *client* versions
 that can connect, not the server's own version. If ViaVersion is installed, bots automatically register
 themselves with it as running the server's own native protocol version, so Via never treats a bot as an
 unrecognized connection (no "can't find version" console warnings).
@@ -40,9 +40,9 @@ seconds) the first time it's ever used; after that it's cached forever in `data/
 Enable the `skin-pool` debug topic to trace the pipeline. To disable skins set
 `skin.rare-pools: false`.
 
-### Q: I removed a bot's name tag (e.g. with `/kill @e[type=text_display]`) and it came back — why?
+### Q: I removed a bot's name tag (e.g. with `/kill @e[type=text_display]`) and it came back - why?
 **A:** By design. The name tag is a real world entity, so anything that can remove an entity can remove
-it — but a self-heal check runs every 10 ticks and respawns it the moment it's gone. There's no way to
+it - but a self-heal check runs every 10 ticks and respawns it the moment it's gone. There's no way to
 make a bot permanently tag-less; the mandatory "ʙᴏᴛ ʙʏ {owner}" disclosure row can't be disabled either.
 
 ### Q: How do bot UUIDs work?
@@ -57,13 +57,16 @@ bits. They can never collide with real accounts.
 **A:** The limit is both global (`limits.max-bots`) and personal (`fpp.spawn.limit.N`). Check both.
 
 ### Q: Can I spawn several bots at once?
-**A:** No — `/fpp spawn` intentionally creates exactly one bot per command (auto-named, or
+**A:** No - `/fpp spawn` intentionally creates exactly one bot per command (auto-named, or
 `--name <name>` for a custom name).
 
 ### Q: Can I run `/fpp spawn` from the server console?
-**A:** No — `/fpp spawn` is in-game only and always spawns the bot at the commanding player's own
-location. There's no world/coordinate targeting either. Console senders get the same "only a player
-can run this command" rejection as any other player-only command.
+**A:** No - `/fpp spawn` is in-game only; console senders get the same "only a player can run this
+command" rejection as any other player-only command.
+
+### Q: Can I spawn a bot somewhere other than my own location?
+**A:** Admins (`fpp.spawn`) can with `/fpp spawn --location <x> <y> <z> <world>`, combinable with
+`--name`. User-tier spawns (`fpp.spawn.user`) always spawn at the sender's own location.
 
 ## Tasks, Combat & Pathfinding
 
@@ -74,7 +77,7 @@ target mob types, detect range, and priority there too. The **ᴘᴠᴇ ꜱᴛ�
 state (off / scanning / fighting).
 
 ### Q: Can I make bots pathfind to coordinates or follow players?
-**A:** Yes — `/fpp move <bot> --to <bot|player>` follows a target live, and
+**A:** Yes - `/fpp move <bot> --to <bot|player>` follows a target live, and
 `/fpp move <bot> --coords <x> <y> <z> [world]` walks to a fixed point. Both are backed by the
 core Pathetic A* engine.
 
@@ -93,30 +96,30 @@ the bot's nearest registered storage (`/fpp storage`) before resuming.
 **A:** Yes. Starting a new task (`move` / `find` / `left-click` / `right-click` / `attack`) no longer
 stops the bot's other running tasks, and PVE auto-combat always fights back regardless of what else
 the bot is doing. The one real limit is movement: a bot has one body, so only one thing can actually be
-walking it around at a time. That's arbitrated by priority instead of by cancelling — an explicit
+walking it around at a time. That's arbitrated by priority instead of by cancelling - an explicit
 `/fpp move` always wins, a manual task's own walk-to-reach outranks background movement (PVE's chase,
 an auto-deposit trip), and whichever loses out just waits its turn instead of hijacking the bot mid-walk.
 Two hand-actions aimed at two *different* targets at once will still visibly alternate the bot's aim
-between them each tick (one head, one main hand) — that's a real single-body limit, not a bug.
+between them each tick (one head, one main hand) - that's a real single-body limit, not a bug.
 
 ### Q: How do I make a bot eat automatically?
 **A:** Open its settings → `🍖 ᴀᴜᴛᴏ-ᴇᴀᴛ`. Toggle **ᴀᴜᴛᴏ-ᴇᴀᴛ** on, set the **ʜᴜɴɢᴇʀ ᴛʜʀᴇꜱʜᴏʟᴅ**
 (0-19; the bot eats at or below it), and open **ᴀʟʟᴏᴡᴇᴅ ꜰᴏᴏᴅꜱ** to pick which foods it may eat
 (none selected = any food). When hungry the bot prefers food in its off-hand, then hotbar, then
-inventory. Eating from the off-hand — the default/preferred source — runs **fully in parallel**: it
+inventory. Eating from the off-hand - the default/preferred source - runs **fully in parallel**: it
 doesn't pause mining, moving, or combat at all, the same way a real player can snack on something in
 their off-hand mid-task. Only the main-hand fallback (no off-hand food available) still briefly pauses
 hand-actions, since it has to borrow the main hand itself for the eat animation. The global default
 threshold is `automation.auto-eat-threshold` in `config.yml`.
 
 ### Q: My bot flips levers / presses buttons just by looking at the wall they're on.
-**A:** Fixed — the bot now must aim at the button/lever's actual hit box to trigger it, exactly like
+**A:** Fixed - the bot now must aim at the button/lever's actual hit box to trigger it, exactly like
 a real player. Aiming at the block it's mounted on (or a corner of that face) no longer activates
 the switch.
 
 ### Q: How does the bot decide where to stand for a click?
 **A:** If the target is already in reach it clicks from where it is. If not, it walks to a spot it
-can reach the target from — preferring **your own standing location** (since you just aimed at the
+can reach the target from - preferring **your own standing location** (since you just aimed at the
 target from there, it's a provably reachable vantage) before falling back to searching around the
 target itself.
 
@@ -128,12 +131,12 @@ prices under `economy.rental.*`. Players then use `/fpp rent buy <hours>` /
 `/fpp rent extend <bot> <hours>`. See [Economy](Economy) for full setup.
 
 ### Q: Does it work with EssentialsX's/CMI's economy, not just "Vault" the plugin?
-**A:** Yes — FPP talks to Vault's `Economy` *service*, which any Vault-compatible plugin (EssentialsX,
+**A:** Yes - FPP talks to Vault's `Economy` *service*, which any Vault-compatible plugin (EssentialsX,
 CMI, the "Vault2.0" reimplementation, ExcellentEconomy-with-Vault-present, …) registers into. You
 don't need the literal Vault.jar specifically as long as something provides that service.
 
 ### Q: Can I use my own shop plugin (ShopGUIPlus, EconomyShopGUI, …) instead of FPP's built-in charging?
-**A:** Yes — that's exactly what `/fpp rent give <player> <bot|--new> <hours>` is for. It never
+**A:** Yes - that's exactly what `/fpp rent give <player> <bot|--new> <hours>` is for. It never
 touches an economy plugin itself; point your shop's reward/command action at it and your shop plugin
 handles the payment however it already does. `economy.enabled` doesn't even need to be `true` for
 this path.
@@ -144,7 +147,7 @@ owner is notified if online. They get a one-time warning `economy.rental.warn-mi
 minutes beforehand too.
 
 ### Q: Can I make specific bots or players exempt from expiring?
-**A:** Grant `fpp.rent.unlimited` — that player's rented bots never expire from time running out,
+**A:** Grant `fpp.rent.unlimited` - that player's rented bots never expire from time running out,
 regardless of what `rentalExpiresAt` they were given.
 
 ## Database

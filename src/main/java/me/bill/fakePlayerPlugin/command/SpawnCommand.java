@@ -3,7 +3,9 @@ package me.bill.fakePlayerPlugin.command;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -14,12 +16,13 @@ import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 
 /**
- * Spawns exactly one bot per invocation — auto-named ({@code bot}, {@code bot2}, …) or custom-named
+ * Spawns exactly one bot per invocation - auto-named ({@code bot}, {@code bot2}, …) or custom-named
  * via {@code --name}. The old bulk form ({@code /fpp spawn <amount>}) and the bot-type tag were
  * removed deliberately: one command, one bot.
  *
- * <p>In-game only: bots always spawn at the commanding player's own location. There is no console
- * spawning and no world/coordinate targeting — both were removed deliberately.
+ * <p>In-game only: there is no console spawning. Bots spawn at the commanding player's own location
+ * unless an admin (holding {@link Perm#SPAWN}) targets another spot with {@code --location <x> <y> <z>
+ * <world>}.
  */
 public class SpawnCommand implements FppCommand {
 
@@ -36,12 +39,12 @@ public class SpawnCommand implements FppCommand {
 
     @Override
     public String getUsage() {
-        return "[--name <name>]";
+        return "[--name <name>] [--location <x> <y> <z> <world>]";
     }
 
     @Override
     public String getDescription() {
-        return "Spawns a fake player bot at your location (auto-named bot, bot2, ... or a custom --name).";
+        return "Spawns a fake player bot at your location, or --location <x> <y> <z> <world> (admin only).";
     }
 
     @Override
@@ -84,6 +87,43 @@ public class SpawnCommand implements FppCommand {
         }
 
         Location location = player.getLocation().clone();
+
+        int locationFlag = positional.indexOf("--location");
+        if (locationFlag >= 0) {
+            if (!isAdmin) {
+                sender.sendMessage(Lang.get("no-permission"));
+                return true;
+            }
+            if (locationFlag + 4 >= positional.size()) {
+                sender.sendMessage(Lang.get("spawn-invalid-location"));
+                return true;
+            }
+
+            double x, y, z;
+            try {
+                x = Double.parseDouble(positional.get(locationFlag + 1));
+                y = Double.parseDouble(positional.get(locationFlag + 2));
+                z = Double.parseDouble(positional.get(locationFlag + 3));
+            } catch (NumberFormatException e) {
+                sender.sendMessage(Lang.get("spawn-invalid-location"));
+                return true;
+            }
+
+            String worldName = positional.get(locationFlag + 4);
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                sender.sendMessage(Lang.get("spawn-world-not-found", "world", worldName));
+                return true;
+            }
+
+            location = new Location(
+                    world,
+                    x,
+                    y,
+                    z,
+                    player.getLocation().getYaw(),
+                    player.getLocation().getPitch());
+        }
 
         if (!Perm.has(sender, Perm.BYPASS_COOLDOWN) && manager.isOnCooldown(player.getUniqueId())) {
             long remaining = manager.getRemainingCooldown(player.getUniqueId());
@@ -142,6 +182,7 @@ public class SpawnCommand implements FppCommand {
     public List<String> tabComplete(CommandSender sender, String[] args) {
         if (!canUse(sender)) return List.of();
 
+        boolean isAdmin = Perm.has(sender, Perm.SPAWN);
         List<String> positional = new ArrayList<>(List.of(args));
         String typed = positional.isEmpty() ? "" : positional.getLast().toLowerCase();
 
@@ -150,8 +191,25 @@ public class SpawnCommand implements FppCommand {
             return List.of();
         }
 
+        int locationFlag = positional.indexOf("--location");
+        if (isAdmin && locationFlag >= 0 && positional.size() > locationFlag + 1) {
+            int offset = positional.size() - 1 - locationFlag; // 1=x, 2=y, 3=z, 4=world
+            return switch (offset) {
+                case 1 -> typed.isEmpty() ? List.of("<x>") : List.of();
+                case 2 -> typed.isEmpty() ? List.of("<y>") : List.of();
+                case 3 -> typed.isEmpty() ? List.of("<z>") : List.of();
+                case 4 -> Bukkit.getWorlds().stream()
+                        .map(World::getName)
+                        .filter(n -> n.toLowerCase().startsWith(typed))
+                        .toList();
+                default -> List.of();
+            };
+        }
+
+        List<String> suggestions = new ArrayList<>();
         boolean nameUsed = positional.contains("--name");
-        if (!nameUsed && "--name".startsWith(typed)) return List.of("--name");
-        return List.of();
+        if (!nameUsed && "--name".startsWith(typed)) suggestions.add("--name");
+        if (isAdmin && locationFlag < 0 && "--location".startsWith(typed)) suggestions.add("--location");
+        return suggestions;
     }
 }

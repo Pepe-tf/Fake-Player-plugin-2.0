@@ -6,11 +6,11 @@ FPP supports **Velocity** and **BungeeCord** proxy networks via companion plugin
 
 The proxy-merged architecture gives you:
 
-- **Shared MySQL database** — all backends read/write to the same `fpp_network_bots` and `fpp_server_heartbeat` tables
-- **True cross-server player counts** — `%fpp_network_total%`, `%fpp_network_real%`, `%fpp_network_bots%` show real sums across all backends
-- **Remote bot caching** — bots on other servers appear in `/fpp list`, tab list, and placeholders
-- **Config sync** — push/pull config.yml across backends via the shared database
-- **Proxy-pushed stats** — the proxy companion broadcasts totals to backends every 5 seconds (no player dependency)
+- **Shared MySQL database** - all backends read/write to the same `fpp_network_bots` and `fpp_server_heartbeat` tables
+- **True cross-server player counts** - `%fpp_network_total%`, `%fpp_network_real%`, `%fpp_network_bots%` show real sums across all backends
+- **Remote bot caching** - bots on other servers appear in `/fpp list`, tab list, and placeholders
+- **Config sync** - push/pull config.yml across backends via the shared database
+- **Proxy-pushed stats** - the proxy companion broadcasts totals to backends every 5 seconds (no player dependency)
 
 ## What You Need
 
@@ -40,7 +40,7 @@ FLUSH PRIVILEGES;
 # plugins/FakePlayerPlugin/config.yml
 database:
   enabled: true
-  mode: "NETWORK"          # REQUIRED — enables shared tables
+  mode: "NETWORK"          # REQUIRED - enables shared tables
   server-id: "survival"    # MUST be unique per backend (e.g., "survival", "skyblock", "lobby")
   mysql-enabled: true
   mysql:
@@ -64,7 +64,7 @@ database:
 - **Velocity:** Place `fpp-velocity.jar` in `velocity/plugins/`
 - **BungeeCord/Waterfall:** Place `fpp-bungee.jar` in `plugins/`
 
-No configuration required — companions auto-detect backends.
+No configuration required - companions auto-detect backends.
 
 ### 4. Restart
 
@@ -143,9 +143,9 @@ config-sync:
   mode: "AUTO_PULL"   # AUTO_PULL / AUTO_PUSH / MANUAL
 ```
 
-- `AUTO_PULL` — each server automatically pulls the newest config on startup
-- `AUTO_PUSH` — this server pushes its config on every reload
-- `MANUAL` — use `/fpp reload network` to sync manually
+- `AUTO_PULL` - each server automatically pulls the newest config on startup
+- `AUTO_PUSH` - this server pushes its config on every reload
+- `MANUAL` - use `/fpp reload network` to sync manually
 
 ## Troubleshooting
 
@@ -153,7 +153,7 @@ config-sync:
 |-------|----------|
 | `%fpp_network_total%` shows local only | Verify `database.mode: "NETWORK"`, unique `server-id`, and MySQL connectivity |
 | Remote bots don't show in tab list | Check that proxy companion is installed and all backends restarted |
-| Duplicate bot names across servers | Use unique `server-id` values — the network registry is keyed by `server_id + bot_uuid` |
+| Duplicate bot names across servers | Use unique `server-id` values - the network registry is keyed by `server_id + bot_uuid` |
 | High MySQL load | Increase `heartbeat-interval` in config (not yet exposed; defaults to 5s) |
 | Server offline but still in network totals | Stale entries are pruned after 60 seconds automatically |
 
@@ -165,6 +165,6 @@ config-sync:
 
 ## See Also
 
-- [Database](Database) — MySQL setup details
-- [Config Sync](Config-Sync) — Push/pull configs across backends
-- [Placeholders](Placeholders) — Full placeholder reference
+- [Database](Database) - MySQL setup details
+- [Config Sync](Config-Sync) - Push/pull configs across backends
+- [Placeholders](Placeholders) - Full placeholder reference

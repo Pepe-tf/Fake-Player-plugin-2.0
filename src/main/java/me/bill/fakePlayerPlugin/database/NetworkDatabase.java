@@ -19,9 +19,9 @@ import me.bill.fakePlayerPlugin.util.FppLogger;
  *
  * <p>Tables managed:
  * <ul>
- *   <li>{@code fpp_network_bots} — live bot registry shared across all servers</li>
- *   <li>{@code fpp_server_heartbeat} — per-server liveness + player counts</li>
- *   <li>{@code fpp_network_tasks} — cross-server command queue (task router)</li>
+ *   <li>{@code fpp_network_bots} - live bot registry shared across all servers</li>
+ *   <li>{@code fpp_server_heartbeat} - per-server liveness + player counts</li>
+ *   <li>{@code fpp_network_tasks} - cross-server command queue (task router)</li>
  * </ul>
  */
 public final class NetworkDatabase {
@@ -50,7 +50,7 @@ public final class NetworkDatabase {
     }
 
     // ═════════════════════════════════════════════════════════════════════════════
-    //  fpp_network_bots  —  shared live bot registry
+    //  fpp_network_bots  -  shared live bot registry
     // ═════════════════════════════════════════════════════════════════════════════
 
     public void upsertNetworkBot(NetworkBotRow row) {
@@ -208,7 +208,7 @@ public final class NetworkDatabase {
     }
 
     // ═════════════════════════════════════════════════════════════════════════════
-    //  fpp_server_heartbeat  —  per-server liveness
+    //  fpp_server_heartbeat  -  per-server liveness
     // ═════════════════════════════════════════════════════════════════════════════
 
     public void heartbeat(String serverId, int realPlayers, int botCount) {
@@ -311,7 +311,7 @@ public final class NetworkDatabase {
     }
 
     // ═════════════════════════════════════════════════════════════════════════════
-    //  fpp_network_tasks  —  cross-server command queue
+    //  fpp_network_tasks  -  cross-server command queue
     // ═════════════════════════════════════════════════════════════════════════════
 
     public long createNetworkTask(

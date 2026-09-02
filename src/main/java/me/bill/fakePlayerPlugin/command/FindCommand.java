@@ -15,7 +15,6 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
@@ -27,7 +26,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
@@ -37,6 +35,7 @@ import me.bill.fakePlayerPlugin.api.FppBotBlockBreakEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
+import me.bill.fakePlayerPlugin.fakeplayer.BotToolSelector;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
@@ -450,7 +449,7 @@ public final class FindCommand implements FppCommand {
                 BotNavUtil.findStandLocation(bot.getWorld(), null, target.getX(), target.getY(), target.getZ());
 
         if (standLoc == null) {
-            // Can't stand next to it — skip and try next
+            // Can't stand next to it - skip and try next
             releaseReservation(found.key(), fp.getUuid());
             findAndMineNext(fp, job);
             return;
@@ -465,7 +464,7 @@ public final class FindCommand implements FppCommand {
         } else {
             UUID uuid = fp.getUuid();
             startNavWatchdog(fp, target, () -> {
-                // Stuck too long chasing this block — give up on it and try the next one.
+                // Stuck too long chasing this block - give up on it and try the next one.
                 if (pathfinding.isNavigating(uuid, PathfindingService.Owner.FIND)) {
                     pathfinding.cancel(uuid);
                 }
@@ -485,12 +484,12 @@ public final class FindCommand implements FppCommand {
                                 lockAndMineTarget(fp, job, target, faceLoc);
                             },
                             () -> {
-                                // Navigation cancelled externally — stop job
+                                // Navigation cancelled externally - stop job
                                 cancelNavWatchdog(uuid);
                                 cleanupBot(uuid);
                             },
                             () -> {
-                                // Path failed — skip this block and try next
+                                // Path failed - skip this block and try next
                                 cancelNavWatchdog(uuid);
                                 releaseReservation(found.key(), uuid);
                                 findAndMineNext(fp, job);
@@ -689,7 +688,7 @@ public final class FindCommand implements FppCommand {
         }
 
         // Anti-stuck: no destroy progress for too long (wrong/missing tool, block resisting breakage,
-        // etc.) — give up on this block instead of grinding on it forever. It's already in job.mined
+        // etc.) - give up on this block instead of grinding on it forever. It's already in job.mined
         // so it won't be re-targeted.
         if (state.ticksSinceProgress >= MINE_STALL_TICKS) {
             ItemStack held = bot.getInventory().getItemInMainHand();
@@ -709,8 +708,8 @@ public final class FindCommand implements FppCommand {
             return;
         }
 
-        // Auto-equip the best available tool for this block (real logic — see toolTagFor/toolTier).
-        equipBestTool(bot, targetPos);
+        // Auto-equip the best available tool for this block.
+        BotToolSelector.equipBestTool(bot, targetPos);
 
         Direction side = Direction.DOWN;
 
@@ -1104,67 +1103,6 @@ public final class FindCommand implements FppCommand {
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
-    //  Tool equip — real logic, driven by Bukkit's own MINEABLE_*/ITEMS_* tags (the same
-    //  data vanilla uses to decide which tool category works on which block).
-    // ─────────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Equips the best available tool in the bot's inventory for the block at {@code pos}, if any tool
-     * category applies and the bot actually has one. Never blocks progress: if the block wants no
-     * specific tool, or the bot has none of the right category, mining proceeds with whatever's held.
-     */
-    private void equipBestTool(Player bot, BlockPos pos) {
-        Block block = bot.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
-        Tag<Material> toolCategory = toolTagFor(block.getType());
-        if (toolCategory == null) return;
-
-        PlayerInventory inv = bot.getInventory();
-        int bestSlot = -1;
-        int bestTier = -1;
-        for (int slot = 0; slot < 36; slot++) {
-            ItemStack item = inv.getItem(slot);
-            if (item == null || item.getType().isAir() || !toolCategory.isTagged(item.getType())) continue;
-            int tier = toolTier(item.getType());
-            if (tier > bestTier) {
-                bestTier = tier;
-                bestSlot = slot;
-            }
-        }
-        if (bestSlot < 0 || bestSlot == inv.getHeldItemSlot()) return;
-
-        if (bestSlot <= 8) {
-            inv.setHeldItemSlot(bestSlot);
-        } else {
-            int heldSlot = inv.getHeldItemSlot();
-            ItemStack heldItem = inv.getItem(heldSlot);
-            ItemStack toolItem = inv.getItem(bestSlot);
-            inv.setItem(heldSlot, toolItem);
-            inv.setItem(bestSlot, heldItem);
-        }
-    }
-
-    /** Which tool category (if any) is appropriate for mining this block, mirroring vanilla's own tags. */
-    private static Tag<Material> toolTagFor(Material blockType) {
-        if (Tag.MINEABLE_PICKAXE.isTagged(blockType)) return Tag.ITEMS_PICKAXES;
-        if (Tag.MINEABLE_AXE.isTagged(blockType)) return Tag.ITEMS_AXES;
-        if (Tag.MINEABLE_SHOVEL.isTagged(blockType)) return Tag.ITEMS_SHOVELS;
-        if (Tag.MINEABLE_HOE.isTagged(blockType)) return Tag.ITEMS_HOES;
-        return null;
-    }
-
-    /** Higher = better tier, for picking the strongest available tool within a category. */
-    private static int toolTier(Material toolMaterial) {
-        String name = toolMaterial.name();
-        if (name.startsWith("NETHERITE_")) return 6;
-        if (name.startsWith("DIAMOND_")) return 5;
-        if (name.startsWith("IRON_")) return 4;
-        if (name.startsWith("STONE_")) return 3;
-        if (name.startsWith("GOLDEN_")) return 2;
-        if (name.startsWith("WOODEN_")) return 1;
-        return 0;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────────
     //  Lifecycle helpers
     // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1204,7 +1142,7 @@ public final class FindCommand implements FppCommand {
 
     /**
      * Starts a watchdog that fires {@code onStuck} if navigation to the current find-job block hasn't
-     * arrived/cancelled/failed within {@link #NAV_WATCHDOG_TICKS} — the shared pathfinder will keep
+     * arrived/cancelled/failed within {@link #NAV_WATCHDOG_TICKS} - the shared pathfinder will keep
      * recalculating against a genuinely unreachable block forever otherwise (anti-stuck).
      */
     private void startNavWatchdog(FakePlayer fp, Runnable onStuck) {
@@ -1331,7 +1269,7 @@ public final class FindCommand implements FppCommand {
 
         int minedCount = 0;
 
-        /** Skips the next inventory-full check — set right after a deposit trip finishes. */
+        /** Skips the next inventory-full check - set right after a deposit trip finishes. */
         boolean skipInventoryCheckOnce = false;
 
         FindJob(

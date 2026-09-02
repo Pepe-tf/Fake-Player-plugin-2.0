@@ -63,14 +63,14 @@ database:
 ## Tables
 
 ### Core Tables (All Modes)
-- `fpp_sessions` — Bot spawn/death session history
-- `fpp_bot_data` — Persistent bot settings (XP, inventory, tasks)
-- `fpp_skin_cache` — legacy skin cache (dormant — skins are now cached in `data/skin-cache.yml`)
+- `fpp_sessions` - Bot spawn/death session history
+- `fpp_bot_data` - Persistent bot settings (XP, inventory, tasks)
+- `fpp_skin_cache` - legacy skin cache (dormant - skins are now cached in `data/skin-cache.yml`)
 
 ### Network Tables (NETWORK Mode Only)
-- `fpp_network_bots` — Live bot registry across all backends
-- `fpp_server_heartbeat` — Server liveness tracking (pruned after 60s stale)
-- `fpp_network_tasks` — Cross-server task persistence
+- `fpp_network_bots` - Live bot registry across all backends
+- `fpp_server_heartbeat` - Server liveness tracking (pruned after 60s stale)
+- `fpp_network_tasks` - Cross-server task persistence
 
 ## Persistence
 

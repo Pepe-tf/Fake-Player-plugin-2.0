@@ -18,11 +18,11 @@ import com.google.gson.JsonParser;
  * <p>Two independent strategies, used in this order:
  *
  * <ol>
- *   <li><b>Texture metadata</b> — a signed texture property's base64 value is a JSON document; slim
+ *   <li><b>Texture metadata</b> - a signed texture property's base64 value is a JSON document; slim
  *       skins carry {@code textures.SKIN.metadata.model = "slim"}, classic skins carry no metadata.
  *       Authoritative when a texture value is available, since this is the exact field the client
  *       itself renders from.
- *   <li><b>Pixel analysis</b> — for a raw skin PNG (no texture property yet, e.g. a pool skin about
+ *   <li><b>Pixel analysis</b> - for a raw skin PNG (no texture property yet, e.g. a pool skin about
  *       to be uploaded for signing): on modern 64x64 skins the classic model's right arm occupies
  *       x=50–53 while the extra column x=54–55 (rows 20–31) is painted only for 4px-arm skins; slim
  *       skins leave it fully transparent. Legacy 64x32 skins predate slim entirely → always classic.

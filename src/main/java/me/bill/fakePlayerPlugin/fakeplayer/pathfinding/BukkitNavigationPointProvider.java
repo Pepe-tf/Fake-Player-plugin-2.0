@@ -17,8 +17,8 @@ import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
  * Bridges Pathetic's grid search to real Bukkit block data.
  *
  * <p>{@code position} is treated as the bot's <b>feet</b> block. A position is traversable when the
- * two body-height blocks (feet, head) are passable and the block below is stand-on-able ground —
- * reusing {@link BotNavUtil}'s existing walkability rules — with per-request relaxations for
+ * two body-height blocks (feet, head) are passable and the block below is stand-on-able ground -
+ * reusing {@link BotNavUtil}'s existing walkability rules - with per-request relaxations for
  * block-breaking, block-placing (gap bridging), and water/lava avoidance sourced from the
  * {@link BotPathfinder.PathOptions} carried on the {@link PatheticEnvironment}.
  */
@@ -60,7 +60,7 @@ public final class BukkitNavigationPointProvider implements NavigationPointProvi
     }
 
     /**
-     * The single source of truth for "can a bot's feet legally occupy this block" — shared by the
+     * The single source of truth for "can a bot's feet legally occupy this block" - shared by the
      * live search ({@link #getNavigationPoint}) and {@link PatheticPathfindingController}'s
      * post-search re-verification pass, so both agree on exactly the same rules.
      */
@@ -78,7 +78,7 @@ public final class BukkitNavigationPointProvider implements NavigationPointProvi
 
         if (options.avoidWater() && (feet == Material.WATER || head == Material.WATER)) return false;
         // Lava is never passable in BotNavUtil.canPassThrough, so no separate avoidLava check is
-        // needed here — it is already always avoided.
+        // needed here - it is already always avoided.
 
         if (!passable(world, x, y, z, options.breakBlocks())) return false;
         if (!passable(world, x, y + 1, z, options.breakBlocks())) return false;

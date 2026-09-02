@@ -17,7 +17,7 @@ import me.bill.fakePlayerPlugin.util.FppScheduler;
 
 /**
  * Core-owned skin orchestration. Skins come exclusively from the rarity pools
- * ({@link SkinPoolService}) — there is no player-name lookup, so a bot can never wear a real
+ * ({@link SkinPoolService}) - there is no player-name lookup, so a bot can never wear a real
  * account's identity. A bot that already carries a resolved skin (persistence restore, respawn
  * snapshot, manual apply) keeps it; the rarity roll happens once per fresh spawn.
  */
@@ -36,7 +36,7 @@ public final class SkinManager {
 
     public void resolveEffectiveSkin(@NotNull FakePlayer fp, @NotNull Consumer<@Nullable SkinProfile> callback) {
         // A bot that already carries a skin (persistence restore, respawn snapshot, manual apply)
-        // keeps it — the rarity roll happens once per fresh spawn, never again.
+        // keeps it - the rarity roll happens once per fresh spawn, never again.
         SkinProfile existing = fp.getResolvedSkin();
         if (existing != null && existing.isValid()) {
             Config.debugSkinPool("resolveEffectiveSkin('" + fp.getName() + "'): already has a resolved skin ("

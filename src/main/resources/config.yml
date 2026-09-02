@@ -102,10 +102,10 @@ bot-name:
 # All three rows are rendered by a floating text_display above the bot; the bot's
 # vanilla over-head name is hidden so it does not overlay.
 #   Row 1 (top)    = current activity (idle/moving/mining/fighting/searching/sneaking/...),
-#                    computed live twice a second — not configurable here, see BotActivity.java.
+#                    computed live twice a second - not configurable here, see BotActivity.java.
 #   Row 2 (middle) = the bot's name.
 #   Row 3 (bottom) = the format below.
-# Row 3 is a mandatory disclosure tag and cannot be disabled — every bot must
+# Row 3 is a mandatory disclosure tag and cannot be disabled - every bot must
 # always visibly identify itself as a bot.
 #   {owner} = the player (or CONSOLE) that spawned the bot.
 #   y-offset             = blocks above the bot's feet (~1.9 sits just above the head, mannequin-style).
@@ -123,7 +123,7 @@ nametag:
 # Skins are defined in plugins/FakePlayerPlugin/skins/ as text files of NameMC
 # skin URLs (https://namemc.com/skin/<id>), one per line:
 #   main_skin.txt = the default skin every bot spawns with.
-#   1-<N>%.txt    = a "1 in N" rarity pool — each fresh spawn has a 1/N chance to
+#   1-<N>%.txt    = a "1 in N" rarity pool - each fresh spawn has a 1/N chance to
 #                   draw a random skin from that file instead of the main skin.
 #                   Add or remove pool files freely; rarest pools roll first.
 # Skins are signed once through the MineSkin API (slim/classic model detected
@@ -134,7 +134,7 @@ nametag:
 # ═══════════════════════════════════════════════════════════════════════════════
 skin:
   rare-pools: true
-  # Optional MineSkin API key (https://mineskin.org/apikey) — grants a much larger
+  # Optional MineSkin API key (https://mineskin.org/apikey) - grants a much larger
   # signing quota than anonymous use. Only needed if you add many new skins at once.
   mineskin-api-key: ''
 
@@ -171,7 +171,7 @@ bot-interaction:
 # ═══════════════════════════════════════════════════════════════════════════════
 # BROADCAST MESSAGES
 # ═══════════════════════════════════════════════════════════════════════════════
-# leave-message controls network-relay behavior (Velocity/BungeeCord), not chat text — bots never
+# leave-message controls network-relay behavior (Velocity/BungeeCord), not chat text - bots never
 # show join/leave/death/kill messages in chat.
 # notify-admins-on-join sends an additional notification to staff/admin users.
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -401,14 +401,18 @@ update-checker:
 #
 # left-click.interval-ticks: ticks between block breaks while REPEAT/HOLD
 #   mining (vanilla's own destroyDelay is ~5 ticks; default matches that).
-#   Entity attacks are unaffected — those are paced solely by the held
+#   Entity attacks are unaffected - those are paced solely by the held
 #   weapon's real attack-speed cooldown, exactly like a real player.
+# left-click.auto-tool-switch: before mining a block, swap to the best
+#   available tool (highest tier of the right category) already in the
+#   bot's inventory - the way a competent player would before swinging.
 # right-click.interval-ticks: ticks between held right-click pulses
 #   (default 4 matches the vanilla client's own rightClickDelay).
 # Both accept 1-40 ticks (enforced per-bot too).
 # ═══════════════════════════════════════════════════════════════════════════════
 left-click:
   interval-ticks: 4
+  auto-tool-switch: true
 
 right-click:
   interval-ticks: 4

@@ -26,7 +26,7 @@ import me.bill.fakePlayerPlugin.util.BotAccess;
 
 /**
  * Pathfinding-only bot movement: walk to another bot/player (following live if they move) or to
- * fixed coordinates. Directional raw-input movement was removed — {@code --to}/{@code --coords}
+ * fixed coordinates. Directional raw-input movement was removed - {@code --to}/{@code --coords}
  * cover every real use case and are simpler to reason about.
  */
 public final class MoveCommand implements FppCommand {
@@ -142,7 +142,7 @@ public final class MoveCommand implements FppCommand {
             return true;
         }
 
-        // Resolve the destination once, up front — not per bot in the loop, otherwise a "--to"
+        // Resolve the destination once, up front - not per bot in the loop, otherwise a "--to"
         // target that happens to be one of the "all" bots would abort the whole batch on its own
         // turn (self-target) instead of just being skipped.
         UUID excludeUuid = null;
@@ -328,7 +328,7 @@ public final class MoveCommand implements FppCommand {
 
     private void stopMovement(FakePlayer fp) {
         UUID uuid = fp.getUuid();
-        // Only release the nav slot if /fpp move itself currently owns it — another concurrently
+        // Only release the nav slot if /fpp move itself currently owns it - another concurrently
         // running task (mining, using, finding, PVE) may hold it instead, and stopping *this* bot's
         // move command must never cancel someone else's navigation.
         if (pathfinding.isNavigating(uuid, PathfindingService.Owner.MOVE)) {

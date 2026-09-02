@@ -14,12 +14,12 @@ import me.bill.fakePlayerPlugin.config.Config;
  *
  * <p>{@code economy.provider} in config.yml selects the strategy:
  * <ul>
- *   <li>{@code auto} (default) — Vault (which also transparently covers "Vault2.0" and
+ *   <li>{@code auto} (default) - Vault (which also transparently covers "Vault2.0" and
  *       Vault-bridged ExcellentEconomy) if its Economy service is registered, else native
  *       ExcellentEconomy if present, else unavailable.</li>
- *   <li>{@code vault} / {@code excellenteconomy} — pin to one specific backend.</li>
- *   <li>{@code none} — economy features are fully disabled (rentals become free/unlimited, gated
- *       purely by permissions — see {@code Config.economyEnabled()}).</li>
+ *   <li>{@code vault} / {@code excellenteconomy} - pin to one specific backend.</li>
+ *   <li>{@code none} - economy features are fully disabled (rentals become free/unlimited, gated
+ *       purely by permissions - see {@code Config.economyEnabled()}).</li>
  * </ul>
  */
 public final class EconomyManager {

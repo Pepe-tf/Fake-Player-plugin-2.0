@@ -25,7 +25,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
  * <p>The sample is <b>rebuilt from real online players</b> rather than filtered by bot UUID: the
  * profile a bot contributes to the sample isn't guaranteed to carry the bot's logical UUID (skin
  * injection can swap the profile identity, and an anonymized sample carries no identity at all), so
- * subtractive filtering can miss — an entry the client then renders as "Anonymous Player".
+ * subtractive filtering can miss - an entry the client then renders as "Anonymous Player".
  */
 public final class ServerListPingListener implements Listener {
 
@@ -43,7 +43,7 @@ public final class ServerListPingListener implements Listener {
             botUuids.add(fp.getUuid());
             botNames.add(fp.getName().toLowerCase(Locale.ROOT));
             Player body = fp.getPlayer();
-            // The live entity's UUID can differ from the bot's logical UUID — cover both.
+            // The live entity's UUID can differ from the bot's logical UUID - cover both.
             if (body != null) botUuids.add(body.getUniqueId());
         }
         if (botUuids.isEmpty()) return;

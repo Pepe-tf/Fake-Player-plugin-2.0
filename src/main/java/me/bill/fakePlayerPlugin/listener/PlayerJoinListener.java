@@ -215,7 +215,7 @@ public class PlayerJoinListener implements Listener {
         UUID uuid = event.getPlayer().getUniqueId();
 
         // The hide-nametag team is never registered with the real scoreboard, so a rejoining client
-        // has no memory of it — forget them so the next join re-syncs from scratch.
+        // has no memory of it - forget them so the next join re-syncs from scratch.
         FakePlayerBody.forgetViewer(uuid);
 
         if (manager.hasSyntheticQuit(uuid)) {

@@ -15,7 +15,7 @@ import de.bsommerfeld.pathetic.api.wrapper.PathVector;
  * move ({@link NeighborStrategies#DIAGONAL_3D}) plus a small, fixed set of level 2-block "gap jump"
  * vectors for parkour.
  *
- * <p>The gap vectors are always offered to the search — {@link ParkourGapValidator} is what actually
+ * <p>The gap vectors are always offered to the search - {@link ParkourGapValidator} is what actually
  * rejects them unless {@link BotPathfinder.PathOptions#parkour()} is enabled for the search, so a
  * single shared {@link de.bsommerfeld.pathetic.api.pathing.Pathfinder} can serve both parkour and
  * non-parkour bots.

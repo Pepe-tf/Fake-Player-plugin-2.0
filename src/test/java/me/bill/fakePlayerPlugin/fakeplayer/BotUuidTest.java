@@ -30,7 +30,7 @@ class BotUuidTest {
 
     @Test
     void nonCanonicalSpellingsNeverCollideWithSequentialNames() {
-        // "bot1" is not a generated name (number 1 is spelled "bot") — it must not claim bot #1.
+        // "bot1" is not a generated name (number 1 is spelled "bot") - it must not claim bot #1.
         assertNotEquals(BotIdentityCache.deterministicBotUuid("bot"), BotIdentityCache.deterministicBotUuid("bot1"));
         assertNotEquals(BotIdentityCache.deterministicBotUuid("bot2"), BotIdentityCache.deterministicBotUuid("bot02"));
     }

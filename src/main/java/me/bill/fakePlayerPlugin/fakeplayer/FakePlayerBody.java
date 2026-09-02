@@ -44,8 +44,8 @@ public final class FakePlayerBody {
 
     /**
      * NMS team used only to hide bots' vanilla over-head names (both rows live in the text_display).
-     * Folia's Scoreboard/Team API is documented as entirely broken — global state the project hasn't
-     * implemented for regionised ticking — so this team is built directly from NMS and is
+     * Folia's Scoreboard/Team API is documented as entirely broken - global state the project hasn't
+     * implemented for regionised ticking - so this team is built directly from NMS and is
      * deliberately never registered with Bukkit's/the server's real scoreboard. It exists purely as
      * a data holder for building {@code ClientboundSetPlayerTeamPacket}s, which are pushed to
      * clients by hand (see {@link #hideVanillaNameNow}/{@link #unhideVanillaNameNow}).
@@ -54,7 +54,7 @@ public final class FakePlayerBody {
 
     private static volatile PlayerTeam hideTeam;
 
-    /** Bot names currently hidden — the source of truth, since we don't rely on the team object's own player set. */
+    /** Bot names currently hidden - the source of truth, since we don't rely on the team object's own player set. */
     private static final Set<String> hiddenNames = ConcurrentHashMap.newKeySet();
 
     /** Viewers (real players) who have already been sent the team-create packet for {@link #hideTeam}. */
@@ -83,7 +83,7 @@ public final class FakePlayerBody {
     /**
      * Brings a newly-joined (or newly-synced) viewer up to date on the hide-team and every bot
      * currently hidden from it. Since the team is never registered with the real scoreboard, vanilla
-     * login-sync never tells the client about it — this call is the only way they learn.
+     * login-sync never tells the client about it - this call is the only way they learn.
      */
     public static void syncHiddenNamesTo(Player viewer) {
         PlayerTeam team = hideTeam();
@@ -422,8 +422,8 @@ public final class FakePlayerBody {
     }
 
     /**
-     * Spawns the mannequin-style name tag (a {@link TextDisplay}) that carries BOTH rows — the bot's
-     * name and the configured indicator (default {@code bot by <owner>}) — and hides the bot's vanilla
+     * Spawns the mannequin-style name tag (a {@link TextDisplay}) that carries BOTH rows - the bot's
+     * name and the configured indicator (default {@code bot by <owner>}) - and hides the bot's vanilla
      * over-head name so it does not overlay the display.
      */
     public static Entity spawnNametag(FakePlayer fp, Entity body) {
@@ -464,7 +464,7 @@ public final class FakePlayerBody {
 
     /**
      * Rebuilds the tag text (e.g. after an owner change). The text_display is entity state, so on
-     * Folia the actual mutation must run on the region thread that currently owns it — callers may
+     * Folia the actual mutation must run on the region thread that currently owns it - callers may
      * invoke this from anywhere (a command, an async callback, the global-region activity-refresh
      * loop), so the dispatch happens here rather than being the caller's responsibility.
      */
@@ -490,8 +490,8 @@ public final class FakePlayerBody {
      * Re-asserts that this bot's vanilla over-head name is hidden, independent of the text_display
      * refresh cycle. Minecraft only allows one scoreboard team per player at a time, so anything else
      * that puts the bot on a <em>different</em> team (another plugin's own prefix/nametag-color
-     * system, an admin running {@code /scoreboard teams join}, …) silently evicts it from ours —
-     * bringing the real name back — without ever touching the text_display, so
+     * system, an admin running {@code /scoreboard teams join}, …) silently evicts it from ours -
+     * bringing the real name back - without ever touching the text_display, so
      * {@link #refreshNametag} alone wouldn't catch it for a bot whose activity label never changes.
      * Callers should invoke this unconditionally on a steady cadence (not gated on label change) so
      * the hide genuinely never lapses for more than one sweep interval, regardless of cause.
@@ -542,7 +542,7 @@ public final class FakePlayerBody {
         try {
             String name = fp.getName();
             // removeNametag() (and therefore this) unconditionally runs before EVERY spawn, including
-            // a bot's very first one — where its name was never added to any client's team roster.
+            // a bot's very first one - where its name was never added to any client's team roster.
             // The vanilla client's Scoreboard#removePlayerFromTeam throws (and disconnects!) if asked
             // to remove a name that isn't currently a member, so only broadcast REMOVE for a name that
             // really was hidden.
@@ -583,10 +583,11 @@ public final class FakePlayerBody {
         Component indicatorRow =
                 TextUtil.colorize(Config.nametagSecondLineFormat().replace("{owner}", owner));
         // Rows below inherit color from whatever they're appended onto, so give each an explicit
-        // color instead of relying on defaults — otherwise a colorless row picks up its parent's.
+        // color instead of relying on defaults - otherwise a colorless row picks up its parent's.
         Component nameRow = TextUtil.colorize(rawName != null && !rawName.isBlank() ? rawName : fp.getName());
         if (nameRow.color() == null) nameRow = nameRow.color(TextColor.fromHexString("#EEECF7"));
-        TextColor indicatorColor = indicatorRow.color() != null ? indicatorRow.color() : TextColor.fromHexString("#9691AB");
+        TextColor indicatorColor =
+                indicatorRow.color() != null ? indicatorRow.color() : TextColor.fromHexString("#9691AB");
         Component actionRow = Component.text(BotActivity.currentLabel(fp))
                 .color(indicatorColor)
                 .decoration(TextDecoration.ITALIC, true);

@@ -17,7 +17,7 @@ public final class FppLogger {
     private static final String RESET = "\u001B[0m";
     private static final String BOLD = "\u001B[1m";
 
-    // FPP 2.0 "Bot Console" palette — violet / lime, see language/en.yml header for the full reference.
+    // FPP 2.0 "Bot Console" palette - violet / lime, see language/en.yml header for the full reference.
     private static final String BLUE = "\u001B[38;2;167;139;250m"; // violet #A78BFA
 
     private static final String WHITE = "\u001B[38;2;238;236;247m"; // ink #EEECF7

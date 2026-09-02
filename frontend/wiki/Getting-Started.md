@@ -1,6 +1,6 @@
 # Getting Started
 
-FPP spawns server-side bot entities that behave like players — useful for **AFK farms, automated tasks, testing, and NPC simulations**. It is **not** a fake-online-count or player-spoofing tool. Supports both Paper/Purpur and Folia.
+FPP spawns server-side bot entities that behave like players - useful for **AFK farms, automated tasks, testing, and NPC simulations**. It is **not** a fake-online-count or player-spoofing tool. Supports both Paper/Purpur and Folia.
 
 ## Requirements
 
@@ -8,7 +8,7 @@ FPP spawns server-side bot entities that behave like players — useful for **AF
 - **Java:** JDK 21+
 - **RAM:** 2GB+ recommended for optimal performance
 - **Optional soft-depends:** PlaceholderAPI (placeholders), WorldEdit (selection helpers), Spark (`/fpp perf`)
-- **Permissions:** any permission manager (e.g. LuckPerms) works with FPP's nodes — there is no built-in LuckPerms integration to configure
+- **Permissions:** any permission manager (e.g. LuckPerms) works with FPP's nodes - there is no built-in LuckPerms integration to configure
 
 ## Installation
 
@@ -16,13 +16,13 @@ FPP spawns server-side bot entities that behave like players — useful for **AF
 2. Drop the JAR into your server's `plugins/` folder.
 3. Restart the server.
 4. The plugin creates `plugins/FakePlayerPlugin/` with:
-   - `config.yml` — main configuration
-   - `debug.yml` — debug logging control (all categories disabled by default)
-   - `language/en.yml` — messages and translations
-   - `bot-names.yml` — reserved-name configuration
-   - `bad-words.yml` — profanity filter word list
-   - `data/` — SQLite database and persistence files
-   - `skins/` — bot skin pools (`main_skin.txt` + `1-<N>%.txt` rarity tiers)
+   - `config.yml` - main configuration
+   - `debug.yml` - debug logging control (all categories disabled by default)
+   - `language/en.yml` - messages and translations
+   - `bot-names.yml` - reserved-name configuration
+   - `bad-words.yml` - profanity filter word list
+   - `data/` - SQLite database and persistence files
+   - `skins/` - bot skin pools (`main_skin.txt` + `1-<N>%.txt` rarity tiers)
 5. Configure permissions (see [Permissions](Permissions)).
 6. Run `/fpp reload` to apply most changes without restarting.
 

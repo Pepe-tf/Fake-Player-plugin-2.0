@@ -40,14 +40,14 @@ import me.bill.fakePlayerPlugin.util.FppScheduler;
  * Rarity-based bot skin pools, fed from {@code plugins/FakePlayerPlugin/skins/}:
  *
  * <ul>
- *   <li>{@code main_skin.txt} — the default skin every bot spawns with.
- *   <li>{@code 1-<N>%.txt} — a "1 in N" pool ({@code 1-1000%.txt} = each spawn has a 1/1000 chance
+ *   <li>{@code main_skin.txt} - the default skin every bot spawns with.
+ *   <li>{@code 1-<N>%.txt} - a "1 in N" pool ({@code 1-1000%.txt} = each spawn has a 1/1000 chance
  *       to draw a random skin from that file instead of the main skin). Any number of pool files
  *       can be added; rarest pools are rolled first.
  * </ul>
  *
  * <p>Files contain one NameMC skin URL per line ({@code https://namemc.com/skin/<id>}). NameMC only
- * hosts the PNG — a skin needs a Mojang-signed texture property to render on clients — so the PNG is
+ * hosts the PNG - a skin needs a Mojang-signed texture property to render on clients - so the PNG is
  * run through the MineSkin API once, the model (slim/classic) is detected from the raw pixels via
  * {@link SkinModelDetector} and passed as the upload variant, and the signed result is cached
  * permanently in {@code data/skin-cache.yml}. After first resolution a skin never touches the
@@ -104,7 +104,7 @@ public final class SkinPoolService {
 
     /**
      * Resolves the main skin in the background at startup (cache-first, so this is a no-op on every
-     * start after the first) — the common case of a fresh spawn then never waits on MineSkin.
+     * start after the first) - the common case of a fresh spawn then never waits on MineSkin.
      */
     private void prewarmMainSkin() {
         String main = mainSkinId;
@@ -126,7 +126,7 @@ public final class SkinPoolService {
     }
 
     private void seedBundledFiles() {
-        // Seed when the directory is missing OR holds no skin files — the latter self-heals
+        // Seed when the directory is missing OR holds no skin files - the latter self-heals
         // installs where an earlier failed extraction left an empty directory behind.
         File[] existing =
                 skinsDir.listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".txt"));
@@ -223,7 +223,7 @@ public final class SkinPoolService {
     /**
      * Rolls a skin for a freshly spawned bot and resolves it to a signed texture asynchronously.
      * The callback runs on the main thread with a valid {@link SkinProfile}, or {@code null} when
-     * nothing could be resolved (no pools configured, network failure) — callers fall back to the
+     * nothing could be resolved (no pools configured, network failure) - callers fall back to the
      * vanilla default skin exactly as before.
      */
     public void rollAndResolve(@NotNull FakePlayer fp, @NotNull Consumer<@Nullable SkinProfile> callback) {
@@ -264,7 +264,7 @@ public final class SkinPoolService {
                 deliver(callback, resolved);
                 return;
             }
-            // Rare roll failed to resolve — degrade to the main skin rather than no skin at all.
+            // Rare roll failed to resolve - degrade to the main skin rather than no skin at all.
             String main = mainSkinId;
             if (roll.isRare() && main != null && !main.equals(roll.skinId())) {
                 Config.debugSkinPool(
@@ -347,7 +347,7 @@ public final class SkinPoolService {
 
     private final Map<String, Long> failureCooldown = new ConcurrentHashMap<>();
 
-    /** Blocking — must run off the main thread. */
+    /** Blocking - must run off the main thread. */
     private @Nullable SkinProfile fetchAndSign(String skinId, String source) {
         Long retryAt = failureCooldown.get(skinId);
         if (retryAt != null && System.currentTimeMillis() < retryAt) {
@@ -356,7 +356,7 @@ public final class SkinPoolService {
             return null;
         }
         try {
-            // The local PNG download only feeds model detection — MineSkin fetches the URL itself
+            // The local PNG download only feeds model detection - MineSkin fetches the URL itself
             // from its own servers. NameMC's CDN bot-blocks some hosts (403 for datacenter IPs), so
             // a failed local download is NOT fatal: fall back to variant "auto" and let MineSkin
             // detect the model server-side; the signed texture still tells us the real model after.
@@ -380,7 +380,7 @@ public final class SkinPoolService {
                 uploadUrl = workingUrl;
                 Config.debugSkinPool("skin " + skinId + ": model detected as " + model + " (pixel analysis).");
             } else {
-                model = SkinModel.UNKNOWN; // variant() == "auto" — MineSkin detects server-side
+                model = SkinModel.UNKNOWN; // variant() == "auto" - MineSkin detects server-side
                 uploadUrl = textureUrls(skinId)[0];
                 Config.debugSkinPool("skin " + skinId + ": local texture download blocked - deferring fetch and"
                         + " model detection to MineSkin (variant=auto).");
@@ -438,7 +438,7 @@ public final class SkinPoolService {
     /**
      * Uploads the PNG URL to MineSkin for Mojang signing; returns the texture object with
      * {@code value}/{@code signature}, or null. Serialized with a minimum gap between uploads to
-     * respect MineSkin's anonymous rate limit — cache-first resolution means each skin pays this
+     * respect MineSkin's anonymous rate limit - cache-first resolution means each skin pays this
      * cost exactly once, ever.
      */
     private @Nullable JsonObject mineSkinGenerate(String skinId, String pngUrl, String variant) {
@@ -468,7 +468,7 @@ public final class SkinPoolService {
                 conn.setRequestProperty("Content-Type", "application/json");
                 String apiKey = Config.skinMineSkinApiKey();
                 if (apiKey != null && !apiKey.isBlank()) {
-                    // Optional — a MineSkin API key grants a much larger quota than anonymous use.
+                    // Optional - a MineSkin API key grants a much larger quota than anonymous use.
                     conn.setRequestProperty("Authorization", "Bearer " + apiKey.trim());
                 }
                 conn.setDoOutput(true);

@@ -55,7 +55,8 @@ final class AuthCipher {
         File keyFile = new File(dataFolder, KEY_FILE_NAME);
         try {
             if (keyFile.exists()) {
-                byte[] decoded = Base64.getDecoder().decode(Files.readString(keyFile.toPath()).trim());
+                byte[] decoded = Base64.getDecoder()
+                        .decode(Files.readString(keyFile.toPath()).trim());
                 if (decoded.length == KEY_BYTES) return decoded;
                 FppLogger.warn("Auth: " + KEY_FILE_NAME + " is malformed - generating a fresh key. Any "
                         + "passwords already stored will fail to decrypt; run /fpp auth reset <bot> for "

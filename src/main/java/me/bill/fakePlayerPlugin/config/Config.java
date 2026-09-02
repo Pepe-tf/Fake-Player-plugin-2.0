@@ -295,7 +295,7 @@ public final class Config {
     }
 
     /**
-     * Bots are permanently hidden from the tab list — there is no override mechanism. This is
+     * Bots are permanently hidden from the tab list - there is no override mechanism. This is
      * intentional: bots must never be able to present themselves as a real connected client.
      */
     public static boolean tabListEnabled() {
@@ -370,7 +370,7 @@ public final class Config {
     }
 
     /**
-     * The disclosure line ("bot by {owner}") is mandatory and cannot be disabled — every bot must
+     * The disclosure line ("bot by {owner}") is mandatory and cannot be disabled - every bot must
      * always visibly identify itself as a bot, never as an indistinguishable real player.
      */
     public static boolean nametagSecondLineEnabled() {
@@ -436,6 +436,11 @@ public final class Config {
 
     public static boolean dropItemsOnDespawn() {
         return cfg.getBoolean("body.drop-items-on-despawn", false);
+    }
+
+    /** Whether left-click mining auto-equips the best available tool for the target block first. */
+    public static boolean autoToolSwitchEnabled() {
+        return cfg.getBoolean("left-click.auto-tool-switch", true);
     }
 
     public static boolean persistOnRestart() {

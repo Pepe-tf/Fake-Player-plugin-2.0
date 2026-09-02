@@ -1,5 +1,5 @@
 name: FakePlayerPlugin
-version: '2.0.5'
+version: '2.0.6'
 main: me.bill.fakePlayerPlugin.FakePlayerPlugin
 api-version: '1.21'
 folia-supported: true
@@ -25,7 +25,7 @@ commands:
 #   <scope>    ownership tier  (own, others, bulk, all)
 #
 # TIERS:
-#   fpp.admin / fpp.op   → FULL access  (identical — both work)
+#   fpp.admin / fpp.op   → FULL access  (identical - both work)
 #   fpp.use              → USER access  (default: everyone)
 #   individual nodes     → fine-grained control
 #
@@ -36,7 +36,7 @@ commands:
 #   Bypass cooldown:     /lp user VIP     permission set fpp.bypass.cooldown true
 #   Negate /fpp command: /lp group guest  permission set fpp.command false
 #
-# LEGACY NODES (still fully supported — no migration required):
+# LEGACY NODES (still fully supported - no migration required):
 #   fpp.op           →  still works, identical to fpp.admin
 #   fpp.delete       →  still works, identical to fpp.despawn
 #   fpp.delete.all   →  still works, identical to fpp.despawn.bulk
@@ -51,7 +51,7 @@ permissions:
 
   fpp.admin:
     description: >
-      Full access to all FPP commands and features. New preferred name —
+      Full access to all FPP commands and features. New preferred name -
       equivalent to fpp.op. Assign to owner / admin groups only.
     default: op
     children:
@@ -60,7 +60,7 @@ permissions:
   fpp.op:
     description: >
       Full access to all FPP commands (legacy admin wildcard).
-      fpp.admin is the new preferred name — both are identical in effect.
+      fpp.admin is the new preferred name - both are identical in effect.
     default: op
     children:
       fpp.command:              true
@@ -166,7 +166,7 @@ permissions:
 
   fpp.spawn:
     description: >
-      Admin spawn — ignores personal bot limits. Spawns one bot per command
+      Admin spawn - ignores personal bot limits. Spawns one bot per command
       (auto-named or --name) at the commanding player's own location.
     default: op
 
@@ -180,58 +180,58 @@ permissions:
   # Assign the highest node the player should be allowed.
   # fpp.spawn.limit.1 is included in fpp.use (default for all players).
   fpp.spawn.limit.1:
-    description: Personal bot limit — 1 bot. Included in fpp.use.
+    description: Personal bot limit - 1 bot. Included in fpp.use.
     default: false
   fpp.spawn.limit.2:
-    description: Personal bot limit — 2 bots.
+    description: Personal bot limit - 2 bots.
     default: false
   fpp.spawn.limit.3:
-    description: Personal bot limit — 3 bots.
+    description: Personal bot limit - 3 bots.
     default: false
   fpp.spawn.limit.4:
-    description: Personal bot limit — 4 bots.
+    description: Personal bot limit - 4 bots.
     default: false
   fpp.spawn.limit.5:
-    description: Personal bot limit — 5 bots.
+    description: Personal bot limit - 5 bots.
     default: false
   fpp.spawn.limit.6:
-    description: Personal bot limit — 6 bots.
+    description: Personal bot limit - 6 bots.
     default: false
   fpp.spawn.limit.7:
-    description: Personal bot limit — 7 bots.
+    description: Personal bot limit - 7 bots.
     default: false
   fpp.spawn.limit.8:
-    description: Personal bot limit — 8 bots.
+    description: Personal bot limit - 8 bots.
     default: false
   fpp.spawn.limit.9:
-    description: Personal bot limit — 9 bots.
+    description: Personal bot limit - 9 bots.
     default: false
   fpp.spawn.limit.10:
-    description: Personal bot limit — 10 bots.
+    description: Personal bot limit - 10 bots.
     default: false
   fpp.spawn.limit.15:
-    description: Personal bot limit — 15 bots.
+    description: Personal bot limit - 15 bots.
     default: false
   fpp.spawn.limit.20:
-    description: Personal bot limit — 20 bots.
+    description: Personal bot limit - 20 bots.
     default: false
   fpp.spawn.limit.25:
-    description: Personal bot limit — 25 bots.
+    description: Personal bot limit - 25 bots.
     default: false
   fpp.spawn.limit.30:
-    description: Personal bot limit — 30 bots.
+    description: Personal bot limit - 30 bots.
     default: false
   fpp.spawn.limit.40:
-    description: Personal bot limit — 40 bots.
+    description: Personal bot limit - 40 bots.
     default: false
   fpp.spawn.limit.50:
-    description: Personal bot limit — 50 bots.
+    description: Personal bot limit - 50 bots.
     default: false
   fpp.spawn.limit.75:
-    description: Personal bot limit — 75 bots.
+    description: Personal bot limit - 75 bots.
     default: false
   fpp.spawn.limit.100:
-    description: Personal bot limit — 100 bots.
+    description: Personal bot limit - 100 bots.
     default: false
 
   # ════════════════════════════════════════════════════════════════════════════
@@ -240,7 +240,7 @@ permissions:
 
   fpp.despawn:
     description: >
-      Despawn bots — new preferred node. Grants fpp.delete, fpp.delete.all,
+      Despawn bots - new preferred node. Grants fpp.delete, fpp.delete.all,
       fpp.despawn.bulk, fpp.despawn.own automatically.
     default: op
     children:
@@ -251,7 +251,7 @@ permissions:
 
   fpp.delete:
     description: >
-      Despawn fake players — legacy node (still fully supported).
+      Despawn fake players - legacy node (still fully supported).
       Prefer fpp.despawn for new setups.
     default: op
     children:
@@ -263,7 +263,7 @@ permissions:
 
   fpp.despawn.bulk:
     description: >
-      New alias for fpp.delete.all — despawn multiple bots at once
+      New alias for fpp.delete.all - despawn multiple bots at once
       (--count, --random --count). Grants fpp.delete.all.
     default: op
     children:
@@ -291,12 +291,12 @@ permissions:
 
   fpp.info:
     description: >
-      Full admin database query — session history, timestamps, all bots.
+      Full admin database query - session history, timestamps, all bots.
     default: op
 
   fpp.info.user:
     description: >
-      User info — own bots only (world, coordinates, uptime). In fpp.use.
+      User info - own bots only (world, coordinates, uptime). In fpp.use.
     default: true
 
   # ════════════════════════════════════════════════════════════════════════════
@@ -366,7 +366,7 @@ permissions:
 
   fpp.inventory:
     description: >
-      Full inventory access — grants both fpp.inventory.cmd and
+      Full inventory access - grants both fpp.inventory.cmd and
       fpp.inventory.rightclick automatically.
     default: op
     children:
@@ -396,7 +396,7 @@ permissions:
 
   fpp.left-click:
     description: >
-      Bot left-click automation (break blocks, attack entities) — grants
+      Bot left-click automation (break blocks, attack entities) - grants
       fpp.left-click.start, fpp.left-click.once, fpp.left-click.repeat,
       fpp.left-click.hold, fpp.left-click.stop.
     default: op
@@ -429,7 +429,7 @@ permissions:
 
   fpp.right-click:
     description: >
-      Bot right-click automation (use items, interact) — grants
+      Bot right-click automation (use items, interact) - grants
       fpp.right-click.start, fpp.right-click.once, fpp.right-click.repeat,
       fpp.right-click.hold, fpp.right-click.stop.
     default: op
@@ -466,7 +466,7 @@ permissions:
 
   fpp.useitem:
     description: >
-      Bot right-click automation — legacy node (still fully supported).
+      Bot right-click automation - legacy node (still fully supported).
       Prefer fpp.use.cmd for new setups. Grants fpp.useitem.start/once/stop.
     default: op
     children:
@@ -476,7 +476,7 @@ permissions:
 
   fpp.use.cmd:
     description: >
-      New alias for fpp.useitem — bot right-click automation.
+      New alias for fpp.useitem - bot right-click automation.
       Grants fpp.useitem automatically.
     default: op
     children:

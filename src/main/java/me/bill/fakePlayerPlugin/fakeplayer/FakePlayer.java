@@ -195,11 +195,11 @@ public final class FakePlayer {
 
     private volatile boolean tabListDirty = true;
 
-    /** Last action label rendered on the nametag's activity row — used to skip no-op refreshes. */
+    /** Last action label rendered on the nametag's activity row - used to skip no-op refreshes. */
     private volatile String lastRenderedActionLabel = null;
 
     /**
-     * Plugin-attached metadata — transient, cleared on despawn.
+     * Plugin-attached metadata - transient, cleared on despawn.
      */
     private final Map<String, Object> metadata = new ConcurrentHashMap<>();
 
@@ -583,7 +583,7 @@ public final class FakePlayer {
         this.leftClickIntervalTicks = ticks;
     }
 
-    /** The interval this bot's left-click loop should actually use — its own override, or the config default. */
+    /** The interval this bot's left-click loop should actually use - its own override, or the config default. */
     public int resolveLeftClickIntervalTicks() {
         return leftClickIntervalTicks > 0 ? leftClickIntervalTicks : Config.leftClickIntervalTicks();
     }
@@ -596,7 +596,7 @@ public final class FakePlayer {
         this.rightClickIntervalTicks = ticks;
     }
 
-    /** The interval this bot's right-click loop should actually use — its own override, or the config default. */
+    /** The interval this bot's right-click loop should actually use - its own override, or the config default. */
     public int resolveRightClickIntervalTicks() {
         return rightClickIntervalTicks > 0 ? rightClickIntervalTicks : Config.rightClickIntervalTicks();
     }

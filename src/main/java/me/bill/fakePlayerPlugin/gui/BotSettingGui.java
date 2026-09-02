@@ -81,7 +81,7 @@ public final class BotSettingGui implements Listener {
 
     private static final int SIZE = 54;
     private static final int SETTINGS_PER_PAGE = 45;
-    /** Longest allowed bot display name (visible characters) — keeps the floating name-tag readable. */
+    /** Longest allowed bot display name (visible characters) - keeps the floating name-tag readable. */
     private static final int RENAME_MAX_LENGTH = 32;
 
     private static final int SLOT_RESET = 45;
@@ -835,7 +835,7 @@ public final class BotSettingGui implements Listener {
             sendActionBarConfirm(player, "ʀᴇ-ʀᴏʟʟ ꜱᴋɪɴ", "✘ ꜱᴋɪɴ ᴘᴏᴏʟꜱ ᴅɪꜱᴀʙʟᴇᴅ");
             return;
         }
-        // Clearing the resolved skin makes resolveEffectiveSkin roll the pools again — identical
+        // Clearing the resolved skin makes resolveEffectiveSkin roll the pools again - identical
         // odds to a fresh spawn, including the rare tiers.
         bot.setResolvedSkin(null);
         skinManager.resolveEffectiveSkin(bot, skin -> {
@@ -940,7 +940,7 @@ public final class BotSettingGui implements Listener {
                     player.sendMessage(Component.empty()
                             .decoration(TextDecoration.ITALIC, false)
                             .append(Component.text("✘ ").color(OFF_RED))
-                            .append(Component.text("ᴛᴏᴏ ʟᴏɴɢ — ᴍᴀx " + RENAME_MAX_LENGTH + " ᴄʜᴀʀᴀᴄᴛᴇʀꜱ.")
+                            .append(Component.text("ᴛᴏᴏ ʟᴏɴɢ - ᴍᴀx " + RENAME_MAX_LENGTH + " ᴄʜᴀʀᴀᴄᴛᴇʀꜱ.")
                                     .color(GRAY)));
                     return;
                 }
@@ -955,7 +955,7 @@ public final class BotSettingGui implements Listener {
                     player.sendMessage(Component.empty()
                             .decoration(TextDecoration.ITALIC, false)
                             .append(Component.text("✘ ").color(OFF_RED))
-                            .append(Component.text("ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ — ᴇɴᴛᴇʀ 0-19.")
+                            .append(Component.text("ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ - ᴇɴᴛᴇʀ 0-19.")
                                     .color(GRAY)));
                     return;
                 }
@@ -977,7 +977,7 @@ public final class BotSettingGui implements Listener {
                             .decoration(TextDecoration.ITALIC, false)
                             .append(Component.text("✘ ").color(OFF_RED))
                             .append(Component.text(
-                                            "ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ — ᴇɴᴛᴇʀ -1 (ɢʟᴏʙᴀʟ), 0" + " (ᴏꜰꜰ), ᴏʀ 1-" + globalMax + ".")
+                                            "ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ - ᴇɴᴛᴇʀ -1 (ɢʟᴏʙᴀʟ), 0" + " (ᴏꜰꜰ), ᴏʀ 1-" + globalMax + ".")
                                     .color(GRAY)));
                     return;
                 }
@@ -999,7 +999,7 @@ public final class BotSettingGui implements Listener {
                     player.sendMessage(Component.empty()
                             .decoration(TextDecoration.ITALIC, false)
                             .append(Component.text("✘ ").color(OFF_RED))
-                            .append(Component.text("ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ — ᴇɴᴛᴇʀ 1-64.")
+                            .append(Component.text("ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ - ᴇɴᴛᴇʀ 1-64.")
                                     .color(GRAY)));
                     return;
                 }
@@ -1040,7 +1040,7 @@ public final class BotSettingGui implements Listener {
                     player.sendMessage(Component.empty()
                             .decoration(TextDecoration.ITALIC, false)
                             .append(Component.text("✘ ").color(OFF_RED))
-                            .append(Component.text("ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ — ᴇɴᴛᴇʀ "
+                            .append(Component.text("ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ - ᴇɴᴛᴇʀ "
                                             + LeftClickCommand.MIN_INTERVAL_TICKS
                                             + "-"
                                             + LeftClickCommand.MAX_INTERVAL_TICKS
@@ -1068,7 +1068,7 @@ public final class BotSettingGui implements Listener {
                     player.sendMessage(Component.empty()
                             .decoration(TextDecoration.ITALIC, false)
                             .append(Component.text("✘ ").color(OFF_RED))
-                            .append(Component.text("ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ — ᴇɴᴛᴇʀ "
+                            .append(Component.text("ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ - ᴇɴᴛᴇʀ "
                                             + RightClickCommand.MIN_INTERVAL_TICKS
                                             + "-"
                                             + RightClickCommand.MAX_INTERVAL_TICKS
@@ -2165,10 +2165,10 @@ public final class BotSettingGui implements Listener {
         meta.lore(List.of(
                 Component.empty()
                         .decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text("ᴄʟɪᴄᴋ — ᴄʟᴏꜱᴇ ᴛʜᴇ ᴍᴇɴᴜ").color(DARK_GRAY)),
+                        .append(Component.text("ᴄʟɪᴄᴋ - ᴄʟᴏꜱᴇ ᴛʜᴇ ᴍᴇɴᴜ").color(DARK_GRAY)),
                 Component.empty()
                         .decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text("ꜱʜɪꜰᴛ-ᴄʟɪᴄᴋ — ʙᴀᴄᴋ ᴛᴏ ᴛʜᴇ ʙᴏᴛ ʟɪꜱᴛ")
+                        .append(Component.text("ꜱʜɪꜰᴛ-ᴄʟɪᴄᴋ - ʙᴀᴄᴋ ᴛᴏ ᴛʜᴇ ʙᴏᴛ ʟɪꜱᴛ")
                                 .color(DARK_GRAY))));
         item.setItemMeta(meta);
         return item;
@@ -2481,7 +2481,7 @@ public final class BotSettingGui implements Listener {
                         BotEntry.immediate(
                                 "skin_reroll",
                                 "ʀᴇ-ʀᴏʟʟ ꜱᴋɪɴ",
-                                "ʀᴏʟʟꜱ ᴀ ꜰʀᴇꜱʜ ꜱᴋɪɴ ꜰʀᴏᴍ ᴛʜᴇ ᴘᴏᴏʟꜱ —\n"
+                                "ʀᴏʟʟꜱ ᴀ ꜰʀᴇꜱʜ ꜱᴋɪɴ ꜰʀᴏᴍ ᴛʜᴇ ᴘᴏᴏʟꜱ -\n"
                                         + "ꜱᴀᴍᴇ ʀᴀʀᴇ-ᴛɪᴇʀ ᴄʜᴀɴᴄᴇꜱ ᴀꜱ ᴀ ꜰʀᴇꜱʜ ꜱᴘᴀᴡɴ.\n"
                                         + "ᴛʜᴇ ɴᴇᴡ ꜱᴋɪɴ ᴘᴇʀꜱɪꜱᴛꜱ ʟɪᴋᴇ ᴀ ʀᴏʟʟᴇᴅ ᴏɴᴇ.",
                                 Material.EXPERIENCE_BOTTLE,
@@ -2534,7 +2534,7 @@ public final class BotSettingGui implements Listener {
                                 "ʀᴇꜱᴇᴛ ᴀʟʟ ꜱᴇᴛᴛɪɴɢꜱ",
                                 "⚠ ʀᴇꜱᴇᴛ ᴇᴠᴇʀʏ ꜱᴇᴛᴛɪɴɢ ᴏɴ ᴛʜɪꜱ ʙᴏᴛ\nᴛᴏ ᴅᴇꜰᴀᴜʟᴛ ᴠᴀʟᴜᴇꜱ.\n"
                                         + "ɢᴇɴᴇʀᴀʟ, ᴄʜᴀᴛ, ᴘᴠᴇ, ᴘᴀᴛʜꜰɪɴᴅɪɴɢ,\n"
-                                        + "ᴄᴏᴍᴍᴀɴᴅꜱ — ᴀʟʟ ʀᴇꜱᴇᴛ.",
+                                        + "ᴄᴏᴍᴍᴀɴᴅꜱ - ᴀʟʟ ʀᴇꜱᴇᴛ.",
                                 Material.REDSTONE_BLOCK,
                                 true),
                         BotEntry.danger(

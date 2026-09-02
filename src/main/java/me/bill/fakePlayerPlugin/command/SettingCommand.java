@@ -71,7 +71,7 @@ public class SettingCommand implements FppCommand {
             return true;
         }
 
-        // No argument — open global settings GUI
+        // No argument - open global settings GUI
         gui.open(player);
         return true;
     }

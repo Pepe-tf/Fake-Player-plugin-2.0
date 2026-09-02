@@ -111,7 +111,9 @@ public class HelpCommand implements FppCommand {
                     .hoverEvent(HoverEvent.showText(
                             Component.text("Go to page " + (page - 1)).color(TextColor.fromHexString("#9691AB"))));
         } else {
-            prev = Component.text("« ᴘʀᴇᴠ").color(TextColor.fromHexString("#5F5B73")).decoration(TextDecoration.BOLD, true);
+            prev = Component.text("« ᴘʀᴇᴠ")
+                    .color(TextColor.fromHexString("#5F5B73"))
+                    .decoration(TextDecoration.BOLD, true);
         }
 
         Component pageInfo =
@@ -126,7 +128,9 @@ public class HelpCommand implements FppCommand {
                     .hoverEvent(HoverEvent.showText(
                             Component.text("Go to page " + (page + 1)).color(TextColor.fromHexString("#9691AB"))));
         } else {
-            next = Component.text("ɴᴇxᴛ »").color(TextColor.fromHexString("#5F5B73")).decoration(TextDecoration.BOLD, true);
+            next = Component.text("ɴᴇxᴛ »")
+                    .color(TextColor.fromHexString("#5F5B73"))
+                    .decoration(TextDecoration.BOLD, true);
         }
 
         return Component.text(" ").append(prev).append(pageInfo).append(next);

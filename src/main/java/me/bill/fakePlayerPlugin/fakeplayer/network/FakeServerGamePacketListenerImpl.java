@@ -92,8 +92,10 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
     private static String extractText(Packet<?> packet) {
         if (packet instanceof ClientboundSystemChatPacket p) return p.content().getString();
         if (packet instanceof ClientboundSetTitleTextPacket p) return p.text().getString();
-        if (packet instanceof ClientboundSetSubtitleTextPacket p) return p.text().getString();
-        if (packet instanceof ClientboundSetActionBarTextPacket p) return p.text().getString();
+        if (packet instanceof ClientboundSetSubtitleTextPacket p)
+            return p.text().getString();
+        if (packet instanceof ClientboundSetActionBarTextPacket p)
+            return p.text().getString();
         return null;
     }
 

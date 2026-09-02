@@ -21,7 +21,7 @@ import org.bukkit.potion.PotionEffectType;
  * <p>Food priority mirrors a real player reaching for the quickest snack: <b>off-hand → hotbar →
  * main inventory</b>. Off-hand food always wins so players can pin a preferred food there.
  *
- * <p><b>Off-hand eating never pauses anything</b> — it never touches the main-hand item or the bot's
+ * <p><b>Off-hand eating never pauses anything</b> - it never touches the main-hand item or the bot's
  * position, so mining, moving, combat and every other task keep running untouched underneath it,
  * exactly like a real player snacking on something in their off-hand mid-task. Only the main-hand
  * fallback (no off-hand food available) still pauses: it borrows the main-hand slot for the eat
@@ -124,7 +124,7 @@ public final class AutoEatController {
     private void startEating(FakePlayer fp, Player bot, EatState st) {
         st.ticksRemaining = EAT_TICKS;
         // Off-hand food never touches the main-hand item or the bot's position, so it runs fully
-        // concurrently with everything else (mining, moving, combat, …) — a real player can chew on a
+        // concurrently with everything else (mining, moving, combat, …) - a real player can chew on a
         // snack in their off-hand while still swinging a pickaxe. Only the main-hand fallback (no
         // off-hand food available) needs the old pause+freeze: it borrows the main-hand slot itself,
         // so anything using that hand (mine/use/attack) would otherwise fight over the held item.

@@ -55,9 +55,7 @@ public final class SneakCommand implements FppCommand {
             sender.sendMessage(Lang.get("sneak-not-found", "name", botName));
             return true;
         }
-        if (sender instanceof Player player
-                && !Perm.has(sender, Perm.ADMIN)
-                && !BotAccess.canAdminister(player, fp)) {
+        if (sender instanceof Player player && !Perm.has(sender, Perm.ADMIN) && !BotAccess.canAdminister(player, fp)) {
             sender.sendMessage(Lang.get("no-permission"));
             return true;
         }

@@ -14,14 +14,14 @@ import me.bill.fakePlayerPlugin.config.Config;
  * targets at once:
  *
  * <ul>
- *   <li><b>Vault</b> (milkbowl/Vault) — the interface this class talks to <i>is</i> Vault's own.</li>
- *   <li><b>"Vault2.0" (shalom25/Vault2.0)</b> — inspected directly: its {@code plugin.yml} declares
+ *   <li><b>Vault</b> (milkbowl/Vault) - the interface this class talks to <i>is</i> Vault's own.</li>
+ *   <li><b>"Vault2.0" (shalom25/Vault2.0)</b> - inspected directly: its {@code plugin.yml} declares
  *       {@code name: "Vault"} (the literal same plugin name as real Vault) and its {@code SimpleEconomy}
- *       class {@code implements net.milkbowl.vault.economy.Economy} — i.e. it's a from-scratch
+ *       class {@code implements net.milkbowl.vault.economy.Economy} - i.e. it's a from-scratch
  *       reimplementation of classic Vault's exact interface, registered into the exact same
  *       {@code ServicesManager} slot. No separate integration code is needed or possible to
  *       distinguish it from real Vault; this class covers both automatically.</li>
- *   <li><b>ExcellentEconomy</b> — its own docs confirm it "works right out of the box with Vault to
+ *   <li><b>ExcellentEconomy</b> - its own docs confirm it "works right out of the box with Vault to
  *       hook into all your economy stuff automatically" when Vault is present, which also means
  *       registering (or being read through) this same service.</li>
  * </ul>

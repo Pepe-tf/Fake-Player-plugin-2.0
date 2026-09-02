@@ -406,16 +406,8 @@ public final class HelpGui implements Listener {
 
     private static Category categoryFor(String name) {
         return switch (name.toLowerCase()) {
-            case "spawn",
-                    "despawn",
-                    "delete",
-                    "list",
-                    "info",
-                    "check",
-                    "help",
-                    "reload",
-                    "settings",
-                    "save" -> Category.CORE;
+            case "spawn", "despawn", "delete", "list", "info", "check", "help", "reload", "settings", "save" -> Category
+                    .CORE;
             case "tp", "tph", "freeze", "inventory", "inv", "xp", "setowner", "rename" -> Category.BOTS;
             case "move", "storage", "attack", "find", "sneak", "stop", "left-click", "right-click" -> Category.ACTIONS;
             case "auth" -> Category.AUTH;

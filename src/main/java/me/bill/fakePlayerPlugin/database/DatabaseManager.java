@@ -522,7 +522,7 @@ public class DatabaseManager {
         if (freshInstall) {
 
             setSchemaVersion(SCHEMA_VERSION);
-            Config.debugDatabase("DB: fresh install — schema initialized at v" + SCHEMA_VERSION + ".");
+            Config.debugDatabase("DB: fresh install - schema initialized at v" + SCHEMA_VERSION + ".");
         } else {
             migrate();
         }
@@ -2464,7 +2464,7 @@ public class DatabaseManager {
     }
 
     /**
-     * Synchronous read — returns all despawn snapshots for the current server. Called once at
+     * Synchronous read - returns all despawn snapshots for the current server. Called once at
      * startup to re-populate the in-memory map after a restart.
      */
     public List<DespawnSnapshotRow> loadDespawnSnapshotsForServer(String serverId) {
@@ -2650,12 +2650,13 @@ public class DatabaseManager {
         long now = System.currentTimeMillis();
         enqueue(() -> {
             if (isAlive()) {
-                try (PreparedStatement ps = connection.prepareStatement(isMysql
-                        ? "INSERT INTO fpp_bot_auth (bot_name, password_enc, created_at, updated_at) VALUES (?,?,?,?) "
-                                + "ON DUPLICATE KEY UPDATE password_enc=VALUES(password_enc), updated_at=VALUES(updated_at)"
-                        : "INSERT INTO fpp_bot_auth (bot_name, password_enc, created_at, updated_at) VALUES (?,?,?,?) "
-                                + "ON CONFLICT(bot_name) DO UPDATE SET password_enc=excluded.password_enc,"
-                                + " updated_at=excluded.updated_at")) {
+                try (PreparedStatement ps = connection.prepareStatement(
+                        isMysql
+                                ? "INSERT INTO fpp_bot_auth (bot_name, password_enc, created_at, updated_at) VALUES (?,?,?,?) "
+                                        + "ON DUPLICATE KEY UPDATE password_enc=VALUES(password_enc), updated_at=VALUES(updated_at)"
+                                : "INSERT INTO fpp_bot_auth (bot_name, password_enc, created_at, updated_at) VALUES (?,?,?,?) "
+                                        + "ON CONFLICT(bot_name) DO UPDATE SET password_enc=excluded.password_enc,"
+                                        + " updated_at=excluded.updated_at")) {
                     ps.setString(1, name);
                     ps.setString(2, passwordEncrypted);
                     ps.setLong(3, now);

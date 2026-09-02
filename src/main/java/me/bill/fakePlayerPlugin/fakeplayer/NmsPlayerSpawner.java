@@ -205,7 +205,7 @@ public final class NmsPlayerSpawner {
             if (setPosMethod == null)
                 setPosMethod = findMethodBySignature(serverPlayerClass, 3, double.class, double.class, double.class);
 
-            // doTick() used to be resolved reflectively here and invoked once per bot per tick — by
+            // doTick() used to be resolved reflectively here and invoked once per bot per tick - by
             // far the hottest call in the plugin (~70% of profiled self-time). ServerPlayer is a
             // direct compile-time import (this project targets one pinned Paper/Folia version via
             // paperweight-userdev), so tickPhysicsInternal() now calls nmsPlayer.doTick() directly.
@@ -488,7 +488,7 @@ public final class NmsPlayerSpawner {
             initPreviousPosition(serverPlayer, x, y, z);
 
             // The bot's connection never goes through a real handshake, so ViaVersion never learns its
-            // protocol version on its own — register it as running the server's own native version so
+            // protocol version on its own - register it as running the server's own native version so
             // Via (and anything querying it) doesn't treat the bot as an unrecognized connection.
             if (conn instanceof FakeConnection fakeConn) {
                 ViaVersionCompat.registerBot(fakeConn, uuid, name);
@@ -2367,7 +2367,7 @@ public final class NmsPlayerSpawner {
                                 break;
                             }
                         }
-                        // try 3-arg (Entity, BlockPos, int) — MC 1.21.2+
+                        // try 3-arg (Entity, BlockPos, int) - MC 1.21.2+
                         if (destroyProgressReflect == null) {
                             for (Method m : levelClass.getMethods()) {
                                 if (m.getParameterCount() == 3
@@ -2463,7 +2463,7 @@ public final class NmsPlayerSpawner {
             var result = nms.interactOn(entity, hand, hitLocation);
             boolean consumed = result != null && result.consumesAction();
 
-            // Fake players have no real client to drive a container/trade screen any further — if
+            // Fake players have no real client to drive a container/trade screen any further - if
             // this interaction opened one (villager trade, chest minecart, etc.) close it immediately
             // so the entity isn't left "busy" and blocking real players from interacting with it.
             if (nms.containerMenu != null && nms.containerMenu != nms.inventoryMenu) {

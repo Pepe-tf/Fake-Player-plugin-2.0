@@ -110,7 +110,8 @@ public final class StorageCommand implements FppCommand {
                 case "--enable", "--disable" -> {
                     if (args.length < 3) {
                         sender.sendMessage(Component.text(
-                                "Usage: /fpp storage " + fp.getName() + " " + sub + " <name>", TextColor.fromHexString("#FF6A5C")));
+                                "Usage: /fpp storage " + fp.getName() + " " + sub + " <name>",
+                                TextColor.fromHexString("#FF6A5C")));
                         return true;
                     }
                     boolean enabled = sub.equals("--enable");

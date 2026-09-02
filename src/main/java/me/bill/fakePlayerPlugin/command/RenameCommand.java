@@ -19,13 +19,13 @@ import me.bill.fakePlayerPlugin.util.TextUtil;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 /**
- * Renames a bot's <em>display name</em> — the name shown above its head, in the tab list and in
+ * Renames a bot's <em>display name</em> - the name shown above its head, in the tab list and in
  * command output. The login name and fb07 UUID (identity) are never changed, and the mandatory
  * "ʙᴏᴛ ʙʏ {owner}" disclosure row on the name-tag is preserved.
  */
 public final class RenameCommand implements FppCommand {
 
-    /** Longest allowed display name (visible, colour codes stripped) — keeps the name-tag readable. */
+    /** Longest allowed display name (visible, colour codes stripped) - keeps the name-tag readable. */
     private static final int MAX_NAME_LENGTH = 32;
 
     private final FakePlayerManager manager;
@@ -67,9 +67,7 @@ public final class RenameCommand implements FppCommand {
             return true;
         }
 
-        if (sender instanceof Player player
-                && !Perm.has(sender, Perm.ADMIN)
-                && !BotAccess.canAdminister(player, fp)) {
+        if (sender instanceof Player player && !Perm.has(sender, Perm.ADMIN) && !BotAccess.canAdminister(player, fp)) {
             sender.sendMessage(Lang.get("no-permission"));
             return true;
         }

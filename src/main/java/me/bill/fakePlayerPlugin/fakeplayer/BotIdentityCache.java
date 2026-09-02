@@ -7,7 +7,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 /**
- * Deterministic bot UUIDs, derived from the bot name alone — no storage, no Mojang contact.
+ * Deterministic bot UUIDs, derived from the bot name alone - no storage, no Mojang contact.
  *
  * <p>This used to be a stateful name→UUID identity cache backed by YAML/DB with Mojang premium-UUID
  * resolution; that whole system was removed. What remains is the pure derivation, so the class is
@@ -28,7 +28,7 @@ public final class BotIdentityCache {
     private BotIdentityCache() {}
 
     /**
-     * High 64 bits shared by every bot UUID — makes bots instantly recognizable ("FB07" ≈ F-BOT)
+     * High 64 bits shared by every bot UUID - makes bots instantly recognizable ("FB07" ≈ F-BOT)
      * and guarantees zero collision with real accounts (premium UUIDs are random v4, offline-mode
      * ones are MD5 v3; neither can land in a fixed-prefix range). Deliberately non-zero: Floodgate
      * gives Bedrock players UUIDs with {@code getMostSignificantBits() == 0}, and plugins detect
@@ -42,13 +42,13 @@ public final class BotIdentityCache {
     private static final long UUID_MSB_PREFIX_MASK = 0xFFFF_FFFF_0000_0000L;
 
     /**
-     * Deterministic bot UUID, derived from the name alone — no storage, no Mojang contact.
+     * Deterministic bot UUID, derived from the name alone - no storage, no Mojang contact.
      *
      * <p>Default sequential names embed their number directly: {@code bot} →
      * {@code fb070000-0000-0000-0000-000000000001}, {@code bot2} → {@code …-000000000002}, and so
      * on. Custom names get the same recognizable prefix with a 64-bit hash of the lowercase name in
      * the low bits (UUIDs are hex-only, so the name itself can't be embedded literally); the marker
-     * bit in the high half keeps the two forms from ever colliding — a bot custom-named
+     * bit in the high half keeps the two forms from ever colliding - a bot custom-named
      * {@code bot1} hashes instead of claiming {@code bot}'s number 1.
      */
     public static UUID deterministicBotUuid(String botName) {
@@ -64,7 +64,7 @@ public final class BotIdentityCache {
 
     /**
      * The bot number when (and only when) the name is exactly what {@code nextSequentialName}
-     * generates for that number — {@code bot} → 1, {@code bot2} → 2 … Non-canonical spellings
+     * generates for that number - {@code bot} → 1, {@code bot2} → 2 … Non-canonical spellings
      * ({@code bot1}, {@code bot02}) return -1 so they fall through to the named-hash form instead
      * of colliding with the canonical name's UUID.
      */
@@ -98,7 +98,7 @@ public final class BotIdentityCache {
 
     /**
      * Legacy pre-2.0 bot UUID (vanilla offline-mode formula). Only used to recognize and migrate
-     * old persisted identities — new UUIDs come from {@link #deterministicBotUuid}.
+     * old persisted identities - new UUIDs come from {@link #deterministicBotUuid}.
      */
     public static UUID offlineModeUuid(String botName) {
         MessageDigest md5 = MD5.get();

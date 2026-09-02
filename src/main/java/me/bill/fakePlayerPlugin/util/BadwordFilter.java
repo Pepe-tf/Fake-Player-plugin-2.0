@@ -250,9 +250,9 @@ public final class BadwordFilter {
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return response.body();
             }
-            FppLogger.warn("BadwordFilter: failed to fetch remote global list — HTTP " + response.statusCode());
+            FppLogger.warn("BadwordFilter: failed to fetch remote global list - HTTP " + response.statusCode());
         } catch (Exception e) {
-            FppLogger.warn("BadwordFilter: failed to fetch remote global list — " + e.getMessage());
+            FppLogger.warn("BadwordFilter: failed to fetch remote global list - " + e.getMessage());
         }
         return null;
     }
@@ -277,7 +277,7 @@ public final class BadwordFilter {
             File cacheFile = new File(plugin.getDataFolder(), REMOTE_CACHE_FILE);
             Files.writeString(cacheFile.toPath(), content, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            FppLogger.warn("BadwordFilter: failed to save remote badword cache — " + e.getMessage());
+            FppLogger.warn("BadwordFilter: failed to save remote badword cache - " + e.getMessage());
         }
     }
 
@@ -288,7 +288,7 @@ public final class BadwordFilter {
             if (!cacheFile.exists()) return null;
             return Files.readString(cacheFile.toPath(), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            FppLogger.warn("BadwordFilter: failed to load remote badword cache — " + e.getMessage());
+            FppLogger.warn("BadwordFilter: failed to load remote badword cache - " + e.getMessage());
             return null;
         }
     }
@@ -302,7 +302,7 @@ public final class BadwordFilter {
             YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
             loadWordsAndPatterns(yaml, file.getName());
         } catch (Exception e) {
-            FppLogger.warn("BadwordFilter: failed to load bad-words.yml — " + e.getMessage());
+            FppLogger.warn("BadwordFilter: failed to load bad-words.yml - " + e.getMessage());
         }
     }
 
@@ -317,7 +317,7 @@ public final class BadwordFilter {
                 customPatterns.add(Pattern.compile(ps, Pattern.CASE_INSENSITIVE));
                 customPatternSrc.add(ps);
             } catch (PatternSyntaxException e) {
-                FppLogger.warn("BadwordFilter: invalid pattern '" + ps + "' in " + sourceName + " — " + e.getMessage());
+                FppLogger.warn("BadwordFilter: invalid pattern '" + ps + "' in " + sourceName + " - " + e.getMessage());
             }
         }
     }

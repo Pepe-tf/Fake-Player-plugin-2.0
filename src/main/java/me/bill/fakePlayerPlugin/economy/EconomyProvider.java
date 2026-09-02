@@ -4,7 +4,7 @@ import org.bukkit.OfflinePlayer;
 
 /**
  * A single economy backend FPP can charge/refund against. Every method is safe to call whether or
- * not the backing plugin is actually installed — {@link #isAvailable()} reports that, and every
+ * not the backing plugin is actually installed - {@link #isAvailable()} reports that, and every
  * other method is a no-op/failure response (never a thrown exception) when it isn't.
  */
 public interface EconomyProvider {

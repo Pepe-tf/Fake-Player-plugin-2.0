@@ -32,7 +32,7 @@ import me.bill.fakePlayerPlugin.util.BotAccess;
  * <em>dynamic</em> entry point the request asked for: it never touches an economy plugin at all, so
  * a server's own custom shop plugin (ShopGUIPlus, EconomyShopGUI, zShop, …) can charge the player
  * however it likes and simply run {@code fpp rent give <player> --new <hours>} as the purchase's
- * reward command — from console, with no FPP economy integration required on their end at all.
+ * reward command - from console, with no FPP economy integration required on their end at all.
  */
 public final class RentCommand implements FppCommand {
 

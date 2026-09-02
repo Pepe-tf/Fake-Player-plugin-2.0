@@ -14,7 +14,7 @@ public final class TextUtil {
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
 
-    /** FPP 2.0 "Bot Console" theme — secondary accent (lime), used as the fallback color for untagged text. */
+    /** FPP 2.0 "Bot Console" theme - secondary accent (lime), used as the fallback color for untagged text. */
     private static final TextColor LIME = TextColor.fromHexString("#BAFF4F");
 
     private static final String NORMAL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";

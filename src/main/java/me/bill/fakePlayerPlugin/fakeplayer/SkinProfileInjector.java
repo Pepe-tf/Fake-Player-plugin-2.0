@@ -54,7 +54,7 @@ public final class SkinProfileInjector {
 
         // Insert the texture property into the backing multimap BEFORE wrapping it in a
         // PropertyMap/GameProfile. This is a normal Multimap.put (mutating the multimap's contents),
-        // never a reflective mutation of PropertyMap's final backing field — so it does not trip the
+        // never a reflective mutation of PropertyMap's final backing field - so it does not trip the
         // JVM "Final field ... mutated reflectively" warning.
         Object multimap = arrayListMultimapClass.getMethod("create").invoke(null);
         Object property = createProperty(propertyClass, skin.getValue(), skin.getSignature());
@@ -128,7 +128,7 @@ public final class SkinProfileInjector {
 
         // Newer authlib (1.21.11): PropertyMap wraps a *final* backing Multimap in a `properties`
         // field/accessor and no longer exposes put/removeAll. Read that multimap and mutate its
-        // CONTENTS — never reflectively reassign the final field (which the JVM now warns about and
+        // CONTENTS - never reflectively reassign the final field (which the JVM now warns about and
         // will block in a future release).
         Object backing = resolveBackingMultimap(candidate);
         if (backing != null && backing != candidate) {

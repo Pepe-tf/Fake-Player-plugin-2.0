@@ -24,15 +24,15 @@ import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 
 /**
- * Core PVE engine — the executor behind the per-bot "🗡 ᴘᴠᴇ" settings. Previously those settings
+ * Core PVE engine - the executor behind the per-bot "🗡 ᴘᴠᴇ" settings. Previously those settings
  * only fired an event a removed extension used to consume, so nothing ever scanned or attacked.
  *
  * <p>A lightweight supervisor (1 s cadence) starts a per-entity combat task for every bot whose
  * smart-attack mode is enabled and stops it when disabled/despawned. The combat task runs every
  * tick at the bot's region (Folia-safe): it picks a target from the configured mob types (empty
  * selection = every hostile, via {@link Enemy}) by the configured priority (nearest /
- * lowest-health), faces it, attacks with real weapon-cooldown pacing, and — in {@code ON_MOVE}
- * mode — chases it through the shared pathfinding engine ({@code Owner.ATTACK}, live re-pathing as
+ * lowest-health), faces it, attacks with real weapon-cooldown pacing, and - in {@code ON_MOVE}
+ * mode - chases it through the shared pathfinding engine ({@code Owner.ATTACK}, live re-pathing as
  * the target moves, never hijacking a navigation another system owns).
  */
 public final class PveController {
@@ -84,7 +84,7 @@ public final class PveController {
         }
     }
 
-    /** Despawn cleanup — called from the shared bot-removal path. */
+    /** Despawn cleanup - called from the shared bot-removal path. */
     public void cleanupBot(@NotNull UUID botUuid) {
         stopCombat(botUuid);
     }
@@ -193,7 +193,7 @@ public final class PveController {
         for (Entity entity : bot.getNearbyEntities(range, range, range)) {
             if (!(entity instanceof LivingEntity living) || living.isDead() || !living.isValid()) continue;
             if (manager.getByUuid(living.getUniqueId()) != null) continue; // never target other bots
-            if (living instanceof Player) continue; // PVE only — real players are never targets
+            if (living instanceof Player) continue; // PVE only - real players are never targets
             if (wantedTypes.isEmpty()) {
                 if (!(living instanceof Enemy)) continue;
             } else if (!wantedTypes.contains(living.getType().name())) {
@@ -230,7 +230,7 @@ public final class PveController {
 
     /**
      * Chases through the shared pathfinding engine. Only starts a navigation when the bot isn't
-     * already navigating for another system (mining, moving, …) — PVE never hijacks those; it keeps
+     * already navigating for another system (mining, moving, …) - PVE never hijacks those; it keeps
      * attacking anything that comes into reach instead.
      */
     private void chase(FakePlayer fp, Player bot, LivingEntity target, boolean switchedTarget) {

@@ -1125,7 +1125,7 @@ public final class BotPersistence {
 
     /**
      * Runs {@code action} once the restored bot is fully spawned (online + valid), retrying every
-     * 5 ticks for up to 30 seconds instead of silently giving up on the first attempt — right after a
+     * 5 ticks for up to 30 seconds instead of silently giving up on the first attempt - right after a
      * restart, bot bodies routinely take longer than a fixed delay to finish spawning (chunk loads).
      */
     private void applyWhenBotReady(
@@ -1157,7 +1157,7 @@ public final class BotPersistence {
                     }
                     if (attempt + 1 >= 120) {
                         FppLogger.warn("BotPersistence: gave up restoring " + what + " for bot '" + botName
-                                + "' — bot never finished spawning.");
+                                + "' - bot never finished spawning.");
                         return;
                     }
                     attemptApply(manager, botUuid, botName, what, action, attempt + 1, 5L);
@@ -1167,7 +1167,7 @@ public final class BotPersistence {
 
     /**
      * Resumes the persisted click task(s). Left-click and right-click are independent, concurrent
-     * task systems, so both are resumed if both were saved — this used to only restore one ("wins if
+     * task systems, so both are resumed if both were saved - this used to only restore one ("wins if
      * both were saved") back when a bot could only run one task at a time.
      */
     private void resumeClickTask(FakePlayer fp, Player bot, TaskEntry te) {
@@ -1178,7 +1178,7 @@ public final class BotPersistence {
     private void resumeOneClickTask(FakePlayer fp, Player bot, @Nullable ClickTaskEntry click, boolean isLeft) {
         if (click == null) return;
         if (!bot.getWorld().getName().equals(click.world())) {
-            Config.debug("Skipping click-task resume for '" + fp.getDisplayName() + "' — world changed.");
+            Config.debug("Skipping click-task resume for '" + fp.getDisplayName() + "' - world changed.");
             return;
         }
         if (isLeft && plugin.getLeftClickCommand() != null) {
@@ -1520,7 +1520,7 @@ public final class BotPersistence {
 
         // One-time migration to the fb07-prefixed UUID scheme: only entries carrying the exact
         // legacy offline-mode UUID for this name are remapped (inventory/XP/task state follows the
-        // bot to its new key). Anything else — e.g. an explicit-UUID API spawn — is trusted as-is.
+        // bot to its new key). Anything else - e.g. an explicit-UUID API spawn - is trusted as-is.
         if (storedUuid.equals(BotIdentityCache.offlineModeUuid(botName))) {
             remapLoadedState(storedUuid, target);
             Config.debug("BotPersistence: migrated '" + botName + "' " + storedUuid + " → " + target);

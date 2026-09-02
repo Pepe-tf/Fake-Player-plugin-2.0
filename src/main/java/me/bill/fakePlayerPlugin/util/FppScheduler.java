@@ -25,7 +25,7 @@ public final class FppScheduler {
 
     /**
      * Once a plugin is disabled, Folia's region schedulers reject any new task registration
-     * ({@code IllegalPluginAccessException}) — but by the time {@code onDisable()} runs, Folia has
+     * ({@code IllegalPluginAccessException}) - but by the time {@code onDisable()} runs, Folia has
      * already halted all region ticking, so it's both safe and necessary to just run the work
      * directly instead of scheduling it.
      */

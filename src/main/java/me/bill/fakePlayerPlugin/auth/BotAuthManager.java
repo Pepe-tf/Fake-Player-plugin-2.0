@@ -88,12 +88,25 @@ public final class BotAuthManager {
     // in to continue") can easily contain those in isolation. Never exhaustive - see class doc for
     // why the hard timeout is the actual guarantee, not this list.
     private static final List<String> POSITIVE_HINTS = List.of(
-            "logged in successfully", "successfully logged in", "you are now logged in",
-            "successfully registered", "registration successful", "successfully register",
-            "authentication successful", "welcome back");
+            "logged in successfully",
+            "successfully logged in",
+            "you are now logged in",
+            "successfully registered",
+            "registration successful",
+            "successfully register",
+            "authentication successful",
+            "welcome back");
     private static final List<String> NEGATIVE_HINTS = List.of(
-            "wrong password", "incorrect password", "invalid password", "already registered",
-            "not registered", "too short", "too long", "too weak", "please register", "please login",
+            "wrong password",
+            "incorrect password",
+            "invalid password",
+            "already registered",
+            "not registered",
+            "too short",
+            "too long",
+            "too weak",
+            "please register",
+            "please login",
             "please log in");
 
     private final Plugin plugin;
@@ -188,7 +201,9 @@ public final class BotAuthManager {
         // register call with, rather than being lost and forcing a manual /fpp auth setpassword.
         database.upsertBotAuth(bot.getName(), encrypted, () -> {
             FppLogger.debug(
-                    "AUTH", Config.debugAuth(), "'" + bot.getName() + "' has no stored password - registering a new one.");
+                    "AUTH",
+                    Config.debugAuth(),
+                    "'" + bot.getName() + "' has no stored password - registering a new one.");
             scheduleDispatch(bot, AuthAction.REGISTER, Config.authRegisterCommand(), password);
         });
     }
@@ -205,29 +220,36 @@ public final class BotAuthManager {
                 ? minTicks
                 : minTicks + ThreadLocalRandom.current().nextInt(maxTicks - minTicks + 1);
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            Player player = bot.getPlayer();
-            if (player == null || !player.isOnline()) {
-                bot.setAuthPending(false);
-                return;
-            }
+        Bukkit.getScheduler()
+                .runTaskLater(
+                        plugin,
+                        () -> {
+                            Player player = bot.getPlayer();
+                            if (player == null || !player.isOnline()) {
+                                bot.setAuthPending(false);
+                                return;
+                            }
 
-            // See class doc - nLogin's own API bypasses a hard blocker in the generic
-            // command-simulation path below, so it always takes priority when nLogin is installed.
-            NLoginIntegration nLogin = NLoginIntegration.tryInstall();
-            if (nLogin != null) {
-                runViaNLoginApi(bot, nLogin, action, password);
-                return;
-            }
+                            // See class doc - nLogin's own API bypasses a hard blocker in the generic
+                            // command-simulation path below, so it always takes priority when nLogin is installed.
+                            NLoginIntegration nLogin = NLoginIntegration.tryInstall();
+                            if (nLogin != null) {
+                                runViaNLoginApi(bot, nLogin, action, password);
+                                return;
+                            }
 
-            String command = commandTemplate.replace("%password%", password);
-            if (command.startsWith("/")) command = command.substring(1);
-            String finalCommand = command;
-            FppLogger.debug("AUTH", Config.debugAuth(), "'" + bot.getName() + "' running auth command: "
-                    + finalCommand.replace(password, "*".repeat(password.length())));
+                            String command = commandTemplate.replace("%password%", password);
+                            if (command.startsWith("/")) command = command.substring(1);
+                            String finalCommand = command;
+                            FppLogger.debug(
+                                    "AUTH",
+                                    Config.debugAuth(),
+                                    "'" + bot.getName() + "' running auth command: "
+                                            + finalCommand.replace(password, "*".repeat(password.length())));
 
-            runAsRealCommand(bot, player, command);
-        }, delay);
+                            runAsRealCommand(bot, player, command);
+                        },
+                        delay);
     }
 
     // Set the first time runViaNLoginApi actually fails, so every bot after the first doesn't
@@ -256,7 +278,9 @@ public final class BotAuthManager {
                 : nLogin.forceLogin(name);
         if (ok) {
             FppLogger.debug(
-                    "AUTH", Config.debugAuth(), "'" + name + "' authenticated via nLogin's API directly (" + action + ").");
+                    "AUTH",
+                    Config.debugAuth(),
+                    "'" + name + "' authenticated via nLogin's API directly (" + action + ").");
         } else if (!nLoginLimitationExplained) {
             nLoginLimitationExplained = true;
             FppLogger.warn("Auth: nLogin's API rejected " + action + " for '" + name + "' - and will for "
@@ -294,9 +318,12 @@ public final class BotAuthManager {
             return;
         }
         if (preEvent.isCancelled()) {
-            FppLogger.debug("AUTH", Config.debugAuth(), "'" + bot.getName()
-                    + "' auth command was intercepted by a PlayerCommandPreprocessEvent listener "
-                    + "(almost certainly the login plugin itself) - waiting for its response.");
+            FppLogger.debug(
+                    "AUTH",
+                    Config.debugAuth(),
+                    "'" + bot.getName()
+                            + "' auth command was intercepted by a PlayerCommandPreprocessEvent listener "
+                            + "(almost certainly the login plugin itself) - waiting for its response.");
             armOutcomeDetection(bot);
             return;
         }
@@ -332,23 +359,28 @@ public final class BotAuthManager {
      */
     private void armOutcomeDetection(FakePlayer bot) {
         UUID uuid = bot.getUuid();
-        FakeServerGamePacketListenerImpl.listen(uuid, text -> Bukkit.getScheduler().runTask(plugin, () -> {
-            FppLogger.info("Auth: '" + bot.getName() + "' received: \"" + text + "\"");
-            String lower = text.toLowerCase(Locale.ROOT);
-            if (containsAny(lower, POSITIVE_HINTS)) {
-                FakeServerGamePacketListenerImpl.stopListening(uuid);
-                bot.setAuthPending(false);
-            } else if (containsAny(lower, NEGATIVE_HINTS)) {
-                FppLogger.warn("Auth: '" + bot.getName() + "' looks like it FAILED to authenticate (see the "
-                        + "message above). If a stored password is stale, run /fpp auth reset " + bot.getName()
-                        + " or /fpp auth setpassword " + bot.getName() + " <password>.");
-            }
-        }));
+        FakeServerGamePacketListenerImpl.listen(
+                uuid, text -> Bukkit.getScheduler().runTask(plugin, () -> {
+                    FppLogger.info("Auth: '" + bot.getName() + "' received: \"" + text + "\"");
+                    String lower = text.toLowerCase(Locale.ROOT);
+                    if (containsAny(lower, POSITIVE_HINTS)) {
+                        FakeServerGamePacketListenerImpl.stopListening(uuid);
+                        bot.setAuthPending(false);
+                    } else if (containsAny(lower, NEGATIVE_HINTS)) {
+                        FppLogger.warn("Auth: '" + bot.getName() + "' looks like it FAILED to authenticate (see the "
+                                + "message above). If a stored password is stale, run /fpp auth reset " + bot.getName()
+                                + " or /fpp auth setpassword " + bot.getName() + " <password>.");
+                    }
+                }));
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            FakeServerGamePacketListenerImpl.stopListening(uuid);
-            bot.setAuthPending(false);
-        }, Config.authPendingTimeoutTicks());
+        Bukkit.getScheduler()
+                .runTaskLater(
+                        plugin,
+                        () -> {
+                            FakeServerGamePacketListenerImpl.stopListening(uuid);
+                            bot.setAuthPending(false);
+                        },
+                        Config.authPendingTimeoutTicks());
     }
 
     private static boolean containsAny(String haystack, List<String> needles) {

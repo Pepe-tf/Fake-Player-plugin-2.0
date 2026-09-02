@@ -61,7 +61,7 @@ public final class NetworkHeartbeatManager {
             return;
         }
         started = true;
-        Config.debugNetwork("[NetworkHeartbeat] started — interval=" + HEARTBEAT_INTERVAL_TICKS + "t.");
+        Config.debugNetwork("[NetworkHeartbeat] started - interval=" + HEARTBEAT_INTERVAL_TICKS + "t.");
 
         hbTask = FppScheduler.runSyncRepeatingWithId(
                 plugin, this::tick, HEARTBEAT_INTERVAL_TICKS, HEARTBEAT_INTERVAL_TICKS);

@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Tracks which players have opted in to seeing a given bot's live pathfinding route rendered as
- * particles (Baritone-style). Purely a viewer preference — never persisted, never a bot property.
+ * particles (Baritone-style). Purely a viewer preference - never persisted, never a bot property.
  */
 public final class PathfindingDebugManager {
 

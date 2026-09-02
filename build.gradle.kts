@@ -20,7 +20,7 @@ tasks.compileJava {
 }
 
 group = "me.bill.fpp"
-version = "2.0.5"
+version = "2.0.6"
 
 repositories {
     mavenCentral()
@@ -36,7 +36,7 @@ dependencies {
 
     implementation("dev.faststats.metrics:bukkit:0.22.0")
 
-    // Pathetic — async A* pathfinding engine backing FakePlayerManager's bot navigation.
+    // Pathetic - async A* pathfinding engine backing FakePlayerManager's bot navigation.
     // https://github.com/bsommerfeld/pathetic
     implementation("de.bsommerfeld.pathetic:engine:5.5.2")
     implementation("de.bsommerfeld.pathetic:api:5.5.2")
@@ -49,14 +49,12 @@ dependencies {
     }
     compileOnly("me.lucko:spark-api:0.1-SNAPSHOT")
 
-    // Compile-time only: nLogin (nickuc.com's closed-source auth plugin) ships a genuine public
-    // API - separate from its obfuscated internals - at com.nickuc.login.api.nLoginAPI, used by
-    // auth.BotAuthManager's nLogin-specific integration (see compat.nlogin.NLoginIntegration for
-    // why nLogin needs its own API path instead of the generic command-simulation path). Sourced
-    // from a local, un-redistributable jar - nLogin is a paid plugin) - resolves to inert/absent
-    // cleanly if libs/nLogin.jar isn't present, or nLogin isn't installed on the running server.
-    // Never bundled/shaded.
-    compileOnly(fileTree("libs") { include("nLogin*.jar") })
+    // nLogin (nickuc.com's closed-source auth plugin) is a paid plugin with no public Maven
+    // artifact, so its API (com.nickuc.login.api.nLoginAPI, used by auth.BotAuthManager's
+    // nLogin-specific integration) is deliberately NOT a compile-time dependency here - that would
+    // make the whole plugin fail to build for anyone without a private copy of nLogin.jar. See
+    // compat.nlogin.NLoginIntegration: it resolves nLogin's API entirely through reflection at
+    // runtime instead, so this build has nothing to depend on and nothing to add here.
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

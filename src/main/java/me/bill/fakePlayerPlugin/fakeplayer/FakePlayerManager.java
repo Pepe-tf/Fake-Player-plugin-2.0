@@ -199,7 +199,7 @@ public class FakePlayerManager {
         FAKE_PLAYER_KEY = new NamespacedKey(plugin, "fake_player_name");
 
         if (!AttributionManager.quickAuthorCheck() || !AttributionApiManager.quickEndpointCheck()) {
-            // Attribution integrity check failed — silently continuing.
+            // Attribution integrity check failed - silently continuing.
         }
 
         long flushTicks = Math.max(20L, Config.dbLocationFlushInterval() * 20L);
@@ -262,23 +262,23 @@ public class FakePlayerManager {
                     if (activePlayers.isEmpty()) return;
                     final boolean foliaServer = NmsPlayerSpawner.isFoliaServer();
                     for (FakePlayer fp : activePlayers.values()) {
-                        // Per-bot guard: one bad bot must never kill this repeating task — a dead
+                        // Per-bot guard: one bad bot must never kill this repeating task - a dead
                         // refresh loop freezes every nametag's activity row on its last value.
                         Runnable refreshTick = () -> {
                             try {
                                 // Unconditional, every sweep (not gated on label change): a bot that
                                 // gets put on some OTHER scoreboard team (another plugin's own
                                 // prefix/color system, an admin's /scoreboard teams join, …) is
-                                // silently evicted from our hide-team by the client — Minecraft only
-                                // allows one team per player — bringing the real name back without
+                                // silently evicted from our hide-team by the client - Minecraft only
+                                // allows one team per player - bringing the real name back without
                                 // ever touching the text_display. A bot whose activity label never
                                 // changes would otherwise never get re-hidden. Cheap (one tiny
                                 // packet), so doing it every 10 ticks for every bot is fine.
                                 FakePlayerBody.reassertVanillaNameHidden(fp);
 
                                 // Self-heal: the nametag is a real world entity (a TextDisplay), so
-                                // anything that can remove an entity — /kill, WorldEdit, another
-                                // plugin's cleanup pass — can remove it too. getNametagEntity() only
+                                // anything that can remove an entity - /kill, WorldEdit, another
+                                // plugin's cleanup pass - can remove it too. getNametagEntity() only
                                 // ever goes null when WE clear it; an external removal leaves a stale
                                 // non-null reference behind, so check isValid(), not just null, and
                                 // respawn immediately when it's gone. This is what makes the tag
@@ -326,7 +326,7 @@ public class FakePlayerManager {
                     final int headAiRate = Config.headAiTickRate();
 
                     // Head-AI's target lookup reads other online players' eye locations, and its
-                    // rotation writes target the bot itself — both already happen unconditionally
+                    // rotation writes target the bot itself - both already happen unconditionally
                     // elsewhere in this same per-bot tick (position-sync snapshot above, physics
                     // below), which on Folia is dispatched onto the bot's own entity scheduler via
                     // FppScheduler.runAtEntity. So head-AI is just as Folia-safe as the rest of the
@@ -402,10 +402,10 @@ public class FakePlayerManager {
                                 if (fp.isSleeping()) {
                                     ServerPlayer nmsBot = ((CraftPlayer) bot).getHandle();
                                     if (!nmsBot.isSleeping()) {
-                                        // NMS already woke the bot — clear flag and fall through to normal tick.
+                                        // NMS already woke the bot - clear flag and fall through to normal tick.
                                         fp.setSleeping(false);
                                         actionLockedBots.remove(uuid);
-                                        // fall through — bot immediately resumes normal physics/AI below
+                                        // fall through - bot immediately resumes normal physics/AI below
                                     } else {
                                         // Still genuinely sleeping: zero velocity, tick physics so that
                                         // NMS sleepCounter increments (needed for time-skip to dawn),
@@ -477,7 +477,7 @@ public class FakePlayerManager {
                                                         + lookDir.getY() * botEyeY
                                                         + lookDir.getZ() * botEyeZ)
                                                 / dist;
-                                        // cos(15°) ≈ 0.9659 — tighter cone means more deliberate eye-contact
+                                        // cos(15°) ≈ 0.9659 - tighter cone means more deliberate eye-contact
                                         if (dot < HEAD_AI_GAZE_COS) continue;
                                         if (!hasLineOfSightIgnoringGlass(bot, p)) continue;
                                         bestSq = dSq;
@@ -1833,7 +1833,7 @@ public class FakePlayerManager {
             } catch (Exception e) {
                 FppLogger.warn("[DespawnSnapshot] Failed to load from DB: " + e.getMessage());
             }
-            return; // DB is authoritative — skip YAML
+            return; // DB is authoritative - skip YAML
         }
 
         // 2. YAML fallback
@@ -1884,7 +1884,7 @@ public class FakePlayerManager {
             return;
         }
 
-        // YAML fallback — write async
+        // YAML fallback - write async
         final File yamlFile = despawnSnapshotFile;
         if (yamlFile == null) return;
         final String invDataFinal = invData;
@@ -1935,7 +1935,7 @@ public class FakePlayerManager {
 
     /**
      * Serialises a {@link DespawnSnapshot} to a compact pipe-delimited string.
-     * Format: {@code slot:base64|slot:base64|…} — uses only chars safe from splitting.
+     * Format: {@code slot:base64|slot:base64|…} - uses only chars safe from splitting.
      * Uses {@code mainContents} (all 41 slots) which already contains armor and offhand.
      */
     private static String serializeSlots(DespawnSnapshot snap) {
@@ -2004,7 +2004,7 @@ public class FakePlayerManager {
     private boolean deleteInternal(
             String name, boolean fastVisualRemove, boolean suppressLeaveBroadcast, @Nullable Runnable onComplete) {
         FppLogger.warn("deleteInternal called without explicit reason for '" + name
-                + "' — defaulting to 'unspecified'. " + "Please update the caller to pass a descriptive reason.");
+                + "' - defaulting to 'unspecified'. " + "Please update the caller to pass a descriptive reason.");
         return deleteInternal(name, fastVisualRemove, suppressLeaveBroadcast, "unspecified", onComplete);
     }
 
@@ -2041,7 +2041,7 @@ public class FakePlayerManager {
 
         // Snapshot inventory + XP BEFORE removing from maps or despawning entity.
         // Must happen synchronously here (not in the delayed task) so bulk operations
-        // like /fpp despawn all don't race — by the time the 1-tick delay fires,
+        // like /fpp despawn all don't race - by the time the 1-tick delay fires,
         // earlier bots' entities may already be gone and snapBody.isOnline() fails.
         boolean preserveInventoryOnDespawn = !Config.dropItemsOnDespawn();
         if (!explicitUuidSpawn
@@ -2386,7 +2386,7 @@ public class FakePlayerManager {
             playDespawnEffect(body.isOnline() ? body.getLocation() : effectFallbackLoc);
         } else {
             // Some despawn paths (e.g. death-without-respawn) null the entity reference before
-            // reaching here — the caller-supplied fallback (captured while the entity was still
+            // reaching here - the caller-supplied fallback (captured while the entity was still
             // valid) keeps the effect playing at the right spot instead of silently no-op'ing.
             playDespawnEffect(effectFallbackLoc);
         }
@@ -2422,7 +2422,7 @@ public class FakePlayerManager {
         if (db != null && removalReason != null) db.recordRemoval(uuid, removalReason);
     }
 
-    /** Small poof cloud + sound at the bot's location — plays on every despawn/delete/death-removal path. */
+    /** Small poof cloud + sound at the bot's location - plays on every despawn/delete/death-removal path. */
     private void playDespawnEffect(@Nullable Location at) {
         if (at == null) return;
         try {
@@ -2657,7 +2657,7 @@ public class FakePlayerManager {
 
     /**
      * Changes a bot's visible display name (the floating name-tag name row, the entity display name
-     * and the tab-list entry) without touching its login name or fb07 UUID — identity is immutable.
+     * and the tab-list entry) without touching its login name or fb07 UUID - identity is immutable.
      * The mandatory "ʙᴏᴛ ʙʏ {owner}" disclosure row is preserved. The new name is persisted so it
      * survives restarts.
      */
@@ -2719,7 +2719,7 @@ public class FakePlayerManager {
 
     // Reference-counted rather than a plain Set: with multiple task systems now able to run
     // concurrently on the same bot (mine + PVE + auto-eat + a manual attack, etc.), more than one can
-    // hold this lock at once — a boolean set would let whichever one unlocks first wipe it out from
+    // hold this lock at once - a boolean set would let whichever one unlocks first wipe it out from
     // under everyone else still using it. A count only clears (and Head-AI resumes) once every holder
     // has released it.
     private final Map<UUID, Integer> actingBots = new ConcurrentHashMap<>();
@@ -2965,7 +2965,7 @@ public class FakePlayerManager {
         if (display == null || display.isBlank()) {
             display = fp.getName();
             Config.debug(
-                    "Display name was blank after sanitise for '" + fp.getName() + "' — falling back to raw bot name.");
+                    "Display name was blank after sanitise for '" + fp.getName() + "' - falling back to raw bot name.");
         }
         fp.setDisplayName(display);
 
@@ -3040,7 +3040,7 @@ public class FakePlayerManager {
     /**
      * Sets an explicit ping value for the given bot, or clears it back to "no ping" (honest, not a
      * simulated/fake network-realism value) when {@code pingMs} is negative. Automatic fake ping
-     * simulation was removed — bots never fabricate network jitter to seem like a real connection.
+     * simulation was removed - bots never fabricate network jitter to seem like a real connection.
      */
     public void applyPing(FakePlayer fp, int pingMs) {
         if (fp == null) return;
@@ -3085,7 +3085,7 @@ public class FakePlayerManager {
     private UUID resolveUuid(String botName) {
         // Deterministic, name-derived, never contacts Mojang: sequential names embed their number
         // (bot → fb07…-000000000001, bot2 → …-000000000002), custom names get the same fb07 prefix
-        // with a name hash in the low bits — so a bot never inherits a real account's identity.
+        // with a name hash in the low bits - so a bot never inherits a real account's identity.
         return BotIdentityCache.deterministicBotUuid(botName);
     }
 

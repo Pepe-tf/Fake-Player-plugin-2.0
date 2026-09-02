@@ -15,15 +15,15 @@ import io.netty.channel.Channel;
  * Soft integration with ViaVersion so a spawned bot is a <em>known</em> connection to it, instead of
  * an unrecognized UUID.
  *
- * <p>A bot's {@link FakeConnection} never performs a real handshake/login — {@code placeNewPlayer} is
- * called directly on it — so ViaVersion, which learns a connecting client's protocol version by
+ * <p>A bot's {@link FakeConnection} never performs a real handshake/login - {@code placeNewPlayer} is
+ * called directly on it - so ViaVersion, which learns a connecting client's protocol version by
  * injecting into the real Netty pipeline at that handshake, never sees it happen and has no record of
  * the bot at all. Anything that then asks Via for the bot's protocol version (Via itself, or another
  * plugin's version-gated logic) finds nothing, which is what produces console warnings about not
  * being able to determine the bot's client version.
  *
  * <p>The fix is to register the bot with Via ourselves, pinned to the server's own native protocol
- * version — i.e. "this client speaks exactly what the server speaks, no translation needed" — using
+ * version - i.e. "this client speaks exactly what the server speaks, no translation needed" - using
  * the same {@code UserConnectionImpl} + {@code ProtocolPipelineImpl} construction Via's own channel
  * initializer uses for a real connection (see {@code ViaChannelInitializer#createUserConnection}).
  * Only {@link com.viaversion.viaversion.api.connection.ProtocolInfo} and friends are stable public
@@ -31,7 +31,7 @@ import io.netty.channel.Channel;
  * first-party Via integration (ViaBackwards, proxy adapters) already constructs the same way to build
  * a connection outside of a real network handshake.
  *
- * <p>Everything here is reflective and fails silently — if ViaVersion isn't installed, isn't loaded
+ * <p>Everything here is reflective and fails silently - if ViaVersion isn't installed, isn't loaded
  * yet, or its internals ever change shape, bots simply go back to being unregistered with it.
  */
 public final class ViaVersionCompat {
@@ -137,7 +137,7 @@ public final class ViaVersionCompat {
     /**
      * Registers a freshly-spawned bot with ViaVersion as running the server's own native protocol
      * version, so Via (and anything querying it) treats the bot exactly like a same-version client
-     * that needs no packet translation — instead of an unrecognized connection.
+     * that needs no packet translation - instead of an unrecognized connection.
      */
     public static void registerBot(FakeConnection conn, UUID uuid, String name) {
         if (conn == null || uuid == null) return;

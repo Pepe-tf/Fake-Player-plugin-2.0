@@ -7,9 +7,9 @@ This `velocity-plugin.json` file is a **PLACEHOLDER** for documentation purposes
 ## Why This File Exists
 
 This file is included for:
-1. **Future development reference** — if we ever port FPP to Velocity
-2. **Template documentation** — shows the metadata structure
-3. **Build system compatibility** — some build tools expect this for multi-platform projects
+1. **Future development reference** - if we ever port FPP to Velocity
+2. **Template documentation** - shows the metadata structure
+3. **Build system compatibility** - some build tools expect this for multi-platform projects
 
 ## ❌ This Plugin Does NOT Work on Velocity
 

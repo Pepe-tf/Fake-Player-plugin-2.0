@@ -44,7 +44,7 @@ import de.bsommerfeld.pathetic.engine.factory.AStarPathfinderFactory;
  * <p>One shared {@link Pathfinder} instance serves every bot; per-request behavior (parkour,
  * block-breaking, block-placing, water/lava avoidance) is carried per-search via
  * {@link PatheticEnvironment} rather than by rebuilding the engine. Pathetic only produces the
- * waypoint list — actually walking the bot along it (rotation, sprint/jump, obstacle clearing,
+ * waypoint list - actually walking the bot along it (rotation, sprint/jump, obstacle clearing,
  * recalculation, arrival/stuck detection) is driven here every tick via a per-bot repeating task.
  */
 public final class PatheticPathfindingController implements PathfindingService.Controller {
@@ -115,7 +115,7 @@ public final class PatheticPathfindingController implements PathfindingService.C
     // ── Controller: starting a navigation ───────────────────────────────────
 
     /**
-     * A bot has exactly one body, so only one navigation can actually drive it at a time — but with
+     * A bot has exactly one body, so only one navigation can actually drive it at a time - but with
      * multiple task systems now running concurrently, more than one can want to relocate the bot in
      * the same tick. Rather than the old "whoever calls navigate() last wins" (silent hijack), the
      * single slot is arbitrated by priority: an explicit {@code /fpp move} always gets to relocate the
@@ -138,7 +138,7 @@ public final class PatheticPathfindingController implements PathfindingService.C
         if (existing != null
                 && existing.owner != request.owner()
                 && priority(existing.owner) >= priority(request.owner())) {
-            // A same-or-higher priority owner already holds the bot's single movement slot — decline
+            // A same-or-higher priority owner already holds the bot's single movement slot - decline
             // instead of hijacking it. Treated exactly like "no path found": the caller's existing
             // failure handling runs, and it's free to ask again once the slot frees up.
             failImmediately(request);
@@ -146,7 +146,7 @@ public final class PatheticPathfindingController implements PathfindingService.C
         }
 
         NavState previous = states.remove(uuid);
-        if (previous != null) stop(uuid, previous); // superseded, not an external cancel — no onCancel
+        if (previous != null) stop(uuid, previous); // superseded, not an external cancel - no onCancel
 
         Player bot = fp.getPlayer();
         if (bot == null || !bot.isOnline()) {
@@ -204,7 +204,7 @@ public final class PatheticPathfindingController implements PathfindingService.C
 
         // Pathetic's search runs async against a snapshot of the world and only checks each node in
         // isolation. Re-walk the finished route synchronously, on the main thread, against the real
-        // current block state before committing the bot to it — this catches routes that are legal
+        // current block state before committing the bot to it - this catches routes that are legal
         // node-by-node but not actually walkable end to end (chunks changed mid-search, or a sequence
         // the node-level model can't see, like tunneling through several stacked leaf/vine blocks),
         // so the bot never sets off toward something it's about to fail to reach.
@@ -238,7 +238,7 @@ public final class PatheticPathfindingController implements PathfindingService.C
         BotPathfinder.PathOptions options = PathfindingService.resolvePathOptions(fp, state.request.overrideOpts());
 
         // Waypoint 0 is always the bot's real, current physical position (the search starts from
-        // wherever the bot is standing right now) — not a synthesized grid node. It's valid by
+        // wherever the bot is standing right now) - not a synthesized grid node. It's valid by
         // definition; re-running the grid model's standability heuristic against it is redundant at
         // best and, at worst, a false rejection (e.g. the bot is legitimately standing on something
         // the block-name heuristics don't recognize) that would reject *every single path* the bot
@@ -264,7 +264,7 @@ public final class PatheticPathfindingController implements PathfindingService.C
             }
 
             if (horiz > 1.5 && !options.parkour()) {
-                // A gap-jump offset slipped through without parkour enabled for this search —
+                // A gap-jump offset slipped through without parkour enabled for this search -
                 // ParkourGapValidator should already prevent this, but verify defensively.
                 return "UNEXPECTED_GAP@" + i + "(" + String.format("%.2f", horiz) + ")";
             }
@@ -298,10 +298,10 @@ public final class PatheticPathfindingController implements PathfindingService.C
     }
 
     /**
-     * Unconditionally gives up on the current navigation — used when the stuck→recalculate budget
+     * Unconditionally gives up on the current navigation - used when the stuck→recalculate budget
      * ({@link Config#pathfindingMaxStuckCycles()}) is exhausted with zero real progress in between,
      * meaning the target is reachable-on-paper but not physically, and recalculating again would just
-     * loop forever. Unlike {@link #onPathFailed}, this never "continues on the remaining waypoints" —
+     * loop forever. Unlike {@link #onPathFailed}, this never "continues on the remaining waypoints" -
      * those waypoints are exactly what the bot has been failing to walk.
      */
     private void abandonNavigation(FakePlayer fp, NavState state) {
@@ -317,7 +317,7 @@ public final class PatheticPathfindingController implements PathfindingService.C
     }
 
     /**
-     * Builds a single-line, grep-friendly diagnostic string for the server log — everything needed to
+     * Builds a single-line, grep-friendly diagnostic string for the server log - everything needed to
      * understand why a navigation stalled/failed after the fact: bot, owner, where it was stuck,
      * where it was headed, how far into the path it got, and which path options were active.
      */
@@ -369,7 +369,7 @@ public final class PatheticPathfindingController implements PathfindingService.C
 
     private void tickMovement(FakePlayer fp, NavState state) {
         UUID uuid = fp.getUuid();
-        if (states.get(uuid) != state) return; // superseded/cancelled — task will be cancelled shortly
+        if (states.get(uuid) != state) return; // superseded/cancelled - task will be cancelled shortly
 
         Player bot = fp.getPlayer();
         if (bot == null || !bot.isOnline() || fp.isFrozen() || fp.isAuthPending() || fp.isActionsPaused()) return;
@@ -498,7 +498,7 @@ public final class PatheticPathfindingController implements PathfindingService.C
     /**
      * Chat-based counterpart to the particle path debug: sent to every viewer subscribed to this
      * bot ({@link PathfindingDebugManager}) whenever something goes wrong (stuck, no path, watchdog,
-     * mining stall), so the cause isn't just visible — it's explained.
+     * mining stall), so the cause isn't just visible - it's explained.
      */
     public static void sendDebugChat(UUID botUuid, String botName, String langKey, String... args) {
         Set<UUID> viewers = PathfindingDebugManager.getViewers(botUuid);
@@ -530,7 +530,7 @@ public final class PatheticPathfindingController implements PathfindingService.C
     private boolean clearingObstruction(FakePlayer fp, Player bot, NavState state, Location moveTarget) {
         BotPathfinder.PathOptions options = PathfindingService.resolvePathOptions(fp, state.request.overrideOpts());
         double xz = PathfindingService.xzDist(bot.getLocation(), moveTarget);
-        if (xz > 1.6) return false; // not adjacent yet — nothing to clear right now
+        if (xz > 1.6) return false; // not adjacent yet - nothing to clear right now
 
         if (options.breakBlocks()) {
             Block feet = moveTarget.getBlock();
@@ -579,14 +579,14 @@ public final class PatheticPathfindingController implements PathfindingService.C
                 state.stuckTicks++;
             } else {
                 state.stuckTicks = 0;
-                // Genuine movement happened — the obstruction that caused earlier stuck cycles (if
+                // Genuine movement happened - the obstruction that caused earlier stuck cycles (if
                 // any) is no longer in the way, so the give-up budget can reset too.
                 state.totalStuckCycles = 0;
             }
         }
         state.lastPos = current.clone();
 
-        // Nudge with a jump partway through the window before committing to a full recalculation —
+        // Nudge with a jump partway through the window before committing to a full recalculation -
         // covers the common case of being wedged against a lip/leaf/slab that just needs a hop, not
         // an actually-bad route. Recalculating against unchanged terrain tends to just return the
         // same path and get stuck again immediately.

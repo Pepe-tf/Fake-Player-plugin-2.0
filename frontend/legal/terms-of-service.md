@@ -227,7 +227,7 @@ You may not:
 # 8. Extensions and Addons
 
 > **Removed as of v2.0.0.** The Extension / Addon API and dynamic extension loader described in this
-> section no longer exist — FPP does not load external extensions. This section is retained for
+> section no longer exist - FPP does not load external extensions. This section is retained for
 > historical reference only. To integrate with FPP today, use the read-only `FppApi` and the
 > `FppBot*` Bukkit events from a normal plugin.
 

@@ -31,13 +31,13 @@ import net.minecraft.world.phys.Vec3;
  * Dispatches <em>authentic</em> serverbound interaction packets through the bot's real
  * {@link net.minecraft.server.network.ServerGamePacketListenerImpl} (the injected
  * {@link me.bill.fakePlayerPlugin.fakeplayer.network.FakeServerGamePacketListenerImpl}, which only
- * overrides the outbound {@code send(...)} — every inbound {@code handle*} method is the live server
+ * overrides the outbound {@code send(...)} - every inbound {@code handle*} method is the live server
  * implementation).
  *
  * <p>This makes the server perform each click exactly as it does for a real client: reach/anti-cheat
  * validation, Bukkit events ({@code PlayerInteractEvent}, {@code BlockBreakEvent},
  * {@code PlayerInteractEntityEvent}, …), item durability, hunger, use-timing and every item's native
- * behaviour — with zero per-item special-casing in the plugin. Nothing here mutates the world
+ * behaviour - with zero per-item special-casing in the plugin. Nothing here mutates the world
  * directly; the server does all the work.
  */
 public final class BotClickDispatcher {
@@ -80,7 +80,7 @@ public final class BotClickDispatcher {
                         ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, pos, face, nextSequence(nms)));
     }
 
-    /** Finish destroying {@code pos} — routes through the real {@code handlePlayerAction} destroy path. */
+    /** Finish destroying {@code pos} - routes through the real {@code handlePlayerAction} destroy path. */
     public static void stopDestroy(ServerPlayer nms, BlockPos pos, Direction face) {
         dispatch(
                 nms,
@@ -167,7 +167,7 @@ public final class BotClickDispatcher {
     /**
      * Sets the Spigot-added {@code public long timestamp} field on use packets. The network-read
      * constructor stamps it with {@code System.currentTimeMillis()}, but our directly-constructed
-     * packets leave it {@code 0} — and {@code handleUseItem}/{@code handleUseItemOn} feed it into
+     * packets leave it {@code 0} - and {@code handleUseItem}/{@code handleUseItemOn} feed it into
      * Paper's incoming-packet spam limiter ({@code checkLimit}), where a constant 0 looks like "no
      * time passed since the last packet" and permanently drops every use packet after the first few.
      * Reflection keeps this version-tolerant: if the field is ever removed, stamping is a no-op.
@@ -287,7 +287,7 @@ public final class BotClickDispatcher {
             // Every interaction handler is gated behind ServerGamePacketListenerImpl#hasClientLoaded().
             // A real client clears that gate by sending ServerboundPlayerLoadedPacket once it finishes
             // loading; a bot never does, so its handlers would silently no-op. Send that same packet
-            // (idempotent — the gate flips true after the first call) so the server treats the bot as a
+            // (idempotent - the gate flips true after the first call) so the server treats the bot as a
             // fully-loaded client. Skipped while waiting-for-respawn, which is correct.
             if (!nms.connection.hasClientLoaded()) {
                 new ServerboundPlayerLoadedPacket().handle(nms.connection);

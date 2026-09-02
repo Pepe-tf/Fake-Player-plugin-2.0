@@ -97,7 +97,7 @@ public final class SettingGui implements Listener {
         this.categories = new Category[] {general(), body(), auth(), perf(), debug()};
 
         if (!AttributionManager.quickAuthorCheck()) {
-            // Attribution integrity check failed — silently continuing.
+            // Attribution integrity check failed - silently continuing.
         }
     }
 
@@ -716,10 +716,10 @@ public final class SettingGui implements Listener {
         meta.lore(List.of(
                 Component.empty()
                         .decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text("ᴄʟɪᴄᴋ — ꜱᴀᴠᴇ & ᴄʟᴏꜱᴇ").color(DARK_GRAY)),
+                        .append(Component.text("ᴄʟɪᴄᴋ - ꜱᴀᴠᴇ & ᴄʟᴏꜱᴇ").color(DARK_GRAY)),
                 Component.empty()
                         .decoration(TextDecoration.ITALIC, false)
-                        .append(Component.text("ꜱʜɪꜰᴛ-ᴄʟɪᴄᴋ — ꜱᴀᴠᴇ & ᴏᴘᴇɴ ᴛʜᴇ ʙᴏᴛ ʟɪꜱᴛ")
+                        .append(Component.text("ꜱʜɪꜰᴛ-ᴄʟɪᴄᴋ - ꜱᴀᴠᴇ & ᴏᴘᴇɴ ᴛʜᴇ ʙᴏᴛ ʟɪꜱᴛ")
                                 .color(DARK_GRAY))));
         item.setItemMeta(meta);
         return item;
@@ -1174,10 +1174,7 @@ public final class SettingGui implements Listener {
                                 "ɪɴᴄʟᴜᴅᴇ ʟᴏᴡᴇʀᴄᴀꜱᴇ ʟᴇᴛᴛᴇʀꜱ.",
                                 Material.PAPER),
                         SettingEntry.toggle(
-                                "auth.password.digits",
-                                "ᴘᴀꜱꜱᴡᴏʀᴅ: ᴅɪɢɪᴛꜱ",
-                                "ɪɴᴄʟᴜᴅᴇ ɴᴜᴍʙᴇʀꜱ.",
-                                Material.PAPER),
+                                "auth.password.digits", "ᴘᴀꜱꜱᴡᴏʀᴅ: ᴅɪɢɪᴛꜱ", "ɪɴᴄʟᴜᴅᴇ ɴᴜᴍʙᴇʀꜱ.", Material.PAPER),
                         SettingEntry.toggle(
                                 "auth.password.symbols",
                                 "ᴘᴀꜱꜱᴡᴏʀᴅ: ꜱʏᴍʙᴏʟꜱ",
@@ -1281,7 +1278,7 @@ public final class SettingGui implements Listener {
                                 "ᴛᴏɢɢʟᴇꜱ ᴛʜᴇ ᴘᴀᴛʜꜰɪɴᴅɪɴɢ ᴘᴀʀᴛɪᴄʟᴇ ᴛʀᴀɪʟ (ꜱᴀᴍᴇ ᴏɴᴇ ᴀꜱ ᴀ\n"
                                         + "ʙᴏᴛ'ꜱ ᴏᴡɴ ꜱᴇᴛᴛɪɴɢꜱ) ꜰᴏʀ ᴇᴠᴇʀʏ ᴄᴜʀʀᴇɴᴛʟʏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ᴀᴛ\n"
                                         + "ᴏɴᴄᴇ, ᴠɪꜱɪʙʟᴇ ᴏɴʟʏ ᴛᴏ ʏᴏᴜ. ᴅᴏᴇꜱɴ'ᴛ ᴀᴜᴛᴏ-ᴀᴘᴘʟʏ ᴛᴏ ʙᴏᴛꜱ\n"
-                                        + "ꜱᴘᴀᴡɴᴇᴅ ᴀꜰᴛᴇʀ ʏᴏᴜ ᴛᴏɢɢʟᴇ ᴛʜɪꜱ — ʀᴇ-ᴄʟɪᴄᴋ ᴛᴏ ᴘɪᴄᴋ ᴛʜᴇᴍ ᴜᴘ.",
+                                        + "ꜱᴘᴀᴡɴᴇᴅ ᴀꜰᴛᴇʀ ʏᴏᴜ ᴛᴏɢɢʟᴇ ᴛʜɪꜱ - ʀᴇ-ᴄʟɪᴄᴋ ᴛᴏ ᴘɪᴄᴋ ᴛʜᴇᴍ ᴜᴘ.",
                                 Material.MAP),
                         // ── Core switches ────────────────────────────────────
                         SettingEntry.debugToggle(

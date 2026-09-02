@@ -7,7 +7,7 @@ import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 
 /**
  * Computes a live, human-readable label for whatever a bot is currently doing, by directly
- * querying each task command's own "is this bot active in me" state — no separate tracked state
+ * querying each task command's own "is this bot active in me" state - no separate tracked state
  * to fall out of sync, since it always reflects the current truth at render time.
  */
 public final class BotActivity {

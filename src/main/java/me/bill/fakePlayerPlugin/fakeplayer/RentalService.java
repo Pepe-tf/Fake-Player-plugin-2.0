@@ -19,9 +19,9 @@ import me.bill.fakePlayerPlugin.util.FppScheduler;
  *   <li>despawns the bot (with a notice) the moment its paid time actually runs out.</li>
  * </ul>
  *
- * <p>This runs independently of whether economy purchasing itself is enabled/available —
+ * <p>This runs independently of whether economy purchasing itself is enabled/available -
  * {@code /fpp rent give} can hand out rental time with no economy plugin involved at all (that's
- * the point of it — a custom shop plugin's own reward command), so a bot can be "rented" (i.e. carry
+ * the point of it - a custom shop plugin's own reward command), so a bot can be "rented" (i.e. carry
  * an expiry) regardless of {@link Config#economyEnabled()}. The sweep only cares whether any bot
  * actually has an expiry set.
  */
@@ -77,7 +77,7 @@ public final class RentalService {
         }
     }
 
-    /** True if the bot's owner currently holds the bypass permission — checked live, not cached. */
+    /** True if the bot's owner currently holds the bypass permission - checked live, not cached. */
     private boolean hasUnlimitedRental(FakePlayer fp) {
         Player owner = Bukkit.getPlayer(fp.getSpawnedByUuid());
         return owner != null && owner.isOnline() && owner.hasPermission(Perm.RENT_UNLIMITED);

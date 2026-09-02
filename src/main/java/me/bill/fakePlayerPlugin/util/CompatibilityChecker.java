@@ -91,7 +91,7 @@ public final class CompatibilityChecker {
         int[] parts = parseVersionParts(version);
         if (parts.length == 0) return true;
 
-        // Old format: 1.x.y  — supported if < 1.21.12
+        // Old format: 1.x.y  - supported if < 1.21.12
         if (parts[0] == 1) {
             return !isVersionAtLeast(version, "1.21.12");
         }
@@ -101,7 +101,7 @@ public final class CompatibilityChecker {
             return true;
         }
 
-        // Everything else is unknown — treat as unsupported.
+        // Everything else is unknown - treat as unsupported.
         return false;
     }
 

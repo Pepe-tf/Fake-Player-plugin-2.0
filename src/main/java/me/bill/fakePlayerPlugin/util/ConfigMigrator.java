@@ -889,7 +889,7 @@ public final class ConfigMigrator {
         if (changed) {
             log(
                     "v59→v60",
-                    "removed skin.fallback-pool and skin.fallback-name — now hardcoded in"
+                    "removed skin.fallback-pool and skin.fallback-name - now hardcoded in"
                             + " SkinManager (1000-player pool)");
         }
         return changed;
@@ -935,7 +935,7 @@ public final class ConfigMigrator {
     }
 
     private static boolean v66to67(YamlConfiguration cfg) {
-        log("v66→v67", "housekeeping stamp — bot-name.mode default changed to random");
+        log("v66→v67", "housekeeping stamp - bot-name.mode default changed to random");
         return false;
     }
 

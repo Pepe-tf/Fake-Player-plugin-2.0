@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.state.BlockState;
 /**
  * Path-clearing block operations: breaking an obstruction or placing a block to bridge a gap, both
  * on a fixed tick budget ({@link Config#pathfindingBreakTicks()} / {@link
- * Config#pathfindingPlaceTicks()}) rather than {@code LeftClickCommand}'s tool-aware mining speed —
+ * Config#pathfindingPlaceTicks()}) rather than {@code LeftClickCommand}'s tool-aware mining speed -
  * this is a movement-clearing action, not a precision mining command.
  */
 final class NavBlockOps {

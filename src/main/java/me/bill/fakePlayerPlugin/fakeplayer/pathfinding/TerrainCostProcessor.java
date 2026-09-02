@@ -34,7 +34,7 @@ public final class TerrainCostProcessor implements CostProcessor {
 
         // Vines/scaffolding/ladders are climbable so the hard-gate in
         // BukkitNavigationPointProvider allows them, but real climbing is far more failure-prone
-        // to actually execute (autojump/step-up logic isn't built for it) than walking — only take
+        // to actually execute (autojump/step-up logic isn't built for it) than walking - only take
         // this route when nothing better exists.
         if (BotNavUtil.isClimbable(feet)) return Cost.of(3.0);
 
@@ -42,7 +42,7 @@ public final class TerrainCostProcessor implements CostProcessor {
         if (below.isAir()) return Cost.of(3.0); // gap that needs bridging
 
         // Standing on leaves is legal (they have real collision), but routes through a tree canopy
-        // are frequently a dead end wedged between more leaves/vines on every side — nudge the
+        // are frequently a dead end wedged between more leaves/vines on every side - nudge the
         // search toward solid ground when a comparable route exists instead of tunneling through.
         if (below.name().contains("LEAVES")) return Cost.of(2.0);
 

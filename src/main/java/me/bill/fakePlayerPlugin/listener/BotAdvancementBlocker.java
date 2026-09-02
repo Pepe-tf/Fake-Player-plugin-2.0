@@ -10,7 +10,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 
 /**
  * Prevents bots from earning advancements. Cancelling the criterion grant blocks all progress at
- * the source, so a bot never completes an advancement — no toast, no chat announcement, and no
+ * the source, so a bot never completes an advancement - no toast, no chat announcement, and no
  * progress accumulating in its {@code world/advancements/<uuid>.json}.
  */
 public final class BotAdvancementBlocker implements Listener {

@@ -22,7 +22,7 @@ public final class StopCommand implements FppCommand {
 
     private final FakePlayerManager manager;
 
-    // All references are nullable — injected after construction.
+    // All references are nullable - injected after construction.
     @Nullable
     private MoveCommand moveCommand;
 

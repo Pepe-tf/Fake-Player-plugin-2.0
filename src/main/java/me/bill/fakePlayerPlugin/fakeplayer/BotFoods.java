@@ -13,7 +13,7 @@ import org.bukkit.Material;
  * Single source of truth for the foods the auto-eat system understands. Powers both the eating math
  * (nutrition + saturation) and the per-bot food-selector GUI, so the two can never drift apart.
  *
- * <p>Only beneficial / neutral foods are listed — items with harmful side effects (rotten flesh,
+ * <p>Only beneficial / neutral foods are listed - items with harmful side effects (rotten flesh,
  * spider eye, pufferfish, poisonous potato, chorus fruit, etc.) are intentionally excluded so a bot
  * left on the default "eat anything" filter never poisons or teleports itself.
  */
