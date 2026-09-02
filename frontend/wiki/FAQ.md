@@ -60,9 +60,10 @@ bits. They can never collide with real accounts.
 **A:** No - `/fpp spawn` intentionally creates exactly one bot per command (auto-named, or
 `--name <name>` for a custom name).
 
-### Q: Can I run `/fpp spawn` from the server console?
-**A:** No - `/fpp spawn` is in-game only; console senders get the same "only a player can run this
-command" rejection as any other player-only command.
+### Q: Can I run `/fpp spawn` from the server console or a command block?
+**A:** Yes, if you hold `fpp.spawn` (the admin tier) - but you must pass `--location <x> <y> <z>
+<world>`, since neither has a location of its own to spawn at by default. `fpp.spawn.user` (personal
+bot limit, ownership, cooldown) needs a real player and isn't usable from console/command blocks.
 
 ### Q: Can I spawn a bot somewhere other than my own location?
 **A:** Admins (`fpp.spawn`) can with `/fpp spawn --location <x> <y> <z> <world>`, combinable with

@@ -6,7 +6,7 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 
 | Command | Usage | Description | Permission |
 |---------|-------|-------------|------------|
-| **spawn** | `[--name <name>] [--location <x> <y> <z> <world>]` | Spawn **one** fake player bot per command at your own location - auto-named `bot`, `bot2`, … or custom-named via `--name`. `--location` targets another spot/world instead (admin only). In-game only (no console) | `fpp.spawn` (admin) / `fpp.spawn.user` (user) |
+| **spawn** | `[--name <name>] [--location <x> <y> <z> <world>]` | Spawn **one** fake player bot per command at your own location - auto-named `bot`, `bot2`, … or custom-named via `--name`. `--location` targets another spot/world instead (admin only; mandatory from console/command blocks, which have no location of their own) | `fpp.spawn` (admin) / `fpp.spawn.user` (user, in-game only) |
 | **despawn** | `<name> \| --all \| --own \| --count <n> \| --random [--count <n>]` | Despawn bots by name, owner, count, or random selection | `fpp.despawn` |
 | **list** | `[page]` | List all currently active bots | `fpp.list` |
 | **tph** | `[botname\|all]` | Teleport your bot(s) to you | `fpp.tph` |
@@ -40,6 +40,7 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 /fpp spawn                            # spawn one auto-named bot at your location
 /fpp spawn --name Miner               # spawn one bot with a custom name
 /fpp spawn --location 100 64 -200 world_nether   # spawn one bot at a specific location/world (admin only)
+/fpp spawn --name Miner --location 100 64 -200 world   # from console/command block, --location is required
 /fpp despawn --all                    # remove all bots
 /fpp despawn --own                    # remove bots you spawned
 /fpp despawn --random --count 3       # remove 3 random bots
@@ -71,7 +72,7 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 - `--once` performs a single action and then stops.
 - `--stop` cancels the command's activity for the specified bot(s).
 - `spawn` creates exactly **one** bot per command - the bulk `[amount]` form and the bot-type tag were removed.
-- `spawn` is in-game only (a real player sender is required) and spawns at your own location by default; admins (`fpp.spawn`) can target another spot/world with `--location <x> <y> <z> <world>`. There is no console spawning.
+- `spawn` spawns at your own location by default; admins (`fpp.spawn`) can target another spot/world with `--location <x> <y> <z> <world>`. Console and command-block senders have no location of their own, so `--location` is mandatory for them, and they're admin-tier only - `fpp.spawn.user` (personal bot limit, ownership, cooldown) needs a real player.
 - `--name` names are validated (1-16 chars, letters/numbers/underscores, badword filter) and rejected if a bot already uses them or a real player with that name is online. The mandatory "ʙᴏᴛ ʙʏ {owner}" nametag row still marks every bot as a bot regardless of its name.
 - `/fpp move` is pathfinding-only: `--to <bot|player>` (follows the target live if it keeps moving) or `--coords <x> <y> <z> [world]`, backed by the core Pathetic-powered pathfinding engine. Directional raw-input movement was removed.
 - `/fpp attack` is a basic swing/attack command. Rich PVE combat (mob targeting, range, priority, pathfinding-linked chasing) is configured per bot in its settings GUI under `🗡 ᴘᴠᴇ`.

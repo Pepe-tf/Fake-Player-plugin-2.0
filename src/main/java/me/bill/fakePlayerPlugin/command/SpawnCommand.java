@@ -20,9 +20,11 @@ import me.bill.fakePlayerPlugin.permission.Perm;
  * via {@code --name}. The old bulk form ({@code /fpp spawn <amount>}) and the bot-type tag were
  * removed deliberately: one command, one bot.
  *
- * <p>In-game only: there is no console spawning. Bots spawn at the commanding player's own location
- * unless an admin (holding {@link Perm#SPAWN}) targets another spot with {@code --location <x> <y> <z>
- * <world>}.
+ * <p>Bots spawn at the commanding player's own location by default, or wherever an admin (holding
+ * {@link Perm#SPAWN}) targets with {@code --location <x> <y> <z> <world>}. Console and command-block
+ * senders have no location of their own to fall back on, so {@code --location} is mandatory for them
+ * - and, since they can't own bots personally, they can only use the admin tier, never
+ * {@link Perm#USER_SPAWN}.
  */
 public class SpawnCommand implements FppCommand {
 
@@ -44,7 +46,8 @@ public class SpawnCommand implements FppCommand {
 
     @Override
     public String getDescription() {
-        return "Spawns a fake player bot at your location, or --location <x> <y> <z> <world> (admin only).";
+        return "Spawns a fake player bot at your location, or --location <x> <y> <z> <world> (admin"
+                + " only; required from console/command blocks).";
     }
 
     @Override
@@ -59,16 +62,20 @@ public class SpawnCommand implements FppCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(Lang.get("player-only"));
-            return true;
-        }
+        Player player = sender instanceof Player p ? p : null;
 
         boolean isAdmin = Perm.has(sender, Perm.SPAWN);
         boolean isUser = !isAdmin && Perm.has(sender, Perm.USER_SPAWN);
 
         if (!isAdmin && !isUser) {
             sender.sendMessage(Lang.get("no-permission"));
+            return true;
+        }
+
+        // User-tier spawning tracks personal ownership, a bot limit, and a cooldown against a real
+        // player's UUID - none of which exist for console/command-block senders, so they're admin-only.
+        if (player == null && !isAdmin) {
+            sender.sendMessage(Lang.get("player-only"));
             return true;
         }
 
@@ -86,7 +93,7 @@ public class SpawnCommand implements FppCommand {
             positional.remove(nameFlag);
         }
 
-        Location location = player.getLocation().clone();
+        Location location = player != null ? player.getLocation().clone() : null;
 
         int locationFlag = positional.indexOf("--location");
         if (locationFlag >= 0) {
@@ -116,16 +123,19 @@ public class SpawnCommand implements FppCommand {
                 return true;
             }
 
-            location = new Location(
-                    world,
-                    x,
-                    y,
-                    z,
-                    player.getLocation().getYaw(),
-                    player.getLocation().getPitch());
+            float yaw = player != null ? player.getLocation().getYaw() : 0f;
+            float pitch = player != null ? player.getLocation().getPitch() : 0f;
+            location = new Location(world, x, y, z, yaw, pitch);
         }
 
-        if (!Perm.has(sender, Perm.BYPASS_COOLDOWN) && manager.isOnCooldown(player.getUniqueId())) {
+        if (location == null) {
+            // Console/command-block sender that didn't pass --location - there's no player position to
+            // fall back on.
+            sender.sendMessage(Lang.get("spawn-invalid-location"));
+            return true;
+        }
+
+        if (player != null && !Perm.has(sender, Perm.BYPASS_COOLDOWN) && manager.isOnCooldown(player.getUniqueId())) {
             long remaining = manager.getRemainingCooldown(player.getUniqueId());
             sender.sendMessage(Lang.get("spawn-cooldown", "seconds", String.valueOf(remaining)));
             return true;
@@ -155,7 +165,7 @@ public class SpawnCommand implements FppCommand {
 
         int result = manager.spawn(location, 1, player, customName, bypassMax, BotType.AFK);
         if (handleSpawnResult(sender, result, customName)) {
-            manager.recordSpawnCooldown(player.getUniqueId());
+            if (player != null) manager.recordSpawnCooldown(player.getUniqueId());
             sender.sendMessage(Lang.get("spawn-success", "count", "1", "total", String.valueOf(manager.getCount())));
         }
         return true;

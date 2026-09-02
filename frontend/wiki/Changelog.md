@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.0.6.1 (Beta)
+
+### Added - Console & Command-Block Spawning
+
+- `/fpp spawn` can now be run from the server console and from command blocks, not just in-game -
+  admin-tier (`fpp.spawn`) only, and `--location <x> <y> <z> <world>` is now mandatory for them since
+  neither has a location of its own to fall back on. User-tier spawns (`fpp.spawn.user`) still require
+  a real player: personal bot ownership, the per-player bot limit, and the spawn cooldown all key off
+  a player's UUID, which console/command-block senders don't have.
+
 ## v2.0.6 (Beta)
 
 ### Added - `/fpp spawn --location`

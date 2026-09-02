@@ -21,11 +21,14 @@ server operators, and FPP will always respect it.
 
 ### Spawn
 > `/fpp spawn` creates exactly **one** bot per command (auto-named or `--name <name>`), by default at
-> the commanding player's own location. In-game only - there is no console spawning.
+> the commanding player's own location. Console and command-block senders can use it too, but only at
+> the admin tier, and only with `--location <x> <y> <z> <world>` - they have no location of their own.
 - `fpp.spawn` - admin spawn (ignores personal limits); also gates `--location <x> <y> <z> <world>` to
-  spawn somewhere other than the sender's own position
+  spawn somewhere other than the sender's own position, and is the only tier console/command blocks
+  can use
 - `fpp.spawn.user` - user spawn (limited by personal bot cap); always spawns at the sender's own
-  location, `--location` is not available at this tier
+  location, `--location` is not available at this tier, and it requires a real player - console and
+  command blocks can't use it
   - `fpp.spawn.limit.1` through `fpp.spawn.limit.100` - personal bot limit
 
 ### Despawn

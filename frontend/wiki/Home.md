@@ -46,11 +46,11 @@ always wear a mandatory "ʙᴏᴛ ʙʏ {owner}" nametag, and can never take a re
 
 ---
 
-## Latest Version: v2.0.6
+## Latest Version: v2.0.6.1
 
 **Highlights:**
 - 📍 **`/fpp spawn --location`** - admins can spawn a bot at any `<x> <y> <z> <world>` instead of only
-  their own location
+  their own location, and can now do it from the console or a command block too (`--location` required)
 - 🛠️ **Smarter Left/Right-Click** - `left-click` auto-equips the best available tool before mining,
   and `right-click` now falls back to the off-hand item when the main hand does nothing, matching a
   real client's own hand-loop
