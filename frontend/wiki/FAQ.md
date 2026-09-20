@@ -3,7 +3,7 @@
 ## General
 
 ### Q: What server software is supported?
-**A:** Paper/Purpur 1.21+ (up to 1.21.11 and the year-based 26.1.x–26.2.x releases) and Folia. FPP has full Folia support with region-threaded bot spawning.
+**A:** Paper/Purpur 1.21+ (up to 1.21.11 and the year-based 26.1.x–26.3.x releases) and Folia. FPP has full Folia support with region-threaded bot spawning.
 
 ### Q: Does it work on Spigot or CraftBukkit?
 **A:** No. FPP uses Paper-specific APIs and NMS Mojang-mapped classes.
@@ -44,6 +44,13 @@ Enable the `skin-pool` debug topic to trace the pipeline. To disable skins set
 **A:** By design. The name tag is a real world entity, so anything that can remove an entity can remove
 it - but a self-heal check runs every 10 ticks and respawns it the moment it's gone. There's no way to
 make a bot permanently tag-less; the mandatory "ʙᴏᴛ ʙʏ {owner}" disclosure row can't be disabled either.
+
+### Q: I can still see the bot's normal vanilla name overlapping the custom name tag - why?
+**A:** The vanilla over-head name is hidden by putting each bot on a packet-only scoreboard team, and
+that is re-applied every few ticks. Since v2.0.6.1 those packets no longer depend on the tab-list
+packet setup, which was the most likely reason the hide was skipped. If you still see it, another plugin
+may be moving bots onto its own scoreboard team (a player can only be on one team at a time) - enable
+debug and look for `sendTeam` / `hideVanillaNameNow` / "hide-nametag" lines in the log.
 
 ### Q: How do bot UUIDs work?
 **A:** Deterministic and name-derived with a recognizable `fb07` prefix: `bot` →

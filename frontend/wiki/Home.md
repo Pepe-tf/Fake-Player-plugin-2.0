@@ -51,6 +51,8 @@ always wear a mandatory "ʙᴏᴛ ʙʏ {owner}" nametag, and can never take a re
 **Highlights:**
 - 📍 **`/fpp spawn --location`** - admins can spawn a bot at any `<x> <y> <z> <world>` instead of only
   their own location, and can now do it from the console or a command block too (`--location` required)
+- ✅ **Minecraft 26.3 Support** - the year-based `26.1.x`–`26.3.x` releases are now accepted
+- 🏷️ **Vanilla-name fix** - the hidden vanilla over-head name no longer shows through the custom nametag
 - 🛠️ **Smarter Left/Right-Click** - `left-click` auto-equips the best available tool before mining,
   and `right-click` now falls back to the off-hand item when the main hand does nothing, matching a
   real client's own hand-loop

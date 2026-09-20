@@ -2,6 +2,20 @@
 
 ## v2.0.6.1 (Beta)
 
+### Added - Minecraft 26.3 Support
+
+- `CompatibilityChecker.isSupportedVersion` now accepts `26.3.x` alongside `26.1.x` and `26.2.x`. The
+  unsupported-version warning and wiki version ranges now read `up to 1.21.11, and 26.1.x–26.3.x`.
+- Compile-time Paper dev bundle stays on `26.1.2.build.65-stable`.
+
+### Fixed - Vanilla Bot Name Showing Over the Custom Nametag
+
+- The team packets that hide a bot's vanilla over-head name were gated on `PacketHelper`'s unrelated
+  tab-list reflection init, so if that init failed the hide was silently skipped and the vanilla name
+  drew on top of the custom text_display tag. Those packets no longer depend on it.
+- Failures while sending the hide-team packets are now written to the debug log, and a failure to
+  build the hide team logs a warning at startup instead of failing silently.
+
 ### Added - Console & Command-Block Spawning
 
 - `/fpp spawn` can now be run from the server console and from command blocks, not just in-game -

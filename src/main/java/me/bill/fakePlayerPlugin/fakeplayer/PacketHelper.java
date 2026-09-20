@@ -1202,12 +1202,14 @@ public final class PacketHelper {
      * class is responsible for pushing it to clients directly instead.
      */
     public static void sendTeamCreate(Player receiver, PlayerTeam team) {
-        if (!ensureReady()) return;
+        // Deliberately not gated on ensureReady(): these are plain NMS packets and must still go out
+        // if the (unrelated) tab-list reflection init failed.
         try {
             ServerPlayer nms = getServerPlayer(receiver);
             if (nms == null) return;
             sendDirect(nms, ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(team, true));
-        } catch (Exception ignored) {
+        } catch (Throwable t) {
+            FppLogger.debug("sendTeamCreate failed for " + receiver.getName() + ": " + t);
         }
     }
 
@@ -1217,14 +1219,14 @@ public final class PacketHelper {
      * otherwise the client has no record of the team to add/remove the entry from.
      */
     public static void sendTeamMembership(Player receiver, PlayerTeam team, String entryName, boolean add) {
-        if (!ensureReady()) return;
         try {
             ServerPlayer nms = getServerPlayer(receiver);
             if (nms == null) return;
             ClientboundSetPlayerTeamPacket.Action action =
                     add ? ClientboundSetPlayerTeamPacket.Action.ADD : ClientboundSetPlayerTeamPacket.Action.REMOVE;
             sendDirect(nms, ClientboundSetPlayerTeamPacket.createPlayerPacket(team, entryName, action));
-        } catch (Exception ignored) {
+        } catch (Throwable t) {
+            FppLogger.debug("sendTeamMembership failed for " + receiver.getName() + ": " + t);
         }
     }
 

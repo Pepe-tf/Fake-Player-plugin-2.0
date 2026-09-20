@@ -74,7 +74,7 @@ public final class FakePlayerBody {
                 team.setCollisionRule(Team.CollisionRule.ALWAYS);
                 hideTeam = team;
             } catch (Throwable t2) {
-                FppLogger.debug("FakePlayerBody: failed to build hide-nametag team: " + t2.getMessage());
+                FppLogger.warn("FakePlayerBody: failed to build hide-nametag team (vanilla names will show): " + t2.getMessage());
             }
             return hideTeam;
         }
@@ -523,7 +523,8 @@ public final class FakePlayerBody {
                 ensureViewerKnowsTeam(viewer, team);
                 PacketHelper.sendTeamMembership(viewer, team, name, true);
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            FppLogger.debug("hideVanillaNameNow failed for " + fp.getName() + ": " + t);
         }
     }
 
